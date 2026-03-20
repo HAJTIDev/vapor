@@ -6,19 +6,47 @@ const { autoUpdater } = require('electron-updater')
 const isDev = !app.isPackaged
 let mainWindow
 
-const SGDB_KEY = process.env.SGDB_KEY || ''
-const SGDB_KEY_ENC = safeStorage.isEncryptionAvailable() && SGDB_KEY
-  ? safeStorage.encryptString(SGDB_KEY).toString('base64')
-  : SGDB_KEY
+let sgdbKeyCache = null
+
+function loadSgdbKey() {
+  if (sgdbKeyCache !== null) return sgdbKeyCache
+  const envKey = process.env.SGDB_KEY
+  if (envKey) {
+    sgdbKeyCache = envKey
+    return sgdbKeyCache
+  }
+  try {
+    if (fs.existsSync(SGDB_KEY_FILE)) {
+      sgdbKeyCache = fs.readFileSync(SGDB_KEY_FILE, 'utf8').trim()
+    } else {
+      sgdbKeyCache = ''
+    }
+  } catch { sgdbKeyCache = '' }
+  return sgdbKeyCache
+}
+
+function saveSgdbKey(key) {
+  try {
+    if (!key) {
+      if (fs.existsSync(SGDB_KEY_FILE)) fs.unlinkSync(SGDB_KEY_FILE)
+      sgdbKeyCache = ''
+      resetSgdbModule()
+      console.log('[saveSgdbKey] Key cleared')
+      return true
+    }
+    sgdbKeyCache = key
+    fs.writeFileSync(SGDB_KEY_FILE, key)
+    resetSgdbModule()
+    console.log('[saveSgdbKey] Key saved, length:', key.length)
+    return true
+  } catch (err) {
+    console.error('[saveSgdbKey] Error:', err)
+    return false
+  }
+}
 
 function getSgdbKey() {
-  if (!SGDB_KEY_ENC) return null
-  if (safeStorage.isEncryptionAvailable()) {
-    try {
-      return safeStorage.decryptString(Buffer.from(SGDB_KEY_ENC, 'base64'))
-    } catch { return SGDB_KEY_ENC }
-  }
-  return SGDB_KEY_ENC
+  return loadSgdbKey() || null
 }
 
 const defaultSettings = {
@@ -52,12 +80,25 @@ function configureAutoStart() {
 const userDataPath = app.getPath('userData')
 const gamesFile = path.join(userDataPath, 'games.json')
 const settingsFile = path.join(userDataPath, 'settings.json')
+const SGDB_KEY_FILE = path.join(userDataPath, 'sgdb.key')
 
 function loadJSON(file, def) {
   try { if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8')) } catch {}
   return def
 }
-function saveJSON(file, data) { fs.writeFileSync(file, JSON.stringify(data, null, 2)) }
+function saveJSON(file, data) {
+  const dir = path.dirname(file)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const tmp = file + '.tmp'
+  try {
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2))
+    fs.renameSync(tmp, file)
+  } catch (err) {
+    console.error('[saveJSON] Failed to save', file, err)
+    try { fs.unlinkSync(tmp) } catch {}
+    throw err
+  }
+}
 
 const SKIP_EXE = [/setup/i,/install/i,/unins/i,/crash/i,/report/i,
                   /helper/i,/update/i,/patch/i,/vc_red/i,/dxsetup/i,
@@ -176,46 +217,71 @@ function netFetch(url, headers = {}) {
   })
 }
 
-const SGDB = 'https://www.steamgriddb.com/api/v2'
 
-let sgdbModule = null
+const SGDB_BASE = 'https://www.steamgriddb.com/api/v2'
 
-async function getSgdb() {
-  if (!sgdbModule) {
-    const key = getSgdbKey()
-    if (!key) return null
-    const { SteamGridDB } = await import('steamgriddb')
-    sgdbModule = new SteamGridDB(key)
+function resetSgdbModule() {}
+
+async function sgdbFetch(endpoint) {
+  const key = loadSgdbKey()
+  if (!key) {
+    console.error('[sgdbFetch] No API key loaded')
+    return null
   }
-  return sgdbModule
+  try {
+    const url = `${SGDB_BASE}${endpoint}`
+    const body = await netFetch(url, {
+      'Authorization': `Bearer ${key}`,
+      'Accept': 'application/json'
+    })
+    if (!body || !body.trim().startsWith('{')) {
+      console.error('[sgdbFetch] Non-JSON response:', body?.substring?.(0, 300))
+      return null
+    }
+    return JSON.parse(body)
+  } catch (err) {
+    console.error('[sgdbFetch] Error:', err.message || err)
+    return null
+  }
 }
 
 async function sgdbSearch(name) {
-  const client = await getSgdb()
-  if (!client) return null
+  const key = loadSgdbKey()
+  if (!key) {
+    console.log('[sgdbSearch] No API key')
+    return null
+  }
   try {
-    const results = await client.searchAutocomplete(name)
-    return results[0] || null
-  } catch { return null }
+    console.log('[sgdbSearch] Searching for:', name)
+    const data = await sgdbFetch(`/search/autocomplete/${encodeURIComponent(name)}`)
+    if (!data?.data?.length) return null
+    const game = data.data[0]
+    console.log('[sgdbSearch] Found:', game.name, 'ID:', game.id)
+    return { id: game.id, name: game.name }
+  } catch (err) {
+    console.error('[sgdbSearch] Error:', err)
+    return null
+  }
 }
 
 async function sgdbArt(gameId) {
-  const client = await getSgdb()
-  if (!client) return { grid: null, hero: null, logo: null, icon: null }
   try {
-    const [grids, heroes, logos, icons] = await Promise.all([
-      client.getGameGrids(gameId, { dimensions: '600x900' }),
-      client.getGameHeroes(gameId),
-      client.getGameLogos(gameId),
-      client.getGameIcons(gameId),
+    console.log('[sgdbArt] Fetching art for game ID:', gameId)
+    const [grids, heroes, logos] = await Promise.all([
+      sgdbFetch(`/grids/game/${gameId}?dimensions=600x900`),
+      sgdbFetch(`/heroes/game/${gameId}`),
+      sgdbFetch(`/logos/game/${gameId}`),
     ])
+    console.log('[sgdbArt] Got:', { grid: !!grids?.data?.[0], hero: !!heroes?.data?.[0], logo: !!logos?.data?.[0] })
     return {
-      grid: grids[0]?.url || null,
-      hero: heroes[0]?.url || null,
-      logo: logos[0]?.url || null,
-      icon: icons[0]?.url || null,
+      grid: grids?.data?.[0]?.url || null,
+      hero: heroes?.data?.[0]?.url || null,
+      logo: logos?.data?.[0]?.url || null,
     }
-  } catch { return { grid: null, hero: null, logo: null, icon: null } }
+  } catch (err) {
+    console.error('[sgdbArt] Error:', err)
+    return { grid: null, hero: null, logo: null }
+  }
 }
 
 function createWindow() {
@@ -308,19 +374,63 @@ ipcMain.handle('folder:scan', async (_, folder) => {
   return scanDir(folder)
 })
 
-ipcMain.handle('games:load', () => loadJSON(gamesFile, []))
-ipcMain.handle('games:save', (_, games) => { saveJSON(gamesFile, games); return true })
+ipcMain.handle('games:load', () => {
+  try {
+    return loadJSON(gamesFile, [])
+  } catch (err) {
+    console.error('[games:load] Error:', err)
+    return []
+  }
+})
+ipcMain.handle('games:save', (_, games) => {
+  try {
+    if (!Array.isArray(games)) {
+      console.error('[games:save] Invalid data:', typeof games)
+      return false
+    }
+    saveJSON(gamesFile, games)
+    return true
+  } catch (err) {
+    console.error('[games:save] Error:', err)
+    return false
+  }
+})
 
-ipcMain.handle('settings:load', () => loadJSON(settingsFile, defaultSettings))
-ipcMain.handle('settings:save', (_, s) => { saveJSON(settingsFile, s); return true })
+ipcMain.handle('settings:load', () => {
+  try {
+    return loadJSON(settingsFile, defaultSettings)
+  } catch (err) {
+    console.error('[settings:load] Error:', err)
+    return defaultSettings
+  }
+})
+ipcMain.handle('settings:save', (_, s) => {
+  try {
+    saveJSON(settingsFile, s)
+    return true
+  } catch (err) {
+    console.error('[settings:save] Error:', err)
+    return false
+  }
+})
+ipcMain.handle('settings:getSgdbKey', () => loadSgdbKey())
+ipcMain.handle('settings:setSgdbKey', (_, key) => saveSgdbKey(key))
 
 ipcMain.handle('art:fetch', async (_, name) => {
+  const key = loadSgdbKey()
+  if (!key) {
+    console.log('[art:fetch] No SteamGridDB API key configured')
+    return { error: 'no-api-key' }
+  }
   try {
     const game = await sgdbSearch(name)
-    if (!game) return null
+    if (!game) return { error: 'not-found' }
     const art = await sgdbArt(game.id)
     return { ...art, sgdbName: game.name }
-  } catch { return null }
+  } catch (err) {
+    console.error('[art:fetch] Error:', err)
+    return { error: err.message }
+  }
 })
 
 ipcMain.handle('game:launch', (_, game) => {

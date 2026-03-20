@@ -45,6 +45,10 @@ const browserFallback = {
   games: {
     load: async () => loadLocalJson(GAME_STORAGE_KEY, []),
     save: async (games) => {
+      if (!Array.isArray(games)) {
+        console.error('[browserFallback] Invalid games data:', typeof games)
+        return false
+      }
       saveLocalJson(GAME_STORAGE_KEY, games)
       return true
     },
@@ -55,6 +59,8 @@ const browserFallback = {
       saveLocalJson(SETTINGS_STORAGE_KEY, settings)
       return true
     },
+    getSgdbKey: async () => null,
+    setSgdbKey: async () => false,
   },
   art: {
     fetch: async () => null,

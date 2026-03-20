@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import vaporApi from '../vaporApi'
 
-export default function Settings({ settings, onSave }) {
+export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
   const [saved, setSaved] = useState(false)
   const [newCollection, setNewCollection] = useState('')
   const [updateStatus, setUpdateStatus] = useState(null)
   const [checkingUpdate, setCheckingUpdate] = useState(false)
+  const [sgdbKey, setSgdbKey] = useState('')
+  const [sgdbKeyVisible, setSgdbKeyVisible] = useState(false)
+  const [refreshingArt, setRefreshingArt] = useState(false)
+  const [artRefreshProgress, setArtRefreshProgress] = useState(null)
 
   useEffect(() => {
     const handleUpdateStatus = (data) => {
@@ -13,6 +17,9 @@ export default function Settings({ settings, onSave }) {
       setCheckingUpdate(false)
     }
     vaporApi.on('update:status', handleUpdateStatus)
+    vaporApi.settings.getSgdbKey?.().then(key => {
+      if (key) setSgdbKey(key)
+    }).catch(() => {})
     return () => vaporApi.off('update:status', handleUpdateStatus)
   }, [])
 
@@ -28,6 +35,37 @@ export default function Settings({ settings, onSave }) {
 
   const installUpdate = async () => {
     await vaporApi.update.install()
+  }
+
+  const saveSgdbKey = async () => {
+    const key = sgdbKey.trim()
+    if (vaporApi.settings.setSgdbKey) {
+      await vaporApi.settings.setSgdbKey(key)
+    }
+  }
+
+  const refreshAllArt = async () => {
+    if (!sgdbKey) {
+      alert('Please enter your SteamGridDB API key first.')
+      return
+    }
+    const gamesNeedingArt = (games || []).filter(g => !g.art?.grid)
+    if (gamesNeedingArt.length === 0) {
+      alert('All games already have cover art.')
+      return
+    }
+    setRefreshingArt(true)
+    setArtRefreshProgress({ done: 0, total: gamesNeedingArt.length })
+    for (let i = 0; i < gamesNeedingArt.length; i++) {
+      const game = gamesNeedingArt[i]
+      const art = await vaporApi.art.fetch(game.name)
+      if (art && !art.error) {
+        onRefreshAllArt && onRefreshAllArt(game.id, art)
+      }
+      setArtRefreshProgress({ done: i + 1, total: gamesNeedingArt.length })
+    }
+    setRefreshingArt(false)
+    setArtRefreshProgress(null)
   }
 
   const getStatusText = () => {
@@ -137,6 +175,62 @@ export default function Settings({ settings, onSave }) {
           Vapor uses <b>SteamGridDB</b> to fetch cover art, hero banners, logos and icons.
           Art is fetched automatically when you add games.
         </Info>
+        <div style={{ marginTop:12 }}>
+          <label style={{ fontSize:12, color:'var(--text-muted)', display:'block', marginBottom:6 }}>
+            SteamGridDB API Key
+          </label>
+          <div style={{ display:'flex', gap:8 }}>
+            <input
+              type={sgdbKeyVisible ? 'text' : 'password'}
+              value={sgdbKey}
+              onChange={e => setSgdbKey(e.target.value)}
+              onBlur={saveSgdbKey}
+              placeholder="Get a free key from steamgriddb.com"
+              style={{
+                flex:1,
+                background:'var(--surface2)',
+                border:'1px solid var(--border)',
+                borderRadius:6,
+                padding:'8px 10px',
+                color:'var(--text)',
+                fontSize:13,
+              }}
+            />
+            <button onClick={() => setSgdbKeyVisible(v => !v)} style={{
+              padding:'8px 10px', borderRadius:6, fontSize:12,
+              background:'var(--surface2)', color:'var(--text-dim)', border:'1px solid var(--border)'
+            }}>
+              {sgdbKeyVisible ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          <a
+            href="https://www.steamgriddb.com/profile/preferences/api"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontSize:11, color:'var(--accent)', marginTop:6, display:'inline-block' }}
+          >
+            Get a free API key from SteamGridDB
+          </a>
+        </div>
+        <div style={{ marginTop:16 }}>
+          <button
+            onClick={refreshAllArt}
+            disabled={refreshingArt}
+            style={{
+              padding:'8px 16px', borderRadius:6, fontSize:12, fontWeight:500,
+              background: refreshingArt ? 'var(--surface2)' : 'var(--accent)',
+              color:'#fff', border:'none', cursor: refreshingArt ? 'default' : 'pointer',
+              opacity: refreshingArt ? 0.8 : 1
+            }}
+          >
+            {refreshingArt ? `Refreshing... ${artRefreshProgress?.done || 0}/${artRefreshProgress?.total || 0}` : 'Refresh All Artwork'}
+          </button>
+          {(games || []).filter(g => !g.art?.grid).length > 0 && !refreshingArt && (
+            <span style={{ fontSize:12, color:'var(--text-muted)', marginLeft:12 }}>
+              {(games || []).filter(g => !g.art?.grid).length} games missing cover art
+            </span>
+          )}
+        </div>
       </Section>
 
       <Section title="Collections">

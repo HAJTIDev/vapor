@@ -17,8 +17,10 @@ contextBridge.exposeInMainWorld('vapor', {
     save: (games)   => ipcRenderer.invoke('games:save', games),
   },
   settings: {
-    load: ()     => ipcRenderer.invoke('settings:load'),
-    save: (s)    => ipcRenderer.invoke('settings:save', s),
+    load: ()        => ipcRenderer.invoke('settings:load'),
+    save: (s)       => ipcRenderer.invoke('settings:save', s),
+    getSgdbKey: ()  => ipcRenderer.invoke('settings:getSgdbKey'),
+    setSgdbKey: (k) => ipcRenderer.invoke('settings:setSgdbKey', k),
   },
   art: {
     fetch: (name) => ipcRenderer.invoke('art:fetch', name),

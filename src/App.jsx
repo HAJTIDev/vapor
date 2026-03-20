@@ -134,7 +134,9 @@ export default function App() {
   const saveGames = useCallback((updated) => {
     const normalized = updated.map(normalizeGame)
     setGames(normalized)
-    vaporApi.games.save(normalized)
+    vaporApi.games.save(normalized).then(ok => {
+      if (!ok) console.error('[App] Failed to save games')
+    })
   }, [])
 
   const saveSettings = useCallback((s) => {
@@ -170,6 +172,12 @@ export default function App() {
       return updated
     })
   }, [selected])
+
+  const refreshAllArt = useCallback(async (gameId, art) => {
+    if (gameId && art) {
+      updateGame(gameId, { art })
+    }
+  }, [updateGame])
 
   const removeGame = useCallback((id) => {
     if (settings.ui.confirmRemoveGame) {
@@ -314,7 +322,7 @@ export default function App() {
             />
           )}
           {view === 'settings' && (
-            <Settings settings={settings} onSave={saveSettings} />
+            <Settings settings={settings} onSave={saveSettings} games={games} onRefreshAllArt={refreshAllArt} />
           )}
           {view === 'add' && (
             <AddGames
