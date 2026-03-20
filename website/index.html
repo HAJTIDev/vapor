@@ -3,21 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="icon.png">
 <title>Vapor — Your Games, Your Way</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Figtree:wght@300;400;500;600&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #080a0f;
-    --surface: #0e1118;
-    --surface2: #13161f;
-    --border: rgba(255,255,255,0.06);
-    --accent: #3de6ff;
-    --accent2: #a259ff;
-    --accent3: #ff5c6e;
-    --text: #e8ecf5;
-    --muted: #5a6175;
-    --muted2: #8a93a8;
+    --bg: #09090e;
+    --surface: #111118;
+    --surface2: #18181f;
+    --border: rgba(255,255,255,0.05);
+    --border2: rgba(255,255,255,0.1);
+    --accent: #6c63ff;
+    --accent2: #8b7fff;
+    --accent3: #4ade80;
+    --text: #f0f0f5;
+    --text-dim: #8888a0;
+    --muted: #40404d;
+    --muted2: #707088;
+    --green: #4ade80;
+    --red: #f87171;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -39,8 +44,8 @@
     position: fixed;
     inset: 0;
     background-image:
-      linear-gradient(rgba(61,230,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(61,230,255,0.03) 1px, transparent 1px);
+      linear-gradient(rgba(108,99,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108,99,255,0.02) 1px, transparent 1px);
     background-size: 60px 60px;
     pointer-events: none;
     z-index: 0;
@@ -128,7 +133,7 @@
     width: 700px;
     height: 700px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(61,230,255,0.08) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(108,99,255,0.08) 0%, transparent 70%);
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -141,7 +146,7 @@
     width: 500px;
     height: 500px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(162,89,255,0.06) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(108,99,255,0.06) 0%, transparent 70%);
     top: 30%;
     left: 20%;
     pointer-events: none;
@@ -157,8 +162,8 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: rgba(61,230,255,0.08);
-    border: 1px solid rgba(61,230,255,0.2);
+    background: rgba(108,99,255,0.1);
+    border: 1px solid rgba(108,99,255,0.2);
     color: var(--accent);
     font-size: 12px;
     font-weight: 600;
@@ -230,10 +235,10 @@
 
   .btn-primary {
     background: var(--accent);
-    color: var(--bg);
+    color: #fff;
     font-family: 'Figtree', sans-serif;
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 600;
     padding: 14px 32px;
     border-radius: 8px;
     border: none;
@@ -247,9 +252,9 @@
   }
 
   .btn-primary:hover {
-    background: #fff;
+    background: #7c74ff;
     transform: translateY(-2px);
-    box-shadow: 0 12px 40px rgba(61,230,255,0.3);
+    box-shadow: 0 8px 24px rgba(108,99,255,0.4);
   }
 
   .btn-ghost {
@@ -332,7 +337,7 @@
   .mockup-glow {
     position: absolute;
     inset: -60px;
-    background: radial-gradient(ellipse at center, rgba(61,230,255,0.06) 0%, transparent 70%);
+    background: radial-gradient(ellipse at center, rgba(108,99,255,0.08) 0%, transparent 70%);
     pointer-events: none;
   }
 
@@ -340,17 +345,17 @@
     width: 100%;
     background: var(--surface);
     border-radius: 14px;
-    border: 1px solid rgba(61,230,255,0.12);
+    border: 1px solid rgba(108,99,255,0.15);
     overflow: hidden;
     box-shadow:
-      0 0 0 1px rgba(61,230,255,0.05),
+      0 0 0 1px rgba(108,99,255,0.05),
       0 40px 120px rgba(0,0,0,0.6),
-      0 0 80px rgba(61,230,255,0.04);
+      0 0 80px rgba(108,99,255,0.06);
     position: relative;
   }
 
   .app-titlebar {
-    background: #090b12;
+    background: #0a0a0f;
     padding: 12px 20px;
     display: flex;
     align-items: center;
@@ -390,7 +395,7 @@
   .app-sidebar {
     width: 220px;
     flex-shrink: 0;
-    background: #090b12;
+    background: #0a0a0f;
     border-right: 1px solid var(--border);
     padding: 20px 0;
     display: flex;
@@ -423,7 +428,7 @@
 
   .sidebar-item.active {
     color: var(--text);
-    background: rgba(61,230,255,0.06);
+    background: rgba(108,99,255,0.08);
   }
 
   .sidebar-item.active::before {
@@ -496,8 +501,8 @@
   }
 
   .chip.active {
-    background: rgba(61,230,255,0.1);
-    border-color: rgba(61,230,255,0.3);
+    background: rgba(108,99,255,0.12);
+    border-color: rgba(108,99,255,0.3);
     color: var(--accent);
   }
 
@@ -528,11 +533,11 @@
     position: relative;
   }
 
-  .gc1 { background: linear-gradient(135deg, #1a0f2e 0%, #2d1b4e 50%, #0f1a2e 100%); }
-  .gc2 { background: linear-gradient(135deg, #0f1f2e 0%, #1a3040 50%, #0a1520 100%); }
-  .gc3 { background: linear-gradient(135deg, #1a1a0f 0%, #2e2a10 50%, #1a1500 100%); }
-  .gc4 { background: linear-gradient(135deg, #1f0f0f 0%, #3a1515 50%, #200a0a 100%); }
-  .gc5 { background: linear-gradient(135deg, #0f1a1a 0%, #10302e 50%, #0a1f1e 100%); }
+  .gc1 { background: linear-gradient(135deg, #12101a 0%, #1e1a2e 50%, #12101a 100%); }
+  .gc2 { background: linear-gradient(135deg, #101218 0%, #181820 50%, #101218 100%); }
+  .gc3 { background: linear-gradient(135deg, #101218 0%, #181820 50%, #101218 100%); }
+  .gc4 { background: linear-gradient(135deg, #12101a 0%, #1e1a2e 50%, #12101a 100%); }
+  .gc5 { background: linear-gradient(135deg, #101218 0%, #181820 50%, #101218 100%); }
 
   .gc-overlay {
     position: absolute;
@@ -558,8 +563,8 @@
     position: absolute;
     top: 7px;
     right: 7px;
-    background: rgba(61,230,255,0.15);
-    border: 1px solid rgba(61,230,255,0.3);
+    background: rgba(108,99,255,0.2);
+    border: 1px solid rgba(108,99,255,0.35);
     color: var(--accent);
     font-size: 9px;
     font-weight: 700;
@@ -648,7 +653,7 @@
   }
 
   .feature-card:hover {
-    background: var(--surface2);
+    background: #1a1a22;
   }
 
   .feature-card::before {
@@ -668,8 +673,8 @@
   .feature-icon {
     width: 44px;
     height: 44px;
-    background: rgba(61,230,255,0.08);
-    border: 1px solid rgba(61,230,255,0.15);
+    background: rgba(108,99,255,0.1);
+    border: 1px solid rgba(108,99,255,0.2);
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -696,7 +701,7 @@
   /* HOW IT WORKS */
   .how {
     padding: 80px 48px 120px;
-    background: linear-gradient(180deg, transparent, rgba(61,230,255,0.02) 50%, transparent);
+    background: linear-gradient(180deg, transparent, rgba(108,99,255,0.02) 50%, transparent);
   }
 
   .how-inner {
@@ -756,9 +761,9 @@
     transition: all 0.2s;
   }
 
-  .step:nth-child(1) .step-num { color: var(--accent); border-color: rgba(61,230,255,0.3); }
-  .step:nth-child(2) .step-num { color: var(--accent2); border-color: rgba(162,89,255,0.3); }
-  .step:nth-child(3) .step-num { color: var(--accent3); border-color: rgba(255,92,110,0.3); }
+  .step:nth-child(1) .step-num { color: var(--accent); border-color: rgba(108,99,255,0.3); }
+  .step:nth-child(2) .step-num { color: var(--accent2); border-color: rgba(139,127,255,0.3); }
+  .step:nth-child(3) .step-num { color: var(--accent3); border-color: rgba(74,222,128,0.3); }
 
   .step h3 {
     font-family: 'Bebas Neue', sans-serif;
@@ -814,7 +819,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at 50% 0%, rgba(61,230,255,0.05) 0%, transparent 70%);
+    background: radial-gradient(ellipse at 50% 0%, rgba(108,99,255,0.06) 0%, transparent 70%);
     pointer-events: none;
   }
 
@@ -871,7 +876,7 @@
   .art-box {
     border-radius: 8px;
     overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.05);
   }
 
   .art-box.tall { grid-row: 1 / 3; }
@@ -890,9 +895,9 @@
     color: var(--muted);
   }
 
-  .art-box-1 { background: linear-gradient(135deg, #1a0f2e, #2d1b4e); min-height: 200px; }
-  .art-box-2 { background: linear-gradient(135deg, #0f1f2e, #1a3040); }
-  .art-box-3 { background: linear-gradient(135deg, #1a1500, #2e2a10); }
+  .art-box-1 { background: linear-gradient(135deg, #12101a, #1e1a2e); min-height: 200px; }
+  .art-box-2 { background: linear-gradient(135deg, #101218, #181820); }
+  .art-box-3 { background: linear-gradient(135deg, #101212, #181820); }
 
   /* Scan mockup */
   .scan-list {
@@ -914,8 +919,8 @@
   }
 
   .scan-item.detected {
-    border-color: rgba(61,230,255,0.2);
-    background: rgba(61,230,255,0.04);
+    border-color: rgba(108,99,255,0.25);
+    background: rgba(108,99,255,0.04);
   }
 
   .scan-dot {
@@ -926,7 +931,7 @@
     flex-shrink: 0;
   }
 
-  .scan-dot.ok { background: #3de6ff; }
+  .scan-dot.ok { background: #6c63ff; }
   .scan-dot.skip { background: var(--muted); }
 
   .scan-name { color: var(--text); flex: 1; font-family: 'DM Mono', monospace; font-size: 11px; }
@@ -938,7 +943,7 @@
     font-weight: 700;
   }
 
-  .scan-tag.game { background: rgba(61,230,255,0.1); color: var(--accent); }
+  .scan-tag.game { background: rgba(108,99,255,0.12); color: var(--accent); }
   .scan-tag.skip { background: rgba(90,97,117,0.2); color: var(--muted); }
 
   /* Playtime mockup */
@@ -998,7 +1003,7 @@
     width: 300px;
     height: 300px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(61,230,255,0.07) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(108,99,255,0.08) 0%, transparent 70%);
     pointer-events: none;
   }
 
@@ -1100,11 +1105,7 @@
 <!-- NAV -->
 <nav>
   <a href="#" class="logo">
-    <svg class="logo-icon" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M15 4 L26 10 L26 22 L15 28 L4 22 L4 10 Z" stroke="#3de6ff" stroke-width="1.5" fill="none" opacity="0.5"/>
-      <path d="M15 8 L22 12 L22 20 L15 24 L8 20 L8 12 Z" stroke="#3de6ff" stroke-width="1.5" fill="rgba(61,230,255,0.08)"/>
-      <circle cx="15" cy="16" r="3" fill="#3de6ff"/>
-    </svg>
+    <img src="icon.png" alt="" style="width:28px;height:28px;border-radius:6px;" />
     VAPOR
   </a>
   <ul>
@@ -1138,7 +1139,7 @@
       <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
       Download for Windows
     </a>
-    <a href="https://github.com" class="btn-ghost">
+    <a href="https://github.com/HAJTIDev/vapor" class="btn-ghost">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.749 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
       View Source
     </a>
@@ -1166,102 +1167,137 @@
 <div class="mockup-section">
   <div class="mockup-wrap">
     <div class="mockup-glow"></div>
-    <div class="app-mockup">
-      <div class="app-titlebar">
-        <div class="titlebar-dots">
-          <div class="dot dot-r"></div>
-          <div class="dot dot-y"></div>
-          <div class="dot dot-g"></div>
+    <div class="app-mockup" style="border-radius: 8px; overflow: hidden; font-family: 'Figtree', sans-serif; font-size: 14px; background: #111118;">
+      <!-- Titlebar -->
+      <div style="height: 38px; display: flex; align-items: center; justify-content: space-between; background: #09090e; border-bottom: 1px solid #ffffff0d; padding-right: 0;">
+        <div style="display: flex; align-items: center; gap: 8px; padding-left: 16px;">
+          <img src="icon.png" alt="" style="width: 18px; height: 18px; object-fit: contain;" />
+          <span style="font-weight: 600; font-size: 13px; letter-spacing: 0.12em; color: #f0f0f5; font-family: 'DM Mono', monospace;">VAPOR</span>
         </div>
-        <div class="titlebar-name">VAPOR</div>
-        <div style="width:52px"></div>
+        <div style="display: flex;">
+          <div style="width: 46px; height: 38px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #40404d;">−</div>
+          <div style="width: 46px; height: 38px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #40404d;">□</div>
+          <div style="width: 46px; height: 38px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #40404d;">✕</div>
+        </div>
       </div>
-      <div class="app-body">
-        <div class="app-sidebar">
-          <div class="sidebar-section">Navigate</div>
-          <div class="sidebar-item active">
-            <svg class="sidebar-item-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-            Library
+      <!-- App Body -->
+      <div style="display: flex; height: 400px; background: #111118;">
+        <!-- Sidebar -->
+        <div style="width: 290px; flex-shrink: 0; background: #111118; border-right: 1px solid #ffffff0d; display: flex; flex-direction: column; overflow: hidden;">
+          <!-- Search -->
+          <div style="padding: 12px 12px 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; background: #18181f; border: 1px solid #ffffff0d; border-radius: 6px; padding: 6px 10px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#40404d" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <span style="color: #40404d; font-size: 13px;">Search...</span>
+            </div>
           </div>
-          <div class="sidebar-item">
-            <svg class="sidebar-item-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-            Add Games
+          <!-- Nav -->
+          <div style="padding: 4px 8px 8px; display: flex; flex-direction: column; gap: 2px;">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; background: rgba(108,99,255,0.12); color: #6c63ff; font-size: 13px; font-weight: 500;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#6c63ff"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              <span>Library</span>
+              <span style="margin-left: auto; font-size: 10px; background: #18181f; padding: 1px 5px; border-radius: 10px; color: #40404d; font-family: 'DM Mono', monospace;">5</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; color: #707088; font-size: 13px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.6"><path d="M12 5v14M5 12h14"/></svg>
+              <span>Add Games</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; color: #707088; font-size: 13px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" opacity="0.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <span>Settings</span>
+            </div>
           </div>
-          <div class="sidebar-item">
-            <svg class="sidebar-item-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
-            Settings
+          <!-- Collections -->
+          <div style="padding: 8px 14px 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #40404d;">Collections</div>
+          <div style="padding: 0 8px 8px; display: flex; flex-direction: column; gap: 2px;">
+            <div style="display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 6px; background: rgba(108,99,255,0.12); color: #6c63ff; font-size: 12px;">
+              <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">All Games</span>
+              <span style="font-size: 10px; background: #18181f; padding: 1px 5px; border-radius: 10px; color: #40404d; font-family: 'DM Mono', monospace;">5</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 6px; color: #707088; font-size: 12px;">
+              <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Favorites</span>
+              <span style="font-size: 10px; background: #18181f; padding: 1px 5px; border-radius: 10px; color: #40404d; font-family: 'DM Mono', monospace;">0</span>
+            </div>
           </div>
-          <div class="sidebar-section" style="margin-top:16px">Games</div>
-          <div class="sidebar-game">
-            <div class="sidebar-game-cover gc1" style="border-radius:4px"></div>
-            Elden Ring
-          </div>
-          <div class="sidebar-game">
-            <div class="sidebar-game-cover gc2" style="border-radius:4px"></div>
-            Cyberpunk 2077
-          </div>
-          <div class="sidebar-game">
-            <div class="sidebar-game-cover gc3" style="border-radius:4px"></div>
-            Baldur's Gate 3
-          </div>
-          <div class="sidebar-game">
-            <div class="sidebar-game-cover gc4" style="border-radius:4px"></div>
-            Hades II
-          </div>
-          <div class="sidebar-game">
-            <div class="sidebar-game-cover gc5" style="border-radius:4px"></div>
-            Dave The Diver
+          <!-- Games List -->
+          <div style="flex: 1; overflow: auto; padding: 0 8px 10px; display: flex; flex-direction: column; gap: 2px;">
+            <div style="display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 6px; background: rgba(108,99,255,0.12); border: 1px solid rgba(108,99,255,0.25);">
+              <div style="width: 24px; height: 32px; border-radius: 4px; background: linear-gradient(135deg, #12101a, #1e1a2e); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #40404d; overflow: hidden;">
+                <img src="icon.png" style="width: 100%; height: 100%; object-fit: cover;" />
+              </div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 12px; color: #f0f0f5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Elden Ring</div>
+                <div style="font-size: 10px; color: #40404d; font-family: 'DM Mono', monospace;">42h</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 6px;">
+              <div style="width: 24px; height: 32px; border-radius: 4px; background: #18181f; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #40404d;">C</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 12px; color: #707088; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Cyberpunk 2077</div>
+                <div style="font-size: 10px; color: #40404d; font-family: 'DM Mono', monospace;">118h</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 6px;">
+              <div style="width: 24px; height: 32px; border-radius: 4px; background: #18181f; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #40404d;">B</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 12px; color: #707088; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Baldur's Gate 3</div>
+                <div style="font-size: 10px; color: #40404d; font-family: 'DM Mono', monospace;">200h</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 6px;">
+              <div style="width: 24px; height: 32px; border-radius: 4px; background: #18181f; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #40404d;">H</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 12px; color: #707088; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Hades II</div>
+                <div style="font-size: 10px; color: #40404d; font-family: 'DM Mono', monospace;">28h</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 6px;">
+              <div style="width: 24px; height: 32px; border-radius: 4px; background: #18181f; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #40404d;">D</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 12px; color: #707088; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Dave The Diver</div>
+                <div style="font-size: 10px; color: #40404d; font-family: 'DM Mono', monospace;">14h</div>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="app-main">
-          <div class="app-header-row">
-            <div class="app-title">LIBRARY</div>
-            <div class="filter-chips">
-              <div class="chip active">All</div>
-              <div class="chip">RPG</div>
-              <div class="chip">Action</div>
-              <div class="chip">Indie</div>
-            </div>
+        <!-- Main Content -->
+        <div style="flex: 1; padding: 20px 24px; overflow: auto; background: #111118;">
+          <!-- Genre Filters -->
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px;">
+            <button style="padding: 4px 12px; border-radius: 20px; font-size: 12px; background: #6c63ff; color: #fff; border: 1px solid #6c63ff; text-transform: capitalize; cursor: pointer; transition: all 0.12s;">all</button>
+            <button style="padding: 4px 12px; border-radius: 20px; font-size: 12px; background: #18181f; color: #707088; border: 1px solid #ffffff0d; text-transform: capitalize; cursor: pointer; transition: all 0.12s;">action</button>
+            <button style="padding: 4px 12px; border-radius: 20px; font-size: 12px; background: #18181f; color: #707088; border: 1px solid #ffffff0d; text-transform: capitalize; cursor: pointer; transition: all 0.12s;">rpg</button>
           </div>
-          <div class="games-grid">
-            <div class="game-card">
-              <div class="game-card-inner gc1">
-                <svg class="gc-shape" width="60" height="60" viewBox="0 0 60 60" fill="none"><circle cx="30" cy="30" r="25" stroke="white" stroke-width="1"/><circle cx="30" cy="30" r="15" stroke="white" stroke-width="1"/></svg>
-                <div class="gc-overlay"></div>
-                <div class="gc-title">Elden Ring</div>
-                <div class="gc-badge">42h</div>
+          <!-- Game Grid -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px;">
+            <div style="border-radius: 8px; overflow: hidden; border: 1px solid #ffffff0d; background: #111118; cursor: pointer;">
+              <div style="aspect-ratio: 2/3; background: linear-gradient(135deg, #12101a, #1e1a2e); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: #40404d; position: relative;">
+                <img src="icon.png" style="width: 100%; height: 100%; object-fit: cover;" />
+              </div>
+              <div style="padding: 10px 10px 8px;">
+                <div style="font-size: 12px; font-weight: 500; color: #f0f0f5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Elden Ring</div>
+                <div style="font-size: 11px; color: #40404d; margin-top: 2px; font-family: 'DM Mono', monospace;">42h</div>
               </div>
             </div>
-            <div class="game-card">
-              <div class="game-card-inner gc2">
-                <svg class="gc-shape" width="60" height="60" viewBox="0 0 60 60" fill="none"><polygon points="30,5 55,50 5,50" stroke="white" stroke-width="1"/></svg>
-                <div class="gc-overlay"></div>
-                <div class="gc-title">Cyberpunk 2077</div>
-                <div class="gc-badge">118h</div>
+            <div style="border-radius: 8px; overflow: hidden; border: 1px solid #ffffff0d; background: #111118; cursor: pointer;">
+              <div style="aspect-ratio: 2/3; background: #18181f; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: #40404d;">C</div>
+              <div style="padding: 10px 10px 8px;">
+                <div style="font-size: 12px; font-weight: 500; color: #f0f0f5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Cyberpunk 2077</div>
+                <div style="font-size: 11px; color: #40404d; margin-top: 2px; font-family: 'DM Mono', monospace;">118h</div>
               </div>
             </div>
-            <div class="game-card">
-              <div class="game-card-inner gc3">
-                <svg class="gc-shape" width="60" height="60" viewBox="0 0 60 60" fill="none"><rect x="10" y="10" width="40" height="40" stroke="white" stroke-width="1"/><rect x="20" y="20" width="20" height="20" stroke="white" stroke-width="1"/></svg>
-                <div class="gc-overlay"></div>
-                <div class="gc-title">Baldur's Gate 3</div>
-                <div class="gc-badge">200h</div>
+            <div style="border-radius: 8px; overflow: hidden; border: 1px solid #ffffff0d; background: #111118; cursor: pointer;">
+              <div style="aspect-ratio: 2/3; background: #18181f; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: #40404d;">B</div>
+              <div style="padding: 10px 10px 8px;">
+                <div style="font-size: 12px; font-weight: 500; color: #f0f0f5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Baldur's Gate 3</div>
+                <div style="font-size: 11px; color: #40404d; margin-top: 2px; font-family: 'DM Mono', monospace;">200h</div>
               </div>
             </div>
-            <div class="game-card">
-              <div class="game-card-inner gc4">
-                <svg class="gc-shape" width="60" height="60" viewBox="0 0 60 60" fill="none"><path d="M30 5 L55 30 L30 55 L5 30 Z" stroke="white" stroke-width="1"/></svg>
-                <div class="gc-overlay"></div>
-                <div class="gc-title">Hades II</div>
-                <div class="gc-badge">28h</div>
-              </div>
-            </div>
-            <div class="game-card">
-              <div class="game-card-inner gc5">
-                <svg class="gc-shape" width="60" height="60" viewBox="0 0 60 60" fill="none"><circle cx="30" cy="30" r="20" stroke="white" stroke-width="1"/><line x1="10" y1="30" x2="50" y2="30" stroke="white" stroke-width="1"/><line x1="30" y1="10" x2="30" y2="50" stroke="white" stroke-width="1"/></svg>
-                <div class="gc-overlay"></div>
-                <div class="gc-title">Dave The Diver</div>
-                <div class="gc-badge">14h</div>
+            <div style="border-radius: 8px; overflow: hidden; border: 1px solid #ffffff0d; background: #111118; cursor: pointer;">
+              <div style="aspect-ratio: 2/3; background: #18181f; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: #40404d;">H</div>
+              <div style="padding: 10px 10px 8px;">
+                <div style="font-size: 12px; font-weight: 500; color: #f0f0f5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Hades II</div>
+                <div style="font-size: 11px; color: #40404d; margin-top: 2px; font-family: 'DM Mono', monospace;">28h</div>
               </div>
             </div>
           </div>
@@ -1364,20 +1400,20 @@
         <div class="art-grid">
           <div class="art-box tall art-box-1">
             <div class="art-box-inner" style="flex-direction:column; gap:6px">
-              <svg width="24" height="24" fill="none" stroke="rgba(61,230,255,0.4)" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-              <span style="font-size:9px;letter-spacing:1.5px;color:rgba(61,230,255,0.4)">COVER</span>
+              <svg width="24" height="24" fill="none" stroke="rgba(108,99,255,0.5)" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span style="font-size:9px;letter-spacing:1.5px;color:rgba(108,99,255,0.5)">COVER</span>
             </div>
           </div>
           <div class="art-box art-box-2">
             <div class="art-box-inner" style="flex-direction:column; gap:6px">
-              <svg width="20" height="20" fill="none" stroke="rgba(162,89,255,0.4)" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-              <span style="font-size:9px;letter-spacing:1.5px;color:rgba(162,89,255,0.4)">HERO</span>
+              <svg width="20" height="20" fill="none" stroke="rgba(139,127,255,0.5)" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span style="font-size:9px;letter-spacing:1.5px;color:rgba(139,127,255,0.5)">HERO</span>
             </div>
           </div>
           <div class="art-box art-box-3">
             <div class="art-box-inner" style="flex-direction:column; gap:6px">
-              <svg width="20" height="20" fill="none" stroke="rgba(255,92,110,0.4)" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-              <span style="font-size:9px;letter-spacing:1.5px;color:rgba(255,92,110,0.4)">LOGO</span>
+              <svg width="20" height="20" fill="none" stroke="rgba(74,222,128,0.5)" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+              <span style="font-size:9px;letter-spacing:1.5px;color:rgba(74,222,128,0.5)">LOGO</span>
             </div>
           </div>
         </div>
@@ -1487,11 +1523,11 @@
       organized in under a minute.
     </p>
     <div class="download-actions">
-      <a href="#" class="btn-primary">
+      <a href="https://github.com/HAJTIDev/vapor/releases/latest" class="btn-primary">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
         Download Installer (.exe)
       </a>
-      <a href="#" class="btn-ghost">
+      <a href="https://github.com/HAJTIDev/vapor" class="btn-ghost">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.749 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
         View on GitHub
       </a>
@@ -1504,10 +1540,10 @@
 <footer>
   <div class="footer-logo">VAPOR</div>
   <div class="footer-links">
-    <a href="#">GitHub</a>
-    <a href="#">Releases</a>
-    <a href="#">Issues</a>
-    <a href="#">License</a>
+    <a href="https://github.com/HAJTIDev/vapor">GitHub</a>
+    <a href="https://github.com/HAJTIDev/vapor/releases">Releases</a>
+    <a href="https://github.com/HAJTIDev/vapor/issues">Issues</a>
+    <a href="https://github.com/HAJTIDev/vapor/blob/main/LICENSE">License</a>
   </div>
   <div class="footer-copy">Built with Electron + React</div>
 </footer>
@@ -1533,9 +1569,9 @@
   window.addEventListener('scroll', () => {
     const nav = document.querySelector('nav');
     if (window.scrollY > 50) {
-      nav.style.background = 'rgba(8,10,15,0.95)';
+      nav.style.background = 'rgba(9,9,14,0.95)';
     } else {
-      nav.style.background = 'rgba(8,10,15,0.7)';
+      nav.style.background = 'rgba(9,9,14,0.7)';
     }
   });
 </script>
