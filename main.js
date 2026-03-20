@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, net, safeStorage } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, net, safeStorage, Tray, Menu, nativeImage } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { spawn } = require('child_process')
@@ -6,6 +6,9 @@ const crypto = require('crypto')
 const { autoUpdater } = require('electron-updater')
 const isDev = !app.isPackaged
 let mainWindow
+let tray = null
+let gameSessionStart = null
+let currentGameId = null
 
 const ENCRYPTION_KEY = 'vapor-default-key-change-me'
 const ENCRYPTED_KEY_FILE = isDev 
@@ -318,6 +321,53 @@ function createWindow() {
   })
   if (isDev) mainWindow.loadURL('http://localhost:5173')
   else mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'))
+  
+  mainWindow.on('close', (event) => {
+    if (!app.isQuitting) {
+      event.preventDefault()
+      mainWindow.hide()
+    }
+  })
+}
+
+function createTray() {
+  const iconPath = isDev 
+    ? path.join(__dirname, 'build', 'icon.png')
+    : path.join(process.resourcesPath, 'icon.png')
+  
+  let trayIcon
+  if (fs.existsSync(iconPath)) {
+    trayIcon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 })
+  } else {
+    trayIcon = nativeImage.createEmpty()
+  }
+  
+  tray = new Tray(trayIcon)
+  tray.setToolTip('Vapor - Game Launcher')
+  
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Show Vapor',
+      click: () => {
+        mainWindow.show()
+        mainWindow.focus()
+      }
+    },
+    {
+      label: 'Quit',
+      click: () => {
+        app.isQuitting = true
+        app.quit()
+      }
+    }
+  ])
+  
+  tray.setContextMenu(contextMenu)
+  
+  tray.on('double-click', () => {
+    mainWindow.show()
+    mainWindow.focus()
+  })
 }
 
 function setupAutoUpdater() {
@@ -375,20 +425,45 @@ function checkForUpdates(autoDownload = true) {
 app.whenReady().then(() => {
   configureAutoStart()
   createWindow()
+  createTray()
   setupAutoUpdater()
   const settings = loadJSON(settingsFile, defaultSettings)
   if (settings.ui?.autoUpdate !== false) {
     setTimeout(() => checkForUpdates(false), 5000)
   }
 })
-app.on('window-all-closed', () => app.quit())
+
+app.on('window-all-closed', () => {
+  if (!app.isQuitting) {
+    return
+  }
+  app.quit()
+})
+
+app.on('before-quit', () => {
+  app.isQuitting = true
+})
 
 ipcMain.handle('win:minimize', () => mainWindow.minimize())
 ipcMain.handle('win:maximize', () => mainWindow.isMaximized() ? mainWindow.restore() : mainWindow.maximize())
-ipcMain.handle('win:close', () => app.quit())
+ipcMain.handle('win:close', () => mainWindow.hide())
+ipcMain.handle('win:isGameRunning', () => ({
+  running: gameSessionStart !== null,
+  gameId: currentGameId,
+  startTime: gameSessionStart
+}))
 
 ipcMain.handle('dialog:folder', async () => {
   const r = await dialog.showOpenDialog(mainWindow, { properties: ['openDirectory'] })
+  return r.canceled ? null : r.filePaths[0]
+})
+
+ipcMain.handle('dialog:file', async (_, options = {}) => {
+  const r = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: options.filters || [{ name: 'Executables', extensions: ['exe', 'bat', 'cmd', 'lnk'] }],
+    defaultPath: options.defaultPath || undefined
+  })
   return r.canceled ? null : r.filePaths[0]
 })
 
@@ -458,19 +533,47 @@ ipcMain.handle('art:fetch', async (_, name) => {
 ipcMain.handle('game:launch', (_, game) => {
   try {
     const proc = spawn(game.exe, [], { cwd: game.folder, detached: false, stdio: 'ignore' })
-    const startTime = Date.now()
+    gameSessionStart = Date.now()
+    currentGameId = game.id
     proc.on('close', () => {
-      const minutes = Math.max(0, Math.round((Date.now() - startTime) / 60000))
+      const minutes = Math.max(0, Math.round((Date.now() - gameSessionStart) / 60000))
+      if (minutes > 0) {
+        saveGamePlaytime(game.id, minutes)
+      }
+      gameSessionStart = null
+      currentGameId = null
       if (mainWindow && !mainWindow.isDestroyed())
         mainWindow.webContents.send('game:session-end', { id: game.id, minutes })
     })
     proc.on('error', err => {
+      gameSessionStart = null
+      currentGameId = null
       if (mainWindow && !mainWindow.isDestroyed())
         mainWindow.webContents.send('game:launch-error', { id: game.id, error: err.message })
     })
     return { ok: true, pid: proc.pid }
   } catch (err) { return { ok: false, error: err.message } }
 })
+
+function saveGamePlaytime(gameId, minutes) {
+  try {
+    const games = loadJSON(gamesFile, [])
+    const updated = games.map(g => {
+      if (g.id === gameId) {
+        return {
+          ...g,
+          playtime: (g.playtime || 0) + minutes,
+          lastPlayed: Date.now()
+        }
+      }
+      return g
+    })
+    saveJSON(gamesFile, updated)
+    console.log(`[playtime] Saved ${minutes} minutes for game ${gameId}`)
+  } catch (err) {
+    console.error('[playtime] Error saving playtime:', err)
+  }
+}
 
 ipcMain.handle('update:check', () => {
   checkForUpdates(false)

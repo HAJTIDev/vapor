@@ -38,6 +38,7 @@ const browserFallback = {
   },
   dialog: {
     folder: async () => null,
+    file: async () => null,
   },
   folder: {
     scan: async () => [],

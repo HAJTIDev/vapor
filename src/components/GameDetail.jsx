@@ -30,9 +30,12 @@ export default function GameDetail({
     hero: game.art?.hero || '',
     logo: game.art?.logo || '',
   })
+  const [editingExe, setEditingExe] = useState(false)
+  const [exeVal, setExeVal] = useState(game.exe || '')
 
   useEffect(() => {
     setNameVal(game.name)
+    setExeVal(game.exe || '')
     setManualArt({
       grid: game.art?.grid || '',
       hero: game.art?.hero || '',
@@ -65,6 +68,21 @@ export default function GameDetail({
   const clearManualArt = () => {
     setManualArt({ grid: '', hero: '', logo: '' })
     onUpdate(game.id, { art: {} })
+  }
+
+  const browseExe = async () => {
+    const result = await vaporApi.dialog.file({ defaultPath: game.folder })
+    if (result) {
+      setExeVal(result)
+    }
+  }
+
+  const saveExe = () => {
+    const path = exeVal.trim()
+    if (path && path !== game.exe) {
+      onUpdate(game.id, { exe: path, exeName: path.split(/[\\/]/).pop() })
+    }
+    setEditingExe(false)
   }
 
   const onArtFilePicked = (key, event) => {
@@ -257,9 +275,30 @@ export default function GameDetail({
             {/* Exe path */}
             <div>
               <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.08em' }}>Executable</div>
-              <div style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'var(--mono)', wordBreak:'break-all' }}>
-                {game.exe}
-              </div>
+              {editingExe ? (
+                <div style={{ display:'flex', gap:8 }}>
+                  <input value={exeVal} onChange={e => setExeVal(e.target.value)}
+                    autoFocus
+                    style={{
+                      flex:1, background:'var(--surface2)', border:'1px solid var(--accent)',
+                      borderRadius:6, padding:'6px 10px', color:'var(--text)', fontSize:11, fontFamily:'var(--mono)'
+                    }}
+                  />
+                  <button onClick={browseExe} style={{ padding:'6px 10px', borderRadius:6, background:'var(--surface2)', color:'var(--text)', border:'1px solid var(--border)', fontSize:11 }}>Browse</button>
+                  <button onClick={saveExe} style={{ padding:'6px 12px', borderRadius:6, background:'var(--accent)', color:'#fff', fontSize:11 }}>Save</button>
+                  <button onClick={() => { setExeVal(game.exe || ''); setEditingExe(false) }} style={{ padding:'6px 10px', borderRadius:6, background:'var(--surface2)', color:'var(--text)', border:'1px solid var(--border)', fontSize:11 }}>Cancel</button>
+                </div>
+              ) : (
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <span style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'var(--mono)', wordBreak:'break-all', flex:1 }}>
+                    {game.exe}
+                  </span>
+                  <button onClick={() => { setExeVal(game.exe || ''); setEditingExe(true) }}
+                    style={{ fontSize:11, color:'var(--text-muted)', padding:'2px 8px', borderRadius:4, background:'var(--surface2)', border:'1px solid var(--border)', flexShrink:0 }}>
+                    Edit
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Manual artwork */}

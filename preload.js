@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('vapor', {
   },
   dialog: {
     folder: () => ipcRenderer.invoke('dialog:folder'),
+    file: (options) => ipcRenderer.invoke('dialog:file', options),
   },
   folder: {
     scan: (dir) => ipcRenderer.invoke('folder:scan', dir),
@@ -27,6 +28,7 @@ contextBridge.exposeInMainWorld('vapor', {
   },
   game: {
     launch: (game) => ipcRenderer.invoke('game:launch', game),
+    isRunning: () => ipcRenderer.invoke('win:isGameRunning'),
   },
   update: {
     check: ()    => ipcRenderer.invoke('update:check'),
