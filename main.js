@@ -434,7 +434,6 @@ function checkForUpdates(autoDownload = true) {
     console.error('[auto-updater] check failed:', err)
     sendUpdateStatus('error', null, null, err.message)
   })
-} else {
   app.whenReady().then(() => {
     configureAutoStart()
     createWindow()
