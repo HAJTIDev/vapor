@@ -17,6 +17,20 @@ const ENCRYPTED_KEY_FILE = isDev
 
 let sgdbKeyCache = null
 
+const gotTheLock = app.requestSingleInstanceLock()
+
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      if (!mainWindow.isVisible()) mainWindow.show()
+      mainWindow.focus()
+    }
+  })
+}
+
 function decryptApiKey(encrypted) {
   try {
     const { iv, data } = JSON.parse(encrypted)
@@ -420,29 +434,29 @@ function checkForUpdates(autoDownload = true) {
     console.error('[auto-updater] check failed:', err)
     sendUpdateStatus('error', null, null, err.message)
   })
+} else {
+  app.whenReady().then(() => {
+    configureAutoStart()
+    createWindow()
+    createTray()
+    setupAutoUpdater()
+    const settings = loadJSON(settingsFile, defaultSettings)
+    if (settings.ui?.autoUpdate !== false) {
+      setTimeout(() => checkForUpdates(false), 5000)
+    }
+  })
+
+  app.on('window-all-closed', () => {
+    if (!app.isQuitting) {
+      return
+    }
+    app.quit()
+  })
+
+  app.on('before-quit', () => {
+    app.isQuitting = true
+  })
 }
-
-app.whenReady().then(() => {
-  configureAutoStart()
-  createWindow()
-  createTray()
-  setupAutoUpdater()
-  const settings = loadJSON(settingsFile, defaultSettings)
-  if (settings.ui?.autoUpdate !== false) {
-    setTimeout(() => checkForUpdates(false), 5000)
-  }
-})
-
-app.on('window-all-closed', () => {
-  if (!app.isQuitting) {
-    return
-  }
-  app.quit()
-})
-
-app.on('before-quit', () => {
-  app.isQuitting = true
-})
 
 ipcMain.handle('win:minimize', () => mainWindow.minimize())
 ipcMain.handle('win:maximize', () => mainWindow.isMaximized() ? mainWindow.restore() : mainWindow.maximize())
@@ -535,6 +549,9 @@ ipcMain.handle('game:launch', (_, game) => {
     const proc = spawn(game.exe, [], { cwd: game.folder, detached: false, stdio: 'ignore' })
     gameSessionStart = Date.now()
     currentGameId = game.id
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.minimize()
+    }
     proc.on('close', () => {
       const minutes = Math.max(0, Math.round((Date.now() - gameSessionStart) / 60000))
       if (minutes > 0) {
@@ -542,8 +559,11 @@ ipcMain.handle('game:launch', (_, game) => {
       }
       gameSessionStart = null
       currentGameId = null
-      if (mainWindow && !mainWindow.isDestroyed())
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.show()
+        mainWindow.focus()
         mainWindow.webContents.send('game:session-end', { id: game.id, minutes })
+      }
     })
     proc.on('error', err => {
       gameSessionStart = null
