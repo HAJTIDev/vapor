@@ -2,11 +2,30 @@ const { app, BrowserWindow, ipcMain, dialog, net, safeStorage } = require('elect
 const path = require('path')
 const fs = require('fs')
 const { spawn } = require('child_process')
+const crypto = require('crypto')
 const { autoUpdater } = require('electron-updater')
 const isDev = !app.isPackaged
 let mainWindow
 
+const ENCRYPTION_KEY = 'vapor-default-key-change-me'
+const ENCRYPTED_KEY_FILE = isDev 
+  ? path.join(__dirname, 'build', 'sgdb.enc.json')
+  : path.join(process.resourcesPath, 'sgdb.enc.json')
+
 let sgdbKeyCache = null
+
+function decryptApiKey(encrypted) {
+  try {
+    const { iv, data } = JSON.parse(encrypted)
+    const key = Buffer.from(ENCRYPTION_KEY, 'utf8').slice(0, 32)
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, Buffer.from(iv, 'hex'))
+    let decrypted = decipher.update(data, 'hex', 'utf8')
+    decrypted += decipher.final('utf8')
+    return decrypted
+  } catch {
+    return null
+  }
+}
 
 function loadSgdbKey() {
   if (sgdbKeyCache !== null) return sgdbKeyCache
@@ -18,6 +37,9 @@ function loadSgdbKey() {
   try {
     if (fs.existsSync(SGDB_KEY_FILE)) {
       sgdbKeyCache = fs.readFileSync(SGDB_KEY_FILE, 'utf8').trim()
+    } else if (fs.existsSync(ENCRYPTED_KEY_FILE)) {
+      const encrypted = fs.readFileSync(ENCRYPTED_KEY_FILE, 'utf8')
+      sgdbKeyCache = decryptApiKey(encrypted) || ''
     } else {
       sgdbKeyCache = ''
     }
