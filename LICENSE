@@ -1,0 +1,107 @@
+GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
+
+Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+Everyone is permitted to copy and distribute verbatim copies
+of this license document, but changing it is not allowed.
+
+TERMS AND CONDITIONS
+
+0. Definitions.
+"This License" refers to version 3 of the GNU General Public License.
+"Copyright" also means copyright-like laws that apply to other kinds of
+works, such as semiconductor masks.
+"The Program" refers to any copyrightable work licensed under this
+License. Each licensee is addressed as "you". "Licensees" and
+"recipients" may be individuals or organizations.
+
+1. Source Code.
+The "source code" for a work means the preferred form of the work
+for making modifications to it. "Object code" means any non-source
+form of a work.
+
+2. Basic Permissions.
+All rights granted under this License are granted for the term of
+copyright on the Program, and are irrevocable provided the stated
+conditions are met. This License explicitly affirms your unlimited
+permission to run the unmodified Program.
+
+3. Protecting Users' Legal Rights From Anti-Circumvention Law.
+No covered work shall be deemed part of an technological measure
+that effectively controls access to a work whose lawful exercise is
+inhibited by the work, unless such measure is required by
+applicable law.
+
+4. Conveying Verbatim Copies.
+You may convey verbatim copies of the Program's source code as you
+receive it, in any medium, provided that you conspicuously and
+appropriately publish on each copy an appropriate copyright notice;
+keep intact all notices stating that this License and any
+non-permissive terms added in accord with section 7 apply to the code.
+
+5. Conveying Modified Source Versions.
+You may convey a work based on the Program, or the modifications to
+produce it from the Program, in the form of source code, provided that
+you meet all of the following conditions:
+a) The work must carry prominent notices stating that you modified
+   it, and giving a relevant date.
+b) The work must carry prominent notices stating that it is
+   released under this License and any conditions added under
+   section 7.
+c) You must license the entire work, as a whole, under this
+   License to anyone who comes into possession of a copy.
+
+6. Conveying Non-Source Forms.
+You may convey a covered work in non-source form, provided that you
+distribute machine-executable object code under this License, either
+as part of a product or in a standard distribution format.
+
+7. Additional Terms.
+"Additional permissions" are terms that supplement the terms of this
+License by making exceptions from one or more of its conditions.
+
+8. Termination.
+You may not propagate or modify a covered work except as expressly
+provided under this License. Any attempt otherwise to propagate or
+modify it is void, and will automatically terminate your rights
+under this License.
+
+9. Acceptance Not Required for Having Copies.
+You are not required to accept this License in order to receive or
+run a copy of the Program.
+
+10. Automatic Licensing of Downstream Recipients.
+Each time you convey a covered work, the recipient automatically
+receives a license from the original licensors, to run, modify and
+propagate that work, subject to this License.
+
+11. Patents.
+The Program grants no license to patented works.
+
+12. No Sponsorship.
+The Free Software Foundation may publish revised and/or new versions
+of the GNU General Public License from time to time. Each version is
+given a distinguishing version number.
+
+13. Disclaimer of Warranty.
+THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY
+APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT
+HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT
+WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE.
+
+14. Limitation of Liability.
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MODIFIES AND/OR
+CONVEYS THE PROGRAM, BE LIABLE TO YOU FOR DAMAGES, INCLUDING ANY
+GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF
+THE USE OR INABILITY TO USE THE PROGRAM.
+
+15. Interpretation of Sections 13 and 14.
+If the disclaimer of warranty and limitation of liability provided
+above cannot be given local legal effect according to their terms,
+reviewing courts shall apply local law that most closely approximates
+an absolute waiver of all civil liability in connection with the
+Program, unless a warranty or assumption of liability accompanies a
+copy of the Program in return for a fee.
