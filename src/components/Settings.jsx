@@ -135,7 +135,7 @@ export default function Settings({ settings, onSave }) {
       <Section title="Artwork">
         <Info>
           Vapor uses <b>SteamGridDB</b> to fetch cover art, hero banners, logos and icons.
-          Art is fetched automatically when you add games, and you can re-fetch it per game from the game detail page.
+          Art is fetched automatically when you add games.
         </Info>
       </Section>
 

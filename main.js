@@ -1,10 +1,25 @@
-const { app, BrowserWindow, ipcMain, dialog, net } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, net, safeStorage } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { spawn } = require('child_process')
 const { autoUpdater } = require('electron-updater')
 const isDev = !app.isPackaged
 let mainWindow
+
+const SGDB_KEY = process.env.SGDB_KEY || ''
+const SGDB_KEY_ENC = safeStorage.isEncryptionAvailable() && SGDB_KEY
+  ? safeStorage.encryptString(SGDB_KEY).toString('base64')
+  : SGDB_KEY
+
+function getSgdbKey() {
+  if (!SGDB_KEY_ENC) return null
+  if (safeStorage.isEncryptionAvailable()) {
+    try {
+      return safeStorage.decryptString(Buffer.from(SGDB_KEY_ENC, 'base64'))
+    } catch { return SGDB_KEY_ENC }
+  }
+  return SGDB_KEY_ENC
+}
 
 const defaultSettings = {
   folders: [],
@@ -161,31 +176,43 @@ function netFetch(url, headers = {}) {
   })
 }
 
-const SGDB_KEY = '88e6cb228484ce0db1cfbf231d76b9cc'
-const SGDB = 'https://www.steamgriddb.com/api/v2'
-const AUTH = { Authorization: `Bearer ${SGDB_KEY}` }
+const { SteamGridDB } = require('steamgriddb')
+
+let sgdb = null
+function getSgdb() {
+  if (!sgdb) {
+    const key = getSgdbKey()
+    if (key) sgdb = new SteamGridDB(key)
+  }
+  return sgdb
+}
 
 async function sgdbSearch(name) {
-  const q = encodeURIComponent(name)
-  const body = await netFetch(`${SGDB}/search/autocomplete/${q}`, AUTH)
-  const json = JSON.parse(body)
-  return json.data?.[0] || null
+  const key = getSgdbKey()
+  if (!key) return null
+  try {
+    const results = await getSgdb().searchAutocomplete(name)
+    return results[0] || null
+  } catch { return null }
 }
 
 async function sgdbArt(gameId) {
-  const [gridsR, heroesR, logosR, iconsR] = await Promise.allSettled([
-    netFetch(`${SGDB}/grids/game/${gameId}?dimensions=600x900`, AUTH),
-    netFetch(`${SGDB}/heroes/game/${gameId}`, AUTH),
-    netFetch(`${SGDB}/logos/game/${gameId}`, AUTH),
-    netFetch(`${SGDB}/icons/game/${gameId}`, AUTH),
-  ])
-  const pick = r => { try { return JSON.parse(r.value).data?.[0]?.url || null } catch { return null } }
-  return {
-    grid:   gridsR.status  === 'fulfilled' ? pick(gridsR)  : null,
-    hero:   heroesR.status === 'fulfilled' ? pick(heroesR) : null,
-    logo:   logosR.status  === 'fulfilled' ? pick(logosR)  : null,
-    icon:   iconsR.status  === 'fulfilled' ? pick(iconsR)  : null,
-  }
+  const key = getSgdbKey()
+  if (!key) return { grid: null, hero: null, logo: null, icon: null }
+  try {
+    const [grids, heroes, logos, icons] = await Promise.all([
+      getSgdb().getGameGrids(gameId, { dimensions: '600x900' }),
+      getSgdb().getGameHeroes(gameId),
+      getSgdb().getGameLogos(gameId),
+      getSgdb().getGameIcons(gameId),
+    ])
+    return {
+      grid: grids[0]?.url || null,
+      hero: heroes[0]?.url || null,
+      logo: logos[0]?.url || null,
+      icon: icons[0]?.url || null,
+    }
+  } catch { return { grid: null, hero: null, logo: null, icon: null } }
 }
 
 function createWindow() {
