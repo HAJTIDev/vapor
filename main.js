@@ -176,35 +176,38 @@ function netFetch(url, headers = {}) {
   })
 }
 
-const { SteamGridDB } = require('steamgriddb')
+const SGDB = 'https://www.steamgriddb.com/api/v2'
 
-let sgdb = null
-function getSgdb() {
-  if (!sgdb) {
+let sgdbModule = null
+
+async function getSgdb() {
+  if (!sgdbModule) {
     const key = getSgdbKey()
-    if (key) sgdb = new SteamGridDB(key)
+    if (!key) return null
+    const { SteamGridDB } = await import('steamgriddb')
+    sgdbModule = new SteamGridDB(key)
   }
-  return sgdb
+  return sgdbModule
 }
 
 async function sgdbSearch(name) {
-  const key = getSgdbKey()
-  if (!key) return null
+  const client = await getSgdb()
+  if (!client) return null
   try {
-    const results = await getSgdb().searchAutocomplete(name)
+    const results = await client.searchAutocomplete(name)
     return results[0] || null
   } catch { return null }
 }
 
 async function sgdbArt(gameId) {
-  const key = getSgdbKey()
-  if (!key) return { grid: null, hero: null, logo: null, icon: null }
+  const client = await getSgdb()
+  if (!client) return { grid: null, hero: null, logo: null, icon: null }
   try {
     const [grids, heroes, logos, icons] = await Promise.all([
-      getSgdb().getGameGrids(gameId, { dimensions: '600x900' }),
-      getSgdb().getGameHeroes(gameId),
-      getSgdb().getGameLogos(gameId),
-      getSgdb().getGameIcons(gameId),
+      client.getGameGrids(gameId, { dimensions: '600x900' }),
+      client.getGameHeroes(gameId),
+      client.getGameLogos(gameId),
+      client.getGameIcons(gameId),
     ])
     return {
       grid: grids[0]?.url || null,
