@@ -1,0 +1,31 @@
+const { contextBridge, ipcRenderer } = require('electron')
+
+contextBridge.exposeInMainWorld('vapor', {
+  win: {
+    minimize: () => ipcRenderer.invoke('win:minimize'),
+    maximize: () => ipcRenderer.invoke('win:maximize'),
+    close:    () => ipcRenderer.invoke('win:close'),
+  },
+  dialog: {
+    folder: () => ipcRenderer.invoke('dialog:folder'),
+  },
+  folder: {
+    scan: (dir) => ipcRenderer.invoke('folder:scan', dir),
+  },
+  games: {
+    load: ()        => ipcRenderer.invoke('games:load'),
+    save: (games)   => ipcRenderer.invoke('games:save', games),
+  },
+  settings: {
+    load: ()     => ipcRenderer.invoke('settings:load'),
+    save: (s)    => ipcRenderer.invoke('settings:save', s),
+  },
+  art: {
+    fetch: (name) => ipcRenderer.invoke('art:fetch', name),
+  },
+  game: {
+    launch: (game) => ipcRenderer.invoke('game:launch', game),
+  },
+  on: (channel, fn) => ipcRenderer.on(channel, (_, ...args) => fn(...args)),
+  off: (channel, fn) => ipcRenderer.removeListener(channel, fn),
+})

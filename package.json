@@ -1,0 +1,36 @@
+{
+  "name": "vapor",
+  "version": "1.0.0",
+  "description": "A minimal DRM-free game launcher",
+  "main": "main.js",
+  "scripts": {
+    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "vite build && electron-builder",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.0",
+    "concurrently": "^8.2.0",
+    "electron": "^28.2.0",
+    "electron-builder": "^24.9.0",
+    "vite": "^5.0.0",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.vapor.launcher",
+    "productName": "Vapor",
+    "directories": { "output": "release" },
+    "files": ["dist/**/*", "main.js", "preload.js"],
+    "extraResources": [
+      { "from": "build/icon.png", "to": "icon.png" }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    }
+  }
+}
