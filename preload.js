@@ -26,6 +26,11 @@ contextBridge.exposeInMainWorld('vapor', {
   game: {
     launch: (game) => ipcRenderer.invoke('game:launch', game),
   },
+  update: {
+    check: ()    => ipcRenderer.invoke('update:check'),
+    download: () => ipcRenderer.invoke('update:download'),
+    install: ()  => ipcRenderer.invoke('update:install'),
+  },
   on: (channel, fn) => ipcRenderer.on(channel, (_, ...args) => fn(...args)),
   off: (channel, fn) => ipcRenderer.removeListener(channel, fn),
 })

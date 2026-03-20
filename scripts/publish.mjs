@@ -152,7 +152,7 @@ function uploadAssetWithRetry(filePath, maxAttempts = 3) {
 }
 
 runCommand('gh', ['auth', 'status'], {env: getAuthenticatedGhEnv()});
-runCommand('npm', ['run', 'compile']);
+runCommand('npm', ['run', 'build']);
 
 const artifactExe = path.join(distDir, `vapor-${version}-win.exe`);
 const artifactBlockmap = `${artifactExe}.blockmap`;
@@ -163,7 +163,7 @@ fileMustExist(artifactBlockmap);
 fileMustExist(latestYml);
 
 if (!releaseExists()) {
-  runCommand('gh', ['release', 'create', tag, '--repo', repo, '--title', tag, '--generate-notes'], {env: getAuthenticatedGhEnv()});
+  runCommand('gh', ['release', 'create', tag, '--repo', repo, '--title', tag, '--latest', '--generate-notes'], {env: getAuthenticatedGhEnv()});
 }
 
 waitForRelease();

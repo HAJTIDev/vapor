@@ -8,6 +8,7 @@ const DEFAULT_SETTINGS = {
     showPlaytimeInSidebar: true,
     compactSidebar: false,
     confirmRemoveGame: true,
+    autoUpdate: true,
   },
 }
 
@@ -60,6 +61,11 @@ const browserFallback = {
   },
   game: {
     launch: async () => ({ ok: false, error: 'Game launching requires Electron runtime.' }),
+  },
+  update: {
+    check: async () => ({ success: false }),
+    download: async () => ({ success: false }),
+    install: async () => ({ success: false }),
   },
   on: () => {},
   off: () => {},

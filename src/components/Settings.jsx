@@ -1,8 +1,47 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import vaporApi from '../vaporApi'
 
 export default function Settings({ settings, onSave }) {
   const [saved, setSaved] = useState(false)
   const [newCollection, setNewCollection] = useState('')
+  const [updateStatus, setUpdateStatus] = useState(null)
+  const [checkingUpdate, setCheckingUpdate] = useState(false)
+
+  useEffect(() => {
+    const handleUpdateStatus = (data) => {
+      setUpdateStatus(data)
+      setCheckingUpdate(false)
+    }
+    vaporApi.on('update:status', handleUpdateStatus)
+    return () => vaporApi.off('update:status', handleUpdateStatus)
+  }, [])
+
+  const checkForUpdates = async () => {
+    setCheckingUpdate(true)
+    setUpdateStatus({ status: 'checking' })
+    await vaporApi.update.check()
+  }
+
+  const downloadUpdate = async () => {
+    await vaporApi.update.download()
+  }
+
+  const installUpdate = async () => {
+    await vaporApi.update.install()
+  }
+
+  const getStatusText = () => {
+    if (!updateStatus) return null
+    switch (updateStatus.status) {
+      case 'checking': return 'Checking for updates...'
+      case 'available': return `Update available: v${updateStatus.version}`
+      case 'not-available': return 'You have the latest version'
+      case 'downloading': return `Downloading: ${Math.round(updateStatus.progress || 0)}%`
+      case 'downloaded': return `Update ready to install (v${updateStatus.version})`
+      case 'error': return `Error: ${updateStatus.error}`
+      default: return null
+    }
+  }
 
   const save = () => {
     onSave(settings)
@@ -40,6 +79,58 @@ export default function Settings({ settings, onSave }) {
     <div style={{ height:'100%', overflow:'auto', padding:'28px 28px' }}>
       <h2 style={{ fontSize:18, fontWeight:600, marginBottom:4 }}>Settings</h2>
       <p style={{ color:'var(--text-muted)', fontSize:13, marginBottom:28 }}>Configure Vapor</p>
+
+      <Section title="Updates">
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+          <div style={{ fontSize:13, color:'var(--text)' }}>
+            {getStatusText() || 'Check for updates'}
+          </div>
+          <div style={{ display:'flex', gap:8 }}>
+            {updateStatus?.status === 'available' && (
+              <button onClick={downloadUpdate} style={{
+                padding:'7px 14px', borderRadius:6, fontSize:12,
+                background:'var(--accent)', color:'#fff'
+              }}>
+                Download
+              </button>
+            )}
+            {updateStatus?.status === 'downloaded' && (
+              <button onClick={installUpdate} style={{
+                padding:'7px 14px', borderRadius:6, fontSize:12,
+                background:'var(--accent)', color:'#fff'
+              }}>
+                Install & Restart
+              </button>
+            )}
+            {(updateStatus?.status === 'not-available' || updateStatus?.status === 'error') && (
+              <button onClick={checkForUpdates} disabled={checkingUpdate} style={{
+                padding:'7px 14px', borderRadius:6, fontSize:12,
+                background:'var(--surface2)', color:'var(--text)', border:'1px solid var(--border)',
+                opacity: checkingUpdate ? 0.6 : 1
+              }}>
+                Check Again
+              </button>
+            )}
+            {(!updateStatus || updateStatus?.status === 'checking' || updateStatus?.status === 'downloading') && (
+              <button onClick={checkForUpdates} disabled={checkingUpdate} style={{
+                padding:'7px 14px', borderRadius:6, fontSize:12,
+                background:'var(--surface2)', color:'var(--text)', border:'1px solid var(--border)',
+                opacity: checkingUpdate ? 0.6 : 1
+              }}>
+                {checkingUpdate ? 'Checking...' : 'Check for Updates'}
+              </button>
+            )}
+          </div>
+        </div>
+        <div style={{ marginTop:12 }}>
+          <ToggleRow
+            label="Auto-check for Updates"
+            desc="Automatically check for updates on startup."
+            checked={!!settings.ui?.autoUpdate}
+            onChange={(checked) => onSave({ ...settings, ui: { ...(settings.ui || {}), autoUpdate: checked } })}
+          />
+        </div>
+      </Section>
 
       <Section title="Artwork">
         <Info>

@@ -2,9 +2,21 @@ const { app, BrowserWindow, ipcMain, dialog, net } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { spawn } = require('child_process')
-const autoUpdater = require('electron-updater').autoUpdater
+const { autoUpdater } = require('electron-updater')
 const isDev = !app.isPackaged
 let mainWindow
+
+const defaultSettings = {
+  folders: [],
+  collections: [],
+  ui: {
+    sidebarSort: 'recent',
+    showPlaytimeInSidebar: true,
+    compactSidebar: false,
+    confirmRemoveGame: true,
+    autoUpdate: true,
+  },
+}
 
 const resolveAppIcon = () => {
   const packagedIcon = path.join(process.resourcesPath, 'icon.png')
@@ -25,16 +37,6 @@ function configureAutoStart() {
 const userDataPath = app.getPath('userData')
 const gamesFile = path.join(userDataPath, 'games.json')
 const settingsFile = path.join(userDataPath, 'settings.json')
-const defaultSettings = {
-  folders: [],
-  collections: [],
-  ui: {
-    sidebarSort: 'recent',
-    showPlaytimeInSidebar: true,
-    compactSidebar: false,
-    confirmRemoveGame: true,
-  },
-}
 
 function loadJSON(file, def) {
   try { if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8')) } catch {}
@@ -200,9 +202,66 @@ function createWindow() {
   else mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'))
 }
 
+function setupAutoUpdater() {
+  autoUpdater.autoDownload = false
+  autoUpdater.autoInstallOnAppQuit = true
+
+  autoUpdater.on('checking-for-update', () => {
+    console.log('[auto-updater] checking for update...')
+    sendUpdateStatus('checking')
+  })
+
+  autoUpdater.on('update-available', (info) => {
+    console.log('[auto-updater] update available:', info.version)
+    sendUpdateStatus('available', info.version)
+  })
+
+  autoUpdater.on('update-not-available', (info) => {
+    console.log('[auto-updater] update not available')
+    sendUpdateStatus('not-available')
+  })
+
+  autoUpdater.on('download-progress', (progress) => {
+    sendUpdateStatus('downloading', null, progress.percent)
+  })
+
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log('[auto-updater] update downloaded:', info.version)
+    sendUpdateStatus('downloaded', info.version)
+  })
+
+  autoUpdater.on('error', (err) => {
+    console.error('[auto-updater] error:', err)
+    sendUpdateStatus('error', null, null, err.message)
+  })
+}
+
+function sendUpdateStatus(status, version = null, progress = null, error = null) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update:status', { status, version, progress, error })
+  }
+}
+
+function checkForUpdates(autoDownload = true) {
+  if (!app.isPackaged) {
+    console.log('[auto-updater] skipping update check in dev mode')
+    return
+  }
+  autoUpdater.autoDownload = autoDownload
+  autoUpdater.checkForUpdates().catch(err => {
+    console.error('[auto-updater] check failed:', err)
+    sendUpdateStatus('error', null, null, err.message)
+  })
+}
+
 app.whenReady().then(() => {
   configureAutoStart()
   createWindow()
+  setupAutoUpdater()
+  const settings = loadJSON(settingsFile, defaultSettings)
+  if (settings.ui?.autoUpdate !== false) {
+    setTimeout(() => checkForUpdates(false), 5000)
+  }
 })
 app.on('window-all-closed', () => app.quit())
 
@@ -251,48 +310,17 @@ ipcMain.handle('game:launch', (_, game) => {
   } catch (err) { return { ok: false, error: err.message } }
 })
 
-ipcMain.handle("check-app-update", async () => {
-  // if (!app.isPackaged) {
-  //   return {
-  //     success: false,
-  //     skipped: true,
-  //     hasUpdate: false,
-  //     version: null,
-  //     message: "Update checks are only available in packaged builds.",
-  //   };
-  // }
+ipcMain.handle('update:check', () => {
+  checkForUpdates(false)
+  return { success: true }
+})
 
-  try {
-    console.debug("[auto-updater][manual] check requested");
-    const result = await appAutoUpdater.runManualUpdateCheck(app.getVersion());
+ipcMain.handle('update:download', () => {
+  autoUpdater.downloadUpdate()
+  return { success: true }
+})
 
-    if (!result.success) {
-      return {
-        success: false,
-        skipped: false,
-        hasUpdate: false,
-        version: null,
-        message: result.message || "Failed to check for updates.",
-      };
-    }
-
-    return {
-      success: true,
-      hasUpdate: result.hasUpdate,
-      version: result.version,
-      message: result.hasUpdate
-        ? `Update available${result.version ? `: ${result.version}` : ""}`
-        : "No updates available.",
-    };
-  } catch (error) {
-    console.error("[auto-updater][manual] check failed", error);
-
-    return {
-      success: false,
-      skipped: false,
-      hasUpdate: false,
-      version: null,
-      message: error instanceof Error ? error.message : "Failed to check for updates.",
-    };
-  }
-});
+ipcMain.handle('update:install', () => {
+  autoUpdater.quitAndInstall()
+  return { success: true }
+})
