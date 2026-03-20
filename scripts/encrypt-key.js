@@ -33,10 +33,10 @@ if (!API_KEY || API_KEY === 'none' || API_KEY === '""' || API_KEY === "''" || AP
   process.exit(0);
 }
 
-const key = Buffer.from(ENCRYPTION_KEY, 'utf8').slice(0, 32);
+const keyHash = crypto.createHash('sha256').update(ENCRYPTION_KEY).digest();
 const iv = crypto.randomBytes(16);
 
-const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+const cipher = crypto.createCipheriv('aes-256-cbc', keyHash, iv);
 let encrypted = cipher.update(API_KEY, 'utf8', 'hex');
 encrypted += cipher.final('hex');
 

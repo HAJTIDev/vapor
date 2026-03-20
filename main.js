@@ -17,8 +17,8 @@ let sgdbKeyCache = null
 function decryptApiKey(encrypted) {
   try {
     const { iv, data } = JSON.parse(encrypted)
-    const key = Buffer.from(ENCRYPTION_KEY, 'utf8').slice(0, 32)
-    const decipher = crypto.createDecipheriv('aes-256-cbc', key, Buffer.from(iv, 'hex'))
+    const keyHash = crypto.createHash('sha256').update(ENCRYPTION_KEY).digest()
+    const decipher = crypto.createDecipheriv('aes-256-cbc', keyHash, Buffer.from(iv, 'hex'))
     let decrypted = decipher.update(data, 'hex', 'utf8')
     decrypted += decipher.final('utf8')
     return decrypted
