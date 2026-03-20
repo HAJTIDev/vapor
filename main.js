@@ -17,17 +17,44 @@ const ENCRYPTED_KEY_FILE = isDev
 
 let sgdbKeyCache = null
 
-const gotTheLock = app.requestSingleInstanceLock()
+const gotTheLock = isDev ? true : app.requestSingleInstanceLock()
+console.log('[init] gotTheLock:', gotTheLock)
 
-if (!gotTheLock) {
+if (!gotTheLock && !isDev) {
+  console.log('[init] No lock, quitting')
   app.quit()
-} else {
+} else if (gotTheLock) {
+  console.log('[init] Got lock or dev mode, continuing')
   app.on('second-instance', () => {
-    if (mainWindow) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
       if (mainWindow.isMinimized()) mainWindow.restore()
       if (!mainWindow.isVisible()) mainWindow.show()
       mainWindow.focus()
     }
+  })
+
+  app.whenReady().then(() => {
+    console.log('[init] app.whenReady fired')
+    configureAutoStart()
+    createWindow()
+    createTray()
+    setupAutoUpdater()
+    const settings = loadJSON(settingsFile, defaultSettings)
+    if (settings.ui?.autoUpdate !== false) {
+      setTimeout(() => checkForUpdates(false), 5000)
+    }
+  })
+
+  app.on('window-all-closed', () => {
+    console.log('[init] window-all-closed')
+    if (!app.isQuitting) {
+      return
+    }
+    app.quit()
+  })
+
+  app.on('before-quit', () => {
+    app.isQuitting = true
   })
 }
 
@@ -434,27 +461,6 @@ function checkForUpdates(autoDownload = true) {
     console.error('[auto-updater] check failed:', err)
     sendUpdateStatus('error', null, null, err.message)
   })
-  app.whenReady().then(() => {
-    configureAutoStart()
-    createWindow()
-    createTray()
-    setupAutoUpdater()
-    const settings = loadJSON(settingsFile, defaultSettings)
-    if (settings.ui?.autoUpdate !== false) {
-      setTimeout(() => checkForUpdates(false), 5000)
-    }
-  })
-
-  app.on('window-all-closed', () => {
-    if (!app.isQuitting) {
-      return
-    }
-    app.quit()
-  })
-
-  app.on('before-quit', () => {
-    app.isQuitting = true
-  })
 }
 
 ipcMain.handle('win:minimize', () => mainWindow.minimize())
@@ -548,9 +554,11 @@ ipcMain.handle('game:launch', (_, game) => {
     const proc = spawn(game.exe, [], { cwd: game.folder, detached: false, stdio: 'ignore' })
     gameSessionStart = Date.now()
     currentGameId = game.id
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.minimize()
-    }
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.minimize()
+      }
+    }, 100)
     proc.on('close', () => {
       const minutes = Math.max(0, Math.round((Date.now() - gameSessionStart) / 60000))
       if (minutes > 0) {
