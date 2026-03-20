@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, net } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { spawn } = require('child_process')
-
+const autoUpdater = require('electron-updater').autoUpdater
 const isDev = !app.isPackaged
 let mainWindow
 
@@ -250,3 +250,49 @@ ipcMain.handle('game:launch', (_, game) => {
     return { ok: true, pid: proc.pid }
   } catch (err) { return { ok: false, error: err.message } }
 })
+
+ipcMain.handle("check-app-update", async () => {
+  // if (!app.isPackaged) {
+  //   return {
+  //     success: false,
+  //     skipped: true,
+  //     hasUpdate: false,
+  //     version: null,
+  //     message: "Update checks are only available in packaged builds.",
+  //   };
+  // }
+
+  try {
+    console.debug("[auto-updater][manual] check requested");
+    const result = await appAutoUpdater.runManualUpdateCheck(app.getVersion());
+
+    if (!result.success) {
+      return {
+        success: false,
+        skipped: false,
+        hasUpdate: false,
+        version: null,
+        message: result.message || "Failed to check for updates.",
+      };
+    }
+
+    return {
+      success: true,
+      hasUpdate: result.hasUpdate,
+      version: result.version,
+      message: result.hasUpdate
+        ? `Update available${result.version ? `: ${result.version}` : ""}`
+        : "No updates available.",
+    };
+  } catch (error) {
+    console.error("[auto-updater][manual] check failed", error);
+
+    return {
+      success: false,
+      skipped: false,
+      hasUpdate: false,
+      version: null,
+      message: error instanceof Error ? error.message : "Failed to check for updates.",
+    };
+  }
+});
