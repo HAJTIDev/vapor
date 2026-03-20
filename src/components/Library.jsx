@@ -1,4 +1,7 @@
 import React, { useMemo } from 'react'
+import kot from '../img/kot.jpg'
+
+const KOT_CHANCE = 0.001
 
 function fmtTime(mins) {
   if (!mins) return '0h'
@@ -98,6 +101,7 @@ export default function Library({
 
 function GameCard({ game, running, onSelect, onLaunch, onContextMenu }) {
   const [hov, setHov] = React.useState(false)
+  const showKot = useMemo(() => Math.random() < KOT_CHANCE, [])
 
   return (
     <div
@@ -117,7 +121,7 @@ function GameCard({ game, running, onSelect, onLaunch, onContextMenu }) {
       {/* Cover art */}
       <div style={{ aspectRatio:'2/3', background:'var(--surface2)', position:'relative', overflow:'hidden' }}>
         {game.art?.grid ? (
-          <img src={game.art.grid} alt={game.name} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+          <img src={showKot ? kot : game.art.grid} alt={game.name} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
         ) : (
           <div style={{
             width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center',
