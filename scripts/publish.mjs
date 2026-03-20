@@ -154,7 +154,7 @@ function uploadAssetWithRetry(filePath, maxAttempts = 3) {
 runCommand('gh', ['auth', 'status'], {env: getAuthenticatedGhEnv()});
 runCommand('npm', ['run', 'build']);
 
-const artifactExe = path.join(distDir, `vapor-${version}-win.exe`);
+const artifactExe = path.join(distDir, `Vapor-${version}-setup.exe`);
 const artifactBlockmap = `${artifactExe}.blockmap`;
 const latestYml = path.join(distDir, 'latest.yml');
 
