@@ -1,6 +1,7 @@
 import {execFileSync, spawnSync} from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { run } from 'node:test';
 
 const repo = 'HAJTIDev/vapor';
 const distDir = path.resolve('release');
@@ -173,7 +174,9 @@ runCommand(
   ['release', 'view', tag, '--repo', repo],
   {env: getAuthenticatedGhEnv()},
 );
-
+runCommand("git", ['add', '.']);
+runCommand("git", ['commit', '-m', `"chore: publish ${tag}"`]);
+runCommand("git", ['push']);
 uploadAssetWithRetry(artifactExe);
 uploadAssetWithRetry(artifactBlockmap);
 uploadAssetWithRetry(latestYml);
