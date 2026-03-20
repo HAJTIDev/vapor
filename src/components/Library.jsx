@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import kot from '../img/kot.jpg'
 
-const KOT_CHANCE = 0.001
+const KOT_CHANCE = 0.01
 
 function fmtTime(mins) {
   if (!mins) return '0h'
