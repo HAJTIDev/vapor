@@ -124,6 +124,7 @@ const defaultSettings = {
     compactSidebar: false,
     confirmRemoveGame: true,
     autoUpdate: true,
+    autoStart: true,
   },
 }
 
@@ -137,8 +138,9 @@ const resolveAppIcon = () => {
 
 function configureAutoStart() {
   if (process.platform !== 'win32' || !app.isPackaged) return
+  const settings = loadJSON(settingsFile, defaultSettings)
   app.setLoginItemSettings({
-    openAtLogin: true,
+    openAtLogin: settings.ui?.autoStart !== false,
     path: process.execPath,
   })
 }
