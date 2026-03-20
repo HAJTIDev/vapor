@@ -229,6 +229,15 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
 
       <Section title="Quality of Life">
         <ToggleRow
+          label="Start with System"
+          desc="Launch Vapor automatically when you log in to Windows."
+          checked={!!settings.ui?.autoStart}
+          onChange={(checked) => {
+            updateUi({ autoStart: checked })
+            vaporApi.settings.setAutoStart(checked)
+          }}
+        />
+        <ToggleRow
           label="Show Playtime In Sidebar"
           desc="Displays each game's total playtime in the left game list."
           checked={!!settings.ui?.showPlaytimeInSidebar}
@@ -288,12 +297,37 @@ function Info({ children }) {
 
 function ToggleRow({ label, desc, checked, onChange }) {
   return (
-    <label style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:10, cursor:'pointer' }}>
-      <div>
+    <label style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, marginBottom:10, cursor:'pointer' }}>
+      <div style={{ flex:1 }}>
         <div style={{ fontSize:13, color:'var(--text)', marginBottom:2 }}>{label}</div>
         <div style={{ fontSize:11, color:'var(--text-muted)' }}>{desc}</div>
       </div>
-      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
+      <button
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        style={{
+          width:44,
+          height:24,
+          borderRadius:12,
+          padding:2,
+          border:'none',
+          cursor:'pointer',
+          background: checked ? 'var(--accent)' : 'var(--surface2)',
+          transition:'background 0.2s ease',
+          flexShrink:0,
+        }}
+      >
+        <div style={{
+          width:20,
+          height:20,
+          borderRadius:'50%',
+          background:'#fff',
+          transition:'transform 0.2s ease',
+          transform: checked ? 'translateX(20px)' : 'translateX(0)',
+          boxShadow:'0 1px 3px rgba(0,0,0,0.3)',
+        }} />
+      </button>
     </label>
   )
 }

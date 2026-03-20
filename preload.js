@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('vapor', {
     save: (s)       => ipcRenderer.invoke('settings:save', s),
     getSgdbKey: ()  => ipcRenderer.invoke('settings:getSgdbKey'),
     setSgdbKey: (k) => ipcRenderer.invoke('settings:setSgdbKey', k),
+    setAutoStart: (e) => ipcRenderer.invoke('settings:setAutoStart', e),
   },
   art: {
     fetch: (name) => ipcRenderer.invoke('art:fetch', name),

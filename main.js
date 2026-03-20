@@ -533,6 +533,10 @@ ipcMain.handle('settings:save', (_, s) => {
 })
 ipcMain.handle('settings:getSgdbKey', () => loadSgdbKey())
 ipcMain.handle('settings:setSgdbKey', (_, key) => saveSgdbKey(key))
+ipcMain.handle('settings:setAutoStart', (_, enabled) => {
+  if (process.platform !== 'win32' || !app.isPackaged) return
+  app.setLoginItemSettings({ openAtLogin: enabled, path: process.execPath })
+})
 
 ipcMain.handle('art:fetch', async (_, name) => {
   const key = loadSgdbKey()

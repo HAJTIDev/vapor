@@ -9,6 +9,7 @@ const DEFAULT_SETTINGS = {
     compactSidebar: false,
     confirmRemoveGame: true,
     autoUpdate: true,
+    autoStart: true,
   },
 }
 
@@ -62,6 +63,7 @@ const browserFallback = {
     },
     getSgdbKey: async () => null,
     setSgdbKey: async () => false,
+    setAutoStart: async () => false,
   },
   art: {
     fetch: async () => null,

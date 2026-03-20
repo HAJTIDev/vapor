@@ -18,6 +18,8 @@ const defaultSettings = {
     showPlaytimeInSidebar: true,
     compactSidebar: false,
     confirmRemoveGame: true,
+    autoUpdate: true,
+    autoStart: true,
   },
 }
 
