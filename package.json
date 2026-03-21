@@ -1,6 +1,6 @@
 {
   "name": "vapor",
-  "version": "1.2.4",
+  "version": "1.2.6",
   "description": "A minimal DRM-free game launcher",
   "main": "main.js",
   "scripts": {
@@ -17,7 +17,7 @@
     "webtorrent": "^2.8.5"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.2.0",
+    "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^8.2.0",
     "electron": "^41.0.3",
     "electron-builder": "^26.8.1",
