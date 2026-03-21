@@ -5,6 +5,7 @@ import Library from './components/Library.jsx'
 import GameDetail from './components/GameDetail.jsx'
 import Settings from './components/Settings.jsx'
 import AddGames from './components/AddGames.jsx'
+import Downloader from './components/Downloader.jsx'
 import vaporApi from './vaporApi.js'
 
 let nextId = Date.now()
@@ -63,7 +64,7 @@ function sortGames(list, mode) {
 export default function App() {
   const [games, setGames]           = useState([])
   const [settings, setSettings]     = useState(defaultSettings)
-  const [view, setView]             = useState('library') // 'library' | 'settings' | 'add'
+  const [view, setView]             = useState('library') // 'library' | 'settings' | 'add' | 'downloads'
   const [selected, setSelected]     = useState(null)
   const [running, setRunning]       = useState({}) // id -> true
   const [search, setSearch]         = useState('')
@@ -334,6 +335,7 @@ export default function App() {
               onDone={() => setView('library')}
             />
           )}
+          {view === 'downloads' && <Downloader />}
         </main>
       </div>
 

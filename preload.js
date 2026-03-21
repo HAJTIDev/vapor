@@ -36,6 +36,15 @@ contextBridge.exposeInMainWorld('vapor', {
     download: () => ipcRenderer.invoke('update:download'),
     install: ()  => ipcRenderer.invoke('update:install'),
   },
+  downloader: {
+    start: (payload) => ipcRenderer.invoke('downloader:start', payload),
+    list: () => ipcRenderer.invoke('downloader:list'),
+    pause: (infoHash) => ipcRenderer.invoke('downloader:pause', infoHash),
+    resume: (infoHash) => ipcRenderer.invoke('downloader:resume', infoHash),
+    remove: (infoHash, options) => ipcRenderer.invoke('downloader:remove', infoHash, options),
+    clearCompleted: (options) => ipcRenderer.invoke('downloader:clear-completed', options),
+    openFolder: (infoHash) => ipcRenderer.invoke('downloader:open-folder', infoHash),
+  },
   on: (channel, fn) => ipcRenderer.on(channel, (_, ...args) => fn(...args)),
   off: (channel, fn) => ipcRenderer.removeListener(channel, fn),
 })

@@ -76,6 +76,15 @@ const browserFallback = {
     download: async () => ({ success: false }),
     install: async () => ({ success: false }),
   },
+  downloader: {
+    start: async () => ({ ok: false, error: 'Downloader requires Electron runtime.' }),
+    list: async () => [],
+    pause: async () => ({ ok: false, error: 'Downloader requires Electron runtime.' }),
+    resume: async () => ({ ok: false, error: 'Downloader requires Electron runtime.' }),
+    remove: async () => ({ ok: false, error: 'Downloader requires Electron runtime.' }),
+    clearCompleted: async () => ({ ok: false, error: 'Downloader requires Electron runtime.' }),
+    openFolder: async () => ({ ok: false, error: 'Downloader requires Electron runtime.' }),
+  },
   on: () => {},
   off: () => {},
 }

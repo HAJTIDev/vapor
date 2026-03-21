@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, net, safeStorage, Tray, Menu, nativeImage } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, net, safeStorage, Tray, Menu, nativeImage, shell } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { spawn } = require('child_process')
@@ -9,6 +9,11 @@ let mainWindow
 let tray = null
 let gameSessionStart = null
 let currentGameId = null
+let torrentClient = null
+let webTorrentCtor = null
+let downloadPulse = null
+const torrentDownloads = new Map()
+const pendingTorrentSources = new Set()
 
 const ENCRYPTION_KEY = 'vapor-default-key-change-me'
 const ENCRYPTED_KEY_FILE = isDev 
@@ -43,6 +48,7 @@ if (!gotTheLock && !isDev) {
     if (settings.ui?.autoUpdate !== false) {
       setTimeout(() => checkForUpdates(false), 5000)
     }
+    restorePersistedDownloads()
   })
 
   app.on('window-all-closed', () => {
@@ -55,6 +61,14 @@ if (!gotTheLock && !isDev) {
 
   app.on('before-quit', () => {
     app.isQuitting = true
+    if (downloadPulse) {
+      clearInterval(downloadPulse)
+      downloadPulse = null
+    }
+    if (torrentClient) {
+      torrentClient.destroy(() => {})
+      torrentClient = null
+    }
   })
 }
 
@@ -149,6 +163,262 @@ const userDataPath = app.getPath('userData')
 const gamesFile = path.join(userDataPath, 'games.json')
 const settingsFile = path.join(userDataPath, 'settings.json')
 const SGDB_KEY_FILE = path.join(userDataPath, 'sgdb.key')
+const downloadsDir = path.join(app.getPath('downloads'), 'Vapor Downloads')
+const downloadsStateFile = path.join(userDataPath, 'downloads.json')
+
+function getPersistedDownloads() {
+  const raw = loadJSON(downloadsStateFile, [])
+  if (!Array.isArray(raw)) return []
+  return raw.filter(item => item && item.source).map(item => ({
+    source: String(item.source),
+    savePath: item.savePath ? String(item.savePath) : downloadsDir,
+    paused: !!item.paused,
+    createdAt: Number(item.createdAt) || Date.now(),
+  }))
+}
+
+function persistDownloadsState() {
+  try {
+    const serialized = Array.from(torrentDownloads.values()).map(torrent => ({
+      source: torrent._vaporSource || torrent.magnetURI,
+      savePath: torrent._vaporSavePath || torrent.path || downloadsDir,
+      paused: !!torrent.paused,
+      createdAt: torrent._vaporCreatedAt || Date.now(),
+    })).filter(item => item.source)
+    saveJSON(downloadsStateFile, serialized)
+  } catch (err) {
+    console.error('[downloader] Failed to persist downloads state:', err)
+  }
+}
+
+function normalizeDownloadSource(source) {
+  return String(source || '').trim()
+}
+
+function findTrackedTorrentBySource(source) {
+  const key = normalizeDownloadSource(source)
+  if (!key) return null
+  for (const torrent of torrentDownloads.values()) {
+    const torrentSource = normalizeDownloadSource(torrent._vaporSource || torrent.magnetURI)
+    if (torrentSource === key) return torrent
+  }
+  return null
+}
+
+async function loadWebTorrentCtor() {
+  if (webTorrentCtor) return webTorrentCtor
+  const mod = await import('webtorrent')
+  webTorrentCtor = mod?.default || mod
+  return webTorrentCtor
+}
+
+async function ensureTorrentClient() {
+  if (!torrentClient) {
+    const WebTorrentCtor = await loadWebTorrentCtor()
+    torrentClient = new WebTorrentCtor()
+  }
+  if (!downloadPulse) {
+    downloadPulse = setInterval(() => {
+      for (const torrent of torrentDownloads.values()) {
+        emitTorrentUpdate(torrent)
+      }
+    }, 1000)
+  }
+  return torrentClient
+}
+
+function torrentStatus(torrent) {
+  if (torrent.done) return 'completed'
+  if (torrent.paused) return 'paused'
+  return 'downloading'
+}
+
+function serializeTorrent(torrent) {
+  const firstFile = torrent.files?.[0]
+  return {
+    infoHash: torrent.infoHash,
+    name: torrent.name || torrent.infoHash,
+    magnetURI: torrent.magnetURI,
+    progress: Math.round((torrent.progress || 0) * 10000) / 100,
+    downloaded: torrent.downloaded || 0,
+    length: torrent.length || 0,
+    downloadSpeed: torrent.downloadSpeed || 0,
+    uploadSpeed: torrent.uploadSpeed || 0,
+    numPeers: torrent.numPeers || 0,
+    timeRemaining: Number.isFinite(torrent.timeRemaining) ? torrent.timeRemaining : null,
+    savePath: torrent.path || null,
+    firstFilePath: firstFile ? path.join(torrent.path || '', firstFile.path) : null,
+    status: torrentStatus(torrent),
+    createdAt: torrent._vaporCreatedAt || Date.now(),
+    error: torrent._vaporError || null,
+  }
+}
+
+function emitTorrentUpdate(torrent) {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  mainWindow.webContents.send('downloader:progress', serializeTorrent(torrent))
+}
+
+function registerTorrentListeners(torrent) {
+  if (torrent._vaporListenersBound) return
+  torrent._vaporListenersBound = true
+  torrent._vaporCreatedAt = torrent._vaporCreatedAt || Date.now()
+  torrent.on('download', () => emitTorrentUpdate(torrent))
+  torrent.on('done', () => {
+    emitTorrentUpdate(torrent)
+    persistDownloadsState()
+  })
+  torrent.on('wire', () => emitTorrentUpdate(torrent))
+  torrent.on('noPeers', () => emitTorrentUpdate(torrent))
+  torrent.on('error', (err) => {
+    torrent._vaporError = err?.message || 'Unknown download error'
+    emitTorrentUpdate(torrent)
+    persistDownloadsState()
+  })
+}
+
+function trackTorrent(torrent, meta = {}) {
+  if (meta.source) torrent._vaporSource = String(meta.source)
+  if (meta.savePath) torrent._vaporSavePath = String(meta.savePath)
+  if (meta.createdAt) torrent._vaporCreatedAt = Number(meta.createdAt) || Date.now()
+  torrentDownloads.set(torrent.infoHash, torrent)
+  registerTorrentListeners(torrent)
+  persistDownloadsState()
+}
+
+async function restorePersistedDownloads() {
+  const seen = new Set()
+  const entries = getPersistedDownloads().filter((entry) => {
+    const key = normalizeDownloadSource(entry.source)
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+  if (!entries.length) return
+
+  try {
+    const client = await ensureTorrentClient()
+    for (const entry of entries) {
+      try {
+        fs.mkdirSync(entry.savePath, { recursive: true })
+        const existing = await client.get(entry.source)
+        if (existing) {
+          trackTorrent(existing, entry)
+          if (entry.paused) pauseTorrent(existing)
+          else resumeTorrent(existing)
+          emitTorrentUpdate(existing)
+          continue
+        }
+
+        const sourceKey = normalizeDownloadSource(entry.source)
+        if (pendingTorrentSources.has(sourceKey)) continue
+        pendingTorrentSources.add(sourceKey)
+
+        client.add(entry.source, { path: entry.savePath }, (torrent) => {
+          pendingTorrentSources.delete(sourceKey)
+          trackTorrent(torrent, entry)
+          if (entry.paused) pauseTorrent(torrent)
+          emitTorrentUpdate(torrent)
+        })
+      } catch (err) {
+        pendingTorrentSources.delete(normalizeDownloadSource(entry.source))
+        console.error('[downloader] Failed to restore entry:', err?.message || err)
+      }
+    }
+  } catch (err) {
+    console.error('[downloader] Restore failed:', err?.message || err)
+  }
+}
+
+function pauseTorrent(torrent) {
+  if (typeof torrent.pause === 'function') {
+    torrent.pause()
+    return
+  }
+  torrent.paused = true
+}
+
+function resumeTorrent(torrent) {
+  if (typeof torrent.resume === 'function') {
+    torrent.resume()
+    return
+  }
+  torrent.paused = false
+}
+
+function isPathInside(basePath, candidatePath) {
+  const rel = path.relative(path.resolve(basePath), path.resolve(candidatePath))
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel))
+}
+
+function removeEmptyParents(startPath, stopPath) {
+  let current = path.dirname(startPath)
+  const normalizedStop = path.resolve(stopPath)
+  while (isPathInside(normalizedStop, current) && current !== normalizedStop) {
+    try {
+      if (fs.readdirSync(current).length > 0) break
+      fs.rmdirSync(current)
+    } catch {
+      break
+    }
+    current = path.dirname(current)
+  }
+}
+
+function getTorrentDeleteSnapshot(torrent) {
+  const basePath = path.resolve(torrent?._vaporSavePath || torrent?.path || downloadsDir)
+  const files = Array.isArray(torrent?.files) ? torrent.files : []
+  const filePaths = files
+    .filter(file => file?.path)
+    .map(file => path.resolve(path.join(basePath, file.path)))
+    .filter(filePath => isPathInside(basePath, filePath))
+
+  if (!filePaths.length && torrent?.name) {
+    const fallbackPath = path.resolve(path.join(basePath, torrent.name))
+    if (isPathInside(basePath, fallbackPath)) filePaths.push(fallbackPath)
+  }
+
+  return { basePath, filePaths }
+}
+
+function deleteTorrentFiles(snapshot) {
+  if (!snapshot?.basePath || !Array.isArray(snapshot.filePaths)) return
+  const basePath = path.resolve(snapshot.basePath)
+  for (const absolutePath of snapshot.filePaths) {
+    if (!isPathInside(basePath, absolutePath)) continue
+    try {
+      fs.rmSync(absolutePath, { recursive: true, force: true })
+      removeEmptyParents(absolutePath, basePath)
+    } catch (err) {
+      console.error('[downloader] Failed to delete file:', absolutePath, err?.message || err)
+    }
+  }
+}
+
+function removeTorrentWithOptions(torrent, options = {}) {
+  if (!torrent || !torrentClient) {
+    return Promise.resolve({ ok: false, error: 'Download not found' })
+  }
+
+  const deleteData = options?.deleteData !== false
+  const deleteSnapshot = deleteData ? getTorrentDeleteSnapshot(torrent) : null
+
+  return new Promise((resolve) => {
+    torrentClient.remove(torrent.infoHash, { destroyStore: true }, (err) => {
+      if (err) {
+        resolve({ ok: false, error: err?.message || 'Failed to remove download' })
+        return
+      }
+      if (deleteData) deleteTorrentFiles(deleteSnapshot)
+      torrentDownloads.delete(torrent.infoHash)
+      persistDownloadsState()
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('downloader:removed', { infoHash: torrent.infoHash })
+      }
+      resolve({ ok: true })
+    })
+  })
+}
 
 function loadJSON(file, def) {
   try { if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8')) } catch {}
@@ -621,4 +891,118 @@ ipcMain.handle('update:download', () => {
 ipcMain.handle('update:install', () => {
   autoUpdater.quitAndInstall()
   return { success: true }
+})
+
+ipcMain.handle('downloader:start', async (_, payload = {}) => {
+  const source = normalizeDownloadSource(payload.source)
+  const targetPath = String(payload.savePath || '').trim() || downloadsDir
+  if (!source) return { ok: false, error: 'Missing source' }
+
+  const sourceKey = normalizeDownloadSource(source)
+  if (pendingTorrentSources.has(sourceKey)) {
+    return { ok: false, error: 'This download is already being started.' }
+  }
+
+  const tracked = findTrackedTorrentBySource(sourceKey)
+  if (tracked) {
+    resumeTorrent(tracked)
+    emitTorrentUpdate(tracked)
+    persistDownloadsState()
+    return { ok: true, torrent: serializeTorrent(tracked), existing: true }
+  }
+
+  try {
+    fs.mkdirSync(targetPath, { recursive: true })
+    const client = await ensureTorrentClient()
+    const torrent = await client.get(source)
+
+    if (torrent) {
+      if (!torrentDownloads.has(torrent.infoHash)) {
+        trackTorrent(torrent, { source, savePath: targetPath })
+      }
+      resumeTorrent(torrent)
+      emitTorrentUpdate(torrent)
+      persistDownloadsState()
+      return { ok: true, torrent: serializeTorrent(torrent), existing: true }
+    }
+
+    return await new Promise((resolve) => {
+      let resolved = false
+      pendingTorrentSources.add(sourceKey)
+      client.add(source, { path: targetPath }, (addedTorrent) => {
+        pendingTorrentSources.delete(sourceKey)
+        trackTorrent(addedTorrent, { source, savePath: targetPath })
+        addedTorrent.once('error', (err) => {
+          addedTorrent._vaporError = err?.message || 'Failed to add torrent'
+          emitTorrentUpdate(addedTorrent)
+        })
+        emitTorrentUpdate(addedTorrent)
+        resolved = true
+        resolve({ ok: true, torrent: serializeTorrent(addedTorrent), existing: false })
+      })
+      setTimeout(() => {
+        if (!resolved) {
+          pendingTorrentSources.delete(sourceKey)
+          resolve({ ok: false, error: 'Timed out while starting download' })
+        }
+      }, 15000)
+    })
+  } catch (err) {
+    pendingTorrentSources.delete(sourceKey)
+    return { ok: false, error: err?.message || 'Failed to start download' }
+  }
+})
+
+ipcMain.handle('downloader:list', () => {
+  return Array.from(torrentDownloads.values())
+    .map(serializeTorrent)
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+})
+
+ipcMain.handle('downloader:pause', (_, infoHash) => {
+  const torrent = torrentDownloads.get(infoHash)
+  if (!torrent) return { ok: false, error: 'Download not found' }
+  pauseTorrent(torrent)
+  emitTorrentUpdate(torrent)
+  persistDownloadsState()
+  return { ok: true }
+})
+
+ipcMain.handle('downloader:resume', (_, infoHash) => {
+  const torrent = torrentDownloads.get(infoHash)
+  if (!torrent) return { ok: false, error: 'Download not found' }
+  resumeTorrent(torrent)
+  emitTorrentUpdate(torrent)
+  persistDownloadsState()
+  return { ok: true }
+})
+
+ipcMain.handle('downloader:remove', async (_, infoHash, options = {}) => {
+  const torrent = torrentDownloads.get(infoHash)
+  return removeTorrentWithOptions(torrent, options)
+})
+
+ipcMain.handle('downloader:clear-completed', async (_, options = {}) => {
+  const completed = Array.from(torrentDownloads.values()).filter(torrent => torrent.done)
+  if (!completed.length) return { ok: true, removed: 0 }
+
+  const results = await Promise.all(completed.map(torrent => removeTorrentWithOptions(torrent, options)))
+  const failed = results.filter(result => !result.ok)
+  return {
+    ok: failed.length === 0,
+    removed: completed.length - failed.length,
+    failed: failed.length,
+  }
+})
+
+ipcMain.handle('downloader:open-folder', (_, infoHash) => {
+  const torrent = torrentDownloads.get(infoHash)
+  if (!torrent) return { ok: false, error: 'Download not found' }
+  const firstFile = torrent.files?.[0]
+  if (firstFile) {
+    shell.showItemInFolder(path.join(torrent.path || '', firstFile.path))
+  } else if (torrent.path) {
+    shell.openPath(torrent.path)
+  }
+  return { ok: true }
 })
