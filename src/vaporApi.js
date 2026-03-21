@@ -3,6 +3,7 @@ const SETTINGS_STORAGE_KEY = 'vapor.settings'
 const DEFAULT_SETTINGS = {
   folders: [],
   collections: [],
+  downloadSpeedLimitKbps: 0,
   ui: {
     sidebarSort: 'recent',
     showPlaytimeInSidebar: true,
@@ -81,6 +82,8 @@ const browserFallback = {
   downloader: {
     start: async () => ({ ok: false, error: 'Downloader requires Electron runtime.' }),
     list: async () => [],
+    getLimit: async () => ({ ok: true, limitKbps: 0 }),
+    setLimit: async () => ({ ok: false, error: 'Downloader requires Electron runtime.' }),
     pause: async () => ({ ok: false, error: 'Downloader requires Electron runtime.' }),
     resume: async () => ({ ok: false, error: 'Downloader requires Electron runtime.' }),
     remove: async () => ({ ok: false, error: 'Downloader requires Electron runtime.' }),

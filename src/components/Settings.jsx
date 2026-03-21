@@ -8,6 +8,10 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
   const [checkingUpdate, setCheckingUpdate] = useState(false)
   const [refreshingArt, setRefreshingArt] = useState(false)
   const [artRefreshProgress, setArtRefreshProgress] = useState(null)
+  const [downloadLimitKbps, setDownloadLimitKbps] = useState(Math.max(0, Math.round(Number(settings?.downloadSpeedLimitKbps) || 0)))
+
+  const sliderMaxKbps = 4096
+  const sliderStepKbps = 64
 
   useEffect(() => {
     const handleUpdateStatus = (data) => {
@@ -17,6 +21,10 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
     vaporApi.on('update:status', handleUpdateStatus)
     return () => vaporApi.off('update:status', handleUpdateStatus)
   }, [])
+
+  useEffect(() => {
+    setDownloadLimitKbps(Math.max(0, Math.round(Number(settings?.downloadSpeedLimitKbps) || 0)))
+  }, [settings?.downloadSpeedLimitKbps])
 
   const checkForUpdates = async () => {
     setCheckingUpdate(true)
@@ -95,6 +103,18 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
       ...settings,
       collections: (settings.collections || []).filter(c => c.id !== id),
     })
+  }
+
+  const applyDownloadLimit = async (value) => {
+    const next = Math.max(0, Math.round(Number(value) || 0))
+    setDownloadLimitKbps(next)
+
+    onSave({ ...settings, downloadSpeedLimitKbps: next })
+
+    const result = await vaporApi.downloader.setLimit(next)
+    if (!result?.ok) {
+      console.error('[settings] Failed to apply download limit:', result?.error || 'Unknown error')
+    }
   }
 
   return (
@@ -227,7 +247,7 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
         </div>
       </Section>
 
-      <Section title="Quality of Life">
+      <Section title="Settings">
         <div style={{ marginBottom:16 }}>
           <div style={{ fontSize:12, color:'var(--text-dim)', marginBottom:6 }}>Download Directory</div>
           <div style={{ display:'flex', gap:8 }}>
@@ -296,6 +316,65 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
           checked={!!settings.ui?.confirmRemoveGame}
           onChange={(checked) => updateUi({ confirmRemoveGame: checked })}
         />
+
+        <div style={{ marginTop:14 }}>
+          <div style={{ fontSize:12, color:'var(--text-dim)', marginBottom:6 }}>Download Speed Limit</div>
+          <div style={{
+            width: 260,
+            maxWidth: '100%',
+            background:'var(--surface2)',
+            border:'1px solid var(--border)',
+            borderRadius:8,
+            padding:'8px 10px',
+          }}>
+            <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>
+              <span>Limiter</span>
+              <span>{downloadLimitKbps <= 0 ? 'Unlimited' : `${downloadLimitKbps} KB/s`}</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={sliderMaxKbps}
+              step={sliderStepKbps}
+              value={Math.min(sliderMaxKbps, Math.max(0, downloadLimitKbps))}
+              onChange={(e) => setDownloadLimitKbps(Math.round(Number(e.target.value) || 0))}
+              onMouseUp={() => applyDownloadLimit(downloadLimitKbps)}
+              onTouchEnd={() => applyDownloadLimit(downloadLimitKbps)}
+              style={{ width:'100%', accentColor:'var(--accent)' }}
+            />
+            <div style={{ display:'flex', gap:6, marginTop:6 }}>
+              <button
+                onClick={() => applyDownloadLimit(0)}
+                style={{
+                  padding:'4px 8px',
+                  borderRadius:6,
+                  fontSize:11,
+                  background:'var(--surface)',
+                  color:'var(--text-dim)',
+                  border:'1px solid var(--border)',
+                }}
+              >
+                Unlimited
+              </button>
+              <button
+                onClick={() => applyDownloadLimit(1024)}
+                style={{
+                  padding:'4px 8px',
+                  borderRadius:6,
+                  fontSize:11,
+                  background:'var(--surface)',
+                  color:'var(--text-dim)',
+                  border:'1px solid var(--border)',
+                }}
+              >
+                1 MB/s
+              </button>
+            </div>
+          </div>
+          <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>
+            Applies globally to all active torrents.
+          </div>
+        </div>
 
         <div style={{ marginTop:14 }}>
           <div style={{ fontSize:12, color:'var(--text-dim)', marginBottom:6 }}>Sidebar Sort</div>

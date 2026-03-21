@@ -164,6 +164,7 @@ function getSgdbKey() {
 const defaultSettings = {
   folders: [],
   collections: [],
+  downloadSpeedLimitKbps: 0,
   ui: {
     sidebarSort: 'recent',
     showPlaytimeInSidebar: true,
@@ -227,6 +228,34 @@ function normalizeDownloadSource(source) {
   return String(source || '').trim()
 }
 
+function normalizeDownloadLimitKbps(value) {
+  const num = Number(value)
+  if (!Number.isFinite(num) || num < 0) return null
+  return Math.round(num)
+}
+
+function readDownloadLimitKbpsFromSettings() {
+  const settings = loadJSON(settingsFile, defaultSettings)
+  const normalized = normalizeDownloadLimitKbps(settings?.downloadSpeedLimitKbps)
+  return normalized ?? 0
+}
+
+function toDownloadLimitBytesPerSecond(limitKbps) {
+  const normalized = normalizeDownloadLimitKbps(limitKbps)
+  if (normalized == null || normalized <= 0) return -1
+  return normalized * 1024
+}
+
+function saveDownloadLimitKbps(limitKbps) {
+  const normalized = normalizeDownloadLimitKbps(limitKbps)
+  if (normalized == null) {
+    return { ok: false, error: 'Invalid download speed limit.' }
+  }
+  const settings = loadJSON(settingsFile, defaultSettings)
+  saveJSON(settingsFile, { ...settings, downloadSpeedLimitKbps: normalized })
+  return { ok: true, limitKbps: normalized }
+}
+
 function findTrackedTorrentBySource(source) {
   const key = normalizeDownloadSource(source)
   if (!key) return null
@@ -247,7 +276,9 @@ async function loadWebTorrentCtor() {
 async function ensureTorrentClient() {
   if (!torrentClient) {
     const WebTorrentCtor = await loadWebTorrentCtor()
-    torrentClient = new WebTorrentCtor()
+    torrentClient = new WebTorrentCtor({
+      downloadLimit: toDownloadLimitBytesPerSecond(readDownloadLimitKbpsFromSettings()),
+    })
   }
   if (!downloadPulse) {
     downloadPulse = setInterval(() => {
@@ -857,7 +888,37 @@ ipcMain.handle('art:fetch', async (_, name) => {
   }
 })
 
-ipcMain.handle('game:launch', (_, game) => {
+function escapePowerShellSingleQuoted(value) {
+  return String(value || '').replace(/'/g, "''")
+}
+
+function isElevationLaunchError(err) {
+  if (!err) return false
+  const code = String(err.code || '').toUpperCase()
+  if (code === 'EACCES' || code === 'EPERM') return true
+  const msg = String(err.message || '').toLowerCase()
+  return code === 'UNKNOWN' && (msg.includes('elevation') || msg.includes('operation not permitted'))
+}
+
+function launchElevatedWindows(game) {
+  return new Promise((resolve, reject) => {
+    const filePath = escapePowerShellSingleQuoted(game.exe)
+    const workingDir = escapePowerShellSingleQuoted(game.folder || path.dirname(game.exe || ''))
+    const command = `Start-Process -FilePath '${filePath}' -WorkingDirectory '${workingDir}' -Verb RunAs`
+    const helper = spawn(
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', command],
+      { windowsHide: true, stdio: 'ignore' }
+    )
+    helper.once('error', reject)
+    helper.once('close', (code) => {
+      if (code === 0) resolve()
+      else reject(new Error(code === 1 ? 'Elevation prompt was canceled.' : `Elevation launch failed (${code}).`))
+    })
+  })
+}
+
+ipcMain.handle('game:launch', async (_, game) => {
   if (game.steamAppId) {
     const steamUrl = `steam://run/${game.steamAppId}`
     try {
@@ -870,52 +931,96 @@ ipcMain.handle('game:launch', (_, game) => {
         }
       }, 100)
       setTimeout(() => {
-        const minutes = Math.max(0, Math.round((Date.now() - gameSessionStart) / 60000))
+        const startedAt = currentGameId === game.id && typeof gameSessionStart === 'number'
+          ? gameSessionStart
+          : null
+        const minutes = startedAt ? Math.max(0, Math.round((Date.now() - startedAt) / 60000)) : 0
         if (minutes > 0) {
           saveGamePlaytime(game.id, minutes)
         }
-        gameSessionStart = null
-        currentGameId = null
+        if (currentGameId === game.id) {
+          gameSessionStart = null
+          currentGameId = null
+        }
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.show()
           mainWindow.focus()
           mainWindow.webContents.send('game:session-end', { id: game.id, minutes })
         }
       }, 5000)
-      return { ok: true, via: 'steam' }
-    } catch (err) { return { ok: false, error: err.message } }
+      return { ok: true, via: 'steam', tracking: true }
+    } catch (err) {
+      return { ok: false, error: err.message }
+    }
+  }
+
+  const launchNormally = () => new Promise((resolve) => {
+    let finished = false
+    const finishOnce = (result) => {
+      if (finished) return
+      finished = true
+      resolve(result)
+    }
+
+    try {
+      const proc = spawn(game.exe, [], { cwd: game.folder, detached: false, stdio: 'ignore' })
+      gameSessionStart = Date.now()
+      currentGameId = game.id
+
+      setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.minimize()
+        }
+      }, 100)
+
+      proc.once('close', () => {
+        const startedAt = currentGameId === game.id && typeof gameSessionStart === 'number'
+          ? gameSessionStart
+          : null
+        const minutes = startedAt ? Math.max(0, Math.round((Date.now() - startedAt) / 60000)) : 0
+        if (minutes > 0) {
+          saveGamePlaytime(game.id, minutes)
+        }
+        if (currentGameId === game.id) {
+          gameSessionStart = null
+          currentGameId = null
+        }
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.show()
+          mainWindow.focus()
+          mainWindow.webContents.send('game:session-end', { id: game.id, minutes })
+        }
+      })
+
+      proc.once('error', (err) => {
+        if (currentGameId === game.id) {
+          gameSessionStart = null
+          currentGameId = null
+        }
+        finishOnce({ ok: false, error: err?.message || 'Failed to launch game.', code: err?.code || null })
+      })
+
+      finishOnce({ ok: true, pid: proc.pid, tracking: true })
+    } catch (err) {
+      finishOnce({ ok: false, error: err?.message || 'Failed to launch game.', code: err?.code || null })
+    }
+  })
+
+  const result = await launchNormally()
+  if (result.ok) return result
+  if (process.platform !== 'win32' || !isElevationLaunchError(result)) {
+    return result
   }
 
   try {
-    const proc = spawn(game.exe, [], { cwd: game.folder, detached: false, stdio: 'ignore' })
-    gameSessionStart = Date.now()
-    currentGameId = game.id
-    setTimeout(() => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.minimize()
-      }
-    }, 100)
-    proc.on('close', () => {
-      const minutes = Math.max(0, Math.round((Date.now() - gameSessionStart) / 60000))
-      if (minutes > 0) {
-        saveGamePlaytime(game.id, minutes)
-      }
-      gameSessionStart = null
-      currentGameId = null
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.show()
-        mainWindow.focus()
-        mainWindow.webContents.send('game:session-end', { id: game.id, minutes })
-      }
-    })
-    proc.on('error', err => {
-      gameSessionStart = null
-      currentGameId = null
-      if (mainWindow && !mainWindow.isDestroyed())
-        mainWindow.webContents.send('game:launch-error', { id: game.id, error: err.message })
-    })
-    return { ok: true, pid: proc.pid }
-  } catch (err) { return { ok: false, error: err.message } }
+    await launchElevatedWindows(game)
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.minimize()
+    }
+    return { ok: true, via: 'elevated', tracking: false }
+  } catch (elevatedErr) {
+    return { ok: false, error: elevatedErr?.message || result.error }
+  }
 })
 
 function resolveGameFolder(game) {
@@ -1100,4 +1205,24 @@ ipcMain.handle('downloader:open-folder', (_, infoHash) => {
     shell.openPath(torrent.path)
   }
   return { ok: true }
+})
+
+ipcMain.handle('downloader:get-limit', () => {
+  const limitKbps = readDownloadLimitKbpsFromSettings()
+  return { ok: true, limitKbps }
+})
+
+ipcMain.handle('downloader:set-limit', async (_, limitKbps) => {
+  const persisted = saveDownloadLimitKbps(limitKbps)
+  if (!persisted.ok) return persisted
+
+  if (torrentClient && typeof torrentClient.throttleDownload === 'function') {
+    torrentClient.throttleDownload(toDownloadLimitBytesPerSecond(persisted.limitKbps))
+  }
+
+  return {
+    ok: true,
+    limitKbps: persisted.limitKbps,
+    unlimited: persisted.limitKbps <= 0,
+  }
 })

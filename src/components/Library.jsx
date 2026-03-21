@@ -15,6 +15,9 @@ export default function Library({
   totalGameCount,
   running,
   search,
+  setSearch,
+  sortBy,
+  setSortBy,
   activeCollection,
   filterGenre,
   setFilterGenre,
@@ -34,13 +37,63 @@ export default function Library({
     let list = games
     if (search) list = list.filter(g => g.name.toLowerCase().includes(search.toLowerCase()))
     if (filterGenre !== 'all') list = list.filter(g => (g.genres || []).includes(filterGenre))
+    if (sortBy === 'name') {
+      return list.sort((a, b) => a.name.localeCompare(b.name))
+    }
+    if (sortBy === 'playtime') {
+      return list.sort((a, b) => (b.playtime || 0) - (a.playtime || 0))
+    }
+    if (sortBy === 'added') {
+      return list.sort((a, b) => (+b.id || 0) - (+a.id || 0))
+    }
     return list.sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0))
-  }, [games, search, filterGenre])
+  }, [games, search, filterGenre, sortBy])
 
   if (totalGameCount === 0) return <Empty onAddClick={onAddClick} />
 
   return (
     <div style={{ height:'100%', overflow:'auto', padding:'20px 24px' }}>
+      <div style={{
+        display:'flex',
+        gap:10,
+        alignItems:'center',
+        marginBottom:14,
+        flexWrap:'wrap'
+      }}>
+        <input
+          value={search}
+          onChange={(e) => setSearch?.(e.target.value)}
+          placeholder="Search library..."
+          style={{
+            flex:'1 1 220px',
+            minWidth:180,
+            background:'var(--surface2)',
+            border:'1px solid var(--border)',
+            color:'var(--text)',
+            borderRadius:8,
+            padding:'8px 10px',
+            fontSize:12,
+          }}
+        />
+        <select
+          value={sortBy || 'recent'}
+          onChange={(e) => setSortBy?.(e.target.value)}
+          style={{
+            background:'var(--surface2)',
+            border:'1px solid var(--border)',
+            color:'var(--text)',
+            borderRadius:8,
+            padding:'8px 10px',
+            fontSize:12,
+          }}
+        >
+          <option value="recent">Sort: Last Played</option>
+          <option value="name">Sort: Name</option>
+          <option value="playtime">Sort: Playtime</option>
+          <option value="added">Sort: Recently Added</option>
+        </select>
+      </div>
+
       {/* Genre filters */}
       {genres.length > 1 && (
         <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:20 }}>

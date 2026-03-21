@@ -14,6 +14,7 @@ const uid = () => String(++nextId)
 const defaultSettings = {
   folders: [],
   collections: [],
+  downloadSpeedLimitKbps: 0,
   ui: {
     sidebarSort: 'recent',
     showPlaytimeInSidebar: true,
@@ -34,6 +35,9 @@ function normalizeSettings(input) {
   return {
     folders: Array.isArray(safe.folders) ? safe.folders : [],
     collections,
+    downloadSpeedLimitKbps: Number.isFinite(Number(safe.downloadSpeedLimitKbps))
+      ? Math.max(0, Math.round(Number(safe.downloadSpeedLimitKbps)))
+      : 0,
     ui: {
       ...defaultSettings.ui,
       ...(safe.ui || {}),
@@ -68,6 +72,7 @@ export default function App() {
   const [selected, setSelected]     = useState(null)
   const [running, setRunning]       = useState({}) // id -> true
   const [search, setSearch]         = useState('')
+  const [librarySort, setLibrarySort] = useState('recent')
   const [filterGenre, setFilterGenre] = useState('all')
   const [activeCollection, setActiveCollection] = useState('all')
   const [contextMenu, setContextMenu] = useState({ open: false, x: 0, y: 0, gameId: null })
@@ -151,7 +156,12 @@ export default function App() {
   const launchGame = useCallback(async (game) => {
     setRunning(r => ({ ...r, [game.id]: true }))
     const result = await vaporApi.game.launch(game)
-    if (!result.ok) setRunning(r => { const n={...r}; delete n[game.id]; return n })
+    if (!result.ok || result?.tracking === false) {
+      setRunning(r => { const n={...r}; delete n[game.id]; return n })
+    }
+    if (!result.ok) {
+      window.alert(result?.error || 'Failed to launch game.')
+    }
   }, [])
 
   const addGames = useCallback((newGames) => {
@@ -310,7 +320,10 @@ export default function App() {
               games={visibleGames}
               totalGameCount={games.length}
               running={running}
-              search=""
+              search={search}
+              setSearch={setSearch}
+              sortBy={librarySort}
+              setSortBy={setLibrarySort}
               activeCollection={activeCollection}
               filterGenre={filterGenre}
               setFilterGenre={setFilterGenre}

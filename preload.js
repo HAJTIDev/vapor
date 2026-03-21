@@ -41,6 +41,8 @@ contextBridge.exposeInMainWorld('vapor', {
   downloader: {
     start: (payload) => ipcRenderer.invoke('downloader:start', payload),
     list: () => ipcRenderer.invoke('downloader:list'),
+    getLimit: () => ipcRenderer.invoke('downloader:get-limit'),
+    setLimit: (limitKbps) => ipcRenderer.invoke('downloader:set-limit', limitKbps),
     pause: (infoHash) => ipcRenderer.invoke('downloader:pause', infoHash),
     resume: (infoHash) => ipcRenderer.invoke('downloader:resume', infoHash),
     remove: (infoHash, options) => ipcRenderer.invoke('downloader:remove', infoHash, options),
