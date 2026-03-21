@@ -1,7 +1,7 @@
 import {execFileSync, spawnSync} from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
-import { run } from 'node:test';
 
 const repo = 'HAJTIDev/vapor';
 const distDir = path.resolve('release');
@@ -117,6 +117,115 @@ function releaseExists() {
   }).status === 0;
 }
 
+function getPreviousReleaseTag() {
+  const result = runCommandWithResult(
+    'gh',
+    ['release', 'list', '--repo', repo, '--limit', '5', '--json', 'tagName,isLatest'],
+    {env: getAuthenticatedGhEnv(), stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8'},
+  );
+
+  if (result.status !== 0 || !result.stdout) {
+    return null;
+  }
+
+  try {
+    const releases = JSON.parse(result.stdout);
+    const latest = releases.find(r => r.isLatest);
+    return latest ? latest.tagName : (releases[0] ? releases[0].tagName : null);
+  } catch {
+    return null;
+  }
+}
+
+function getCommitsSince(sinceTag) {
+  const range = sinceTag ? `${sinceTag}..HEAD` : 'HEAD';
+  const result = runCommandWithResult(
+    'git',
+    ['log', range, '--pretty=format:%s', '--no-merges'],
+    {stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8'},
+  );
+
+  if (result.status !== 0 || !result.stdout.trim()) {
+    return [];
+  }
+
+  return result.stdout.trim().split('\n').filter(Boolean);
+}
+
+function formatReleaseNotes(commits, previousTag) {
+  if (commits.length === 0) {
+    return `## What's Changed\n\nNo changes recorded since the last release.\n`;
+  }
+
+  const features = [];
+  const fixes = [];
+  const other = [];
+
+  for (const msg of commits) {
+    const lower = msg.toLowerCase();
+    if (/^feat(\(.+\))?[!:]/i.test(msg) || lower.startsWith('add ') || lower.startsWith('new ')) {
+      features.push(msg);
+    } else if (
+      /^fix(\(.+\))?[!:]/i.test(msg) ||
+      lower.startsWith('fix') ||
+      lower.includes('bug') ||
+      lower.includes('issue') ||
+      lower.includes('patch')
+    ) {
+      fixes.push(msg);
+    } else {
+      other.push(msg);
+    }
+  }
+
+  const lines = ['## What\'s Changed', ''];
+
+  if (features.length > 0) {
+    lines.push('### ✨ New Features', '');
+    for (const f of features) {
+      lines.push(`- ${f}`);
+    }
+    lines.push('');
+  }
+
+  if (fixes.length > 0) {
+    lines.push('### 🐛 Bug Fixes', '');
+    for (const f of fixes) {
+      lines.push(`- ${f}`);
+    }
+    lines.push('');
+  }
+
+  if (other.length > 0) {
+    lines.push('### 🔧 Other Changes', '');
+    for (const f of other) {
+      lines.push(`- ${f}`);
+    }
+    lines.push('');
+  }
+
+  if (previousTag) {
+    lines.push(`**Full Changelog**: https://github.com/${repo}/compare/${previousTag}...${tag}`);
+  }
+
+  return lines.join('\n');
+}
+
+function buildReleaseNotesFile() {
+  const previousTag = getPreviousReleaseTag();
+  const commits = getCommitsSince(previousTag);
+  const notes = formatReleaseNotes(commits, previousTag);
+
+  const tmpFile = path.join(os.tmpdir(), `vapor-release-notes-${tag}.md`);
+  fs.writeFileSync(tmpFile, notes, 'utf8');
+
+  console.log('\n--- Release Notes ---');
+  console.log(notes);
+  console.log('---------------------\n');
+
+  return tmpFile;
+}
+
 function sleep(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
@@ -164,7 +273,12 @@ fileMustExist(artifactBlockmap);
 fileMustExist(latestYml);
 
 if (!releaseExists()) {
-  runCommand('gh', ['release', 'create', tag, '--repo', repo, '--title', tag, '--latest', '--generate-notes'], {env: getAuthenticatedGhEnv()});
+  const notesFile = buildReleaseNotesFile();
+  try {
+    runCommand('gh', ['release', 'create', tag, '--repo', repo, '--title', tag, '--latest', '--notes-file', notesFile], {env: getAuthenticatedGhEnv()});
+  } finally {
+    fs.unlinkSync(notesFile);
+  }
 }
 
 waitForRelease();
