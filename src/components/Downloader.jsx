@@ -73,7 +73,10 @@ export default function Downloader({ settings }) {
   const sortedDownloads = useMemo(() => {
     return [...downloads].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
   }, [downloads])
+  const activeCount = sortedDownloads.filter(item => item.status === 'downloading' || item.status === 'paused').length
   const completedCount = sortedDownloads.filter(item => item.status === 'completed').length
+  const totalSpeed = sortedDownloads.reduce((sum, item) => sum + (item.downloadSpeed || 0), 0)
+  const totalDownloaded = sortedDownloads.reduce((sum, item) => sum + (item.downloaded || 0), 0)
 
   const chooseTorrentFile = async () => {
     const file = await vaporApi.dialog.file({
@@ -136,12 +139,45 @@ export default function Downloader({ settings }) {
     vaporApi.downloader.list().then(setDownloads)
   }
 
+  const openDownloadFolder = async (item) => {
+    const result = await vaporApi.downloader.openFolder(item.infoHash)
+    if (result && result.ok === false) {
+      setError(result.error || 'Unable to open download folder.')
+    }
+  }
+
+  const statusTone = (status) => {
+    if (status === 'completed') return { bg: '#4ade8022', border: '#4ade8050', color: '#4ade80' }
+    if (status === 'paused') return { bg: '#f59e0b22', border: '#f59e0b50', color: '#f59e0b' }
+    if (status === 'downloading') return { bg: 'var(--accent-dim)', border: '#6c63ff55', color: 'var(--accent)' }
+    return { bg: 'var(--surface2)', border: 'var(--border)', color: 'var(--text-muted)' }
+  }
+
   return (
-    <div style={{ height: '100%', overflow: 'auto', padding: '28px' }}>
-      <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 4 }}>In-App Downloader</h2>
-      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20 }}>
-        Add a magnet link or a .torrent file to download directly in Vapor.
-      </p>
+    <div style={{
+      height: '100%',
+      overflow: 'auto',
+      padding: '26px 24px 28px',
+      background: 'radial-gradient(circle at 95% -10%, #6c63ff30 0%, transparent 35%)',
+    }}>
+      <div style={{ marginBottom: 18 }}>
+        <h2 style={{ fontSize: 24, fontWeight: 650, marginBottom: 6, letterSpacing: '-0.01em' }}>Downloader</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+          Pull magnet links or .torrent files directly into your library-ready folder.
+        </p>
+      </div>
+
+      <div style={{
+        display:'grid',
+        gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))',
+        gap:10,
+        marginBottom:14,
+      }}>
+        <StatCard label="Active" value={String(activeCount)} sub="downloading or paused" />
+        <StatCard label="Completed" value={String(completedCount)} sub="finished downloads" />
+        <StatCard label="Speed" value={humanSpeed(totalSpeed)} sub="combined rate" />
+        <StatCard label="Downloaded" value={humanBytes(totalDownloaded)} sub="all sessions" />
+      </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
         <button
@@ -160,10 +196,11 @@ export default function Downloader({ settings }) {
 
       <div style={{
         padding: 14,
-        borderRadius: 8,
-        border: '1px solid var(--border)',
-        background: 'var(--surface)',
-        marginBottom: 16,
+        borderRadius: 12,
+        border: '1px solid var(--border2)',
+        background: 'linear-gradient(180deg, #151526 0%, #12121c 100%)',
+        marginBottom: 14,
+        boxShadow:'0 14px 35px #00000040',
       }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 }}>
           <input
@@ -172,15 +209,15 @@ export default function Downloader({ settings }) {
             placeholder="Paste magnet link or choose a .torrent file"
             style={{
               flex: 1,
-              background: 'var(--surface2)',
-              border: '1px solid var(--border2)',
+              background: '#151521',
+              border: '1px solid #ffffff20',
               color: 'var(--text)',
               fontSize: 12,
-              borderRadius: 6,
+              borderRadius: 8,
               padding: '9px 10px',
             }}
           />
-          <button onClick={chooseTorrentFile} style={actionBtn}>Browse</button>
+          <button onClick={chooseTorrentFile} style={actionBtn}>Pick .torrent</button>
         </div>
 
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -190,16 +227,16 @@ export default function Downloader({ settings }) {
             placeholder="Download folder (optional)"
             style={{
               flex: 1,
-              background: 'var(--surface2)',
-              border: '1px solid var(--border2)',
+              background: '#151521',
+              border: '1px solid #ffffff20',
               color: 'var(--text)',
               fontSize: 12,
-              borderRadius: 6,
+              borderRadius: 8,
               padding: '9px 10px',
             }}
           />
           <button onClick={chooseSaveFolder} style={actionBtn}>Folder</button>
-          <button onClick={startDownload} disabled={busy} style={{ ...actionBtn, background: 'var(--accent)', color: '#fff' }}>
+          <button onClick={startDownload} disabled={busy} style={{ ...actionBtn, background: 'var(--accent)', color: '#fff', borderColor:'#6c63ff' }}>
             {busy ? 'Starting...' : 'Download'}
           </button>
         </div>
@@ -209,23 +246,49 @@ export default function Downloader({ settings }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {sortedDownloads.length === 0 && (
-          <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: '8px 2px' }}>No active downloads yet.</div>
+          <div style={{
+            color: 'var(--text-muted)',
+            fontSize: 12,
+            padding: '18px 12px',
+            borderRadius:10,
+            border:'1px dashed var(--border2)',
+            background:'var(--surface)'
+          }}>
+            No active downloads yet.
+          </div>
         )}
 
         {sortedDownloads.map((item) => (
+          (() => {
+            const tone = statusTone(item.status)
+            return (
           <div key={item.infoHash} style={{
-            borderRadius: 8,
-            border: '1px solid var(--border)',
-            background: 'var(--surface)',
+            borderRadius: 12,
+            border: '1px solid var(--border2)',
+            background: 'linear-gradient(180deg, #151521 0%, #11111a 100%)',
             padding: 12,
+            boxShadow:'0 10px 24px #0000002f',
           }}>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {item.name}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                  {item.status.toUpperCase()} · {humanBytes(item.downloaded)} / {humanBytes(item.length)}
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginTop: 4 }}>
+                  <span style={{
+                    fontSize:10,
+                    padding:'2px 8px',
+                    borderRadius:999,
+                    background:tone.bg,
+                    border:'1px solid ' + tone.border,
+                    color:tone.color,
+                    fontFamily:'var(--mono)'
+                  }}>
+                    {String(item.status || 'unknown').toUpperCase()}
+                  </span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    {humanBytes(item.downloaded)} / {humanBytes(item.length)}
+                  </span>
                 </div>
                 {item.error && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>{item.error}</div>}
               </div>
@@ -235,12 +298,12 @@ export default function Downloader({ settings }) {
                     {item.status === 'paused' ? 'Resume' : 'Pause'}
                   </button>
                 )}
-                <button onClick={() => vaporApi.downloader.openFolder(item.infoHash)} style={actionBtn}>Open Folder</button>
+                <button onClick={() => openDownloadFolder(item)} style={actionBtn}>Open Folder</button>
                 <button onClick={() => removeDownload(item)} style={{ ...actionBtn, color: 'var(--red)' }}>Remove</button>
               </div>
             </div>
 
-            <div style={{ height: 5, background: 'var(--surface2)', borderRadius: 999, overflow: 'hidden', marginBottom: 8 }}>
+            <div style={{ height: 7, background: '#0f0f16', borderRadius: 999, overflow: 'hidden', marginBottom: 8, border:'1px solid #ffffff10' }}>
               <div style={{
                 height: '100%',
                 width: `${Math.max(0, Math.min(100, item.progress || 0))}%`,
@@ -250,21 +313,41 @@ export default function Downloader({ settings }) {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)' }}>
-              <span>{item.progress?.toFixed ? item.progress.toFixed(1) : item.progress}%</span>
+              <span>{item.progress?.toFixed ? item.progress.toFixed(1) : item.progress}% complete</span>
               <span>{humanSpeed(item.downloadSpeed)} · {item.numPeers || 0} peers · ETA {humanEta(item.timeRemaining)}</span>
             </div>
           </div>
+            )
+          })()
         ))}
       </div>
     </div>
   )
 }
 
+function StatCard({ label, value, sub }) {
+  return (
+    <div style={{
+      background:'linear-gradient(180deg, #181826 0%, #12121c 100%)',
+      border:'1px solid #ffffff18',
+      borderRadius:10,
+      padding:'10px 12px',
+      boxShadow:'0 8px 18px #00000028',
+    }}>
+      <div style={{ fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--text-muted)', marginBottom:4 }}>
+        {label}
+      </div>
+      <div style={{ fontSize:16, fontWeight:600, color:'var(--text)' }}>{value}</div>
+      <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>{sub}</div>
+    </div>
+  )
+}
+
 const actionBtn = {
   padding: '8px 12px',
-  borderRadius: 6,
-  border: '1px solid var(--border2)',
-  background: 'var(--surface2)',
+  borderRadius: 8,
+  border: '1px solid #ffffff1f',
+  background: '#1a1a28',
   color: 'var(--text-dim)',
   fontSize: 12,
 }

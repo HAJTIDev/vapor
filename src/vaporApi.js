@@ -70,6 +70,8 @@ const browserFallback = {
   },
   game: {
     launch: async () => ({ ok: false, error: 'Game launching requires Electron runtime.' }),
+    openFolder: async () => ({ ok: false, error: 'Opening folders requires Electron runtime.' }),
+    showExecutable: async () => ({ ok: false, error: 'Revealing executables requires Electron runtime.' }),
   },
   update: {
     check: async () => ({ success: false }),

@@ -235,6 +235,20 @@ export default function App() {
     setContextMenu(prev => prev.open ? { ...prev, open: false } : prev)
   }, [])
 
+  const openGameFolder = useCallback(async (game) => {
+    const result = await vaporApi.game.openFolder(game)
+    if (!result?.ok) {
+      window.alert(result?.error || 'Unable to open the game folder.')
+    }
+  }, [])
+
+  const showExecutable = useCallback(async (game) => {
+    const result = await vaporApi.game.showExecutable(game)
+    if (!result?.ok) {
+      window.alert(result?.error || 'Unable to reveal the executable.')
+    }
+  }, [])
+
   const matchesCollection = useCallback((game) => {
     if (activeCollection === 'all') return true
     if (activeCollection === 'favorites') return !!game.favorite
@@ -260,9 +274,9 @@ export default function App() {
 
   const selectedGame = selected ? games.find(g => g.id === selected.id) || selected : null
   const menuGame = contextMenu.open ? games.find(g => g.id === contextMenu.gameId) : null
-  const menuWidth = 260
+  const menuWidth = 280
   const menuX = Math.max(8, Math.min(contextMenu.x, window.innerWidth - menuWidth - 8))
-  const menuY = Math.max(8, Math.min(contextMenu.y, window.innerHeight - 320))
+  const menuY = Math.max(8, Math.min(contextMenu.y, window.innerHeight - 440))
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden' }}>
@@ -370,6 +384,43 @@ export default function App() {
 
           <MenuButton
             onClick={() => {
+              launchGame(menuGame)
+              closeGameContextMenu()
+            }}
+            label="Play"
+          />
+
+          <MenuButton
+            onClick={() => {
+              setView('library')
+              setSelected(menuGame)
+              closeGameContextMenu()
+            }}
+            label="View Details"
+          />
+
+          <MenuDivider />
+
+          <MenuButton
+            onClick={() => {
+              openGameFolder(menuGame)
+              closeGameContextMenu()
+            }}
+            label="Open Game Folder"
+          />
+
+          <MenuButton
+            onClick={() => {
+              showExecutable(menuGame)
+              closeGameContextMenu()
+            }}
+            label="Show Executable In Folder"
+          />
+
+          <MenuDivider />
+
+          <MenuButton
+            onClick={() => {
               toggleFavorite(menuGame.id)
               closeGameContextMenu()
             }}
@@ -395,6 +446,7 @@ export default function App() {
                       key={collection.id}
                       onClick={() => {
                         toggleCollection(menuGame.id, collection.id)
+                        closeGameContextMenu()
                       }}
                       label={`${isIn ? '✓ ' : ''}${collection.name}`}
                     />
@@ -403,13 +455,28 @@ export default function App() {
               </div>
             </>
           )}
+
+          <MenuDivider />
+
+          <MenuButton
+            onClick={() => {
+              removeGame(menuGame.id)
+              closeGameContextMenu()
+            }}
+            label="Remove From Library"
+            tone="danger"
+          />
         </div>
       )}
     </div>
   )
 }
 
-function MenuButton({ label, onClick }) {
+function MenuButton({ label, onClick, tone = 'default' }) {
+  const isDanger = tone === 'danger'
+  const baseColor = isDanger ? 'var(--red)' : 'var(--text-dim)'
+  const hoverColor = isDanger ? '#fca5a5' : 'var(--text)'
+  const hoverBg = isDanger ? '#f8717115' : 'var(--surface2)'
   return (
     <button
       onClick={onClick}
@@ -418,18 +485,22 @@ function MenuButton({ label, onClick }) {
         textAlign:'left',
         padding:'8px 12px',
         fontSize:12,
-        color:'var(--text-dim)',
+        color: baseColor,
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'var(--surface2)'
-        e.currentTarget.style.color = 'var(--text)'
+        e.currentTarget.style.background = hoverBg
+        e.currentTarget.style.color = hoverColor
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = 'transparent'
-        e.currentTarget.style.color = 'var(--text-dim)'
+        e.currentTarget.style.color = baseColor
       }}
     >
       {label}
     </button>
   )
+}
+
+function MenuDivider() {
+  return <div style={{ height:1, background:'var(--border)', margin:'4px 0' }} />
 }

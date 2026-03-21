@@ -4,6 +4,38 @@ const fs = require('fs')
 const { spawn } = require('child_process')
 const crypto = require('crypto')
 const { autoUpdater } = require('electron-updater')
+
+function loadLocalEnv() {
+  const envPath = path.join(__dirname, '.env')
+  if (!fs.existsSync(envPath)) return
+  try {
+    const content = fs.readFileSync(envPath, 'utf8').replace(/^\uFEFF/, '')
+    content.split(/\r?\n/).forEach((line) => {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('#')) return
+      const eqIndex = trimmed.indexOf('=')
+      if (eqIndex <= 0) return
+
+      const key = trimmed.slice(0, eqIndex).trim()
+      let value = trimmed.slice(eqIndex + 1).trim()
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1)
+      }
+
+      if (process.env[key] == null || process.env[key] === '') {
+        process.env[key] = value
+      }
+    })
+  } catch (err) {
+    console.error('[env] Failed to read .env:', err)
+  }
+}
+
+loadLocalEnv()
+
 const isDev = !app.isPackaged
 let mainWindow
 let tray = null
@@ -87,7 +119,7 @@ function decryptApiKey(encrypted) {
 
 function loadSgdbKey() {
   if (sgdbKeyCache !== null) return sgdbKeyCache
-  const envKey = process.env.SGDB_KEY
+  const envKey = process.env.SGDB_API_KEY || process.env.SGDB_KEY
   if (envKey) {
     sgdbKeyCache = envKey
     return sgdbKeyCache
@@ -884,6 +916,39 @@ ipcMain.handle('game:launch', (_, game) => {
     })
     return { ok: true, pid: proc.pid }
   } catch (err) { return { ok: false, error: err.message } }
+})
+
+function resolveGameFolder(game) {
+  const folder = String(game?.folder || '').trim()
+  if (folder) return folder
+  const exe = String(game?.exe || '').trim()
+  if (!exe) return null
+  return path.dirname(exe)
+}
+
+ipcMain.handle('game:open-folder', async (_, game) => {
+  try {
+    const folder = resolveGameFolder(game)
+    if (!folder) return { ok: false, error: 'No game folder found.' }
+    if (!fs.existsSync(folder)) return { ok: false, error: 'Game folder does not exist.' }
+    const openError = await shell.openPath(folder)
+    if (openError) return { ok: false, error: openError }
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err?.message || 'Failed to open game folder.' }
+  }
+})
+
+ipcMain.handle('game:show-executable', (_, game) => {
+  try {
+    const exePath = String(game?.exe || '').trim()
+    if (!exePath) return { ok: false, error: 'No executable path set.' }
+    if (!fs.existsSync(exePath)) return { ok: false, error: 'Executable does not exist.' }
+    shell.showItemInFolder(exePath)
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err?.message || 'Failed to reveal executable.' }
+  }
 })
 
 function saveGamePlaytime(gameId, minutes) {

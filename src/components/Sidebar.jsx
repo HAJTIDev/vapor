@@ -27,21 +27,48 @@ export default function Sidebar({
   compactSidebar,
 }) {
   const go = (v) => { setView(v); onDeselect() }
+  const activeCollectionLabel = collections.find(c => c.id === activeCollection)?.name || 'Games'
 
   return (
     <aside style={{
       width: compactSidebar ? 250 : 290,
-      flexShrink:0,
-      background:'var(--surface)',
-      borderRight:'1px solid var(--border)',
-      display:'flex', flexDirection:'column', overflow:'hidden'
+      flexShrink: 0,
+      background: 'linear-gradient(180deg, #121220 0%, #101018 100%)',
+      borderRight: '1px solid var(--border)',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      boxShadow: 'inset -1px 0 0 #ffffff08',
     }}>
-      {/* Search */}
-      <div style={{ padding:'12px 12px 8px' }}>
+      <div style={{ padding:'12px 12px 6px' }}>
+        <div style={{
+          display:'flex',
+          alignItems:'center',
+          justifyContent:'space-between',
+          marginBottom:10,
+          padding:'0 2px',
+        }}>
+          <span style={{ fontSize:14, fontWeight:600, letterSpacing:'0.02em' }}>Vapor</span>
+          <span style={{
+            fontSize:10,
+            fontFamily:'var(--mono)',
+            color:'var(--text-muted)',
+            background:'var(--surface2)',
+            border:'1px solid var(--border)',
+            borderRadius:999,
+            padding:'2px 8px',
+          }}>
+            {gameCount} games
+          </span>
+        </div>
+
         <div style={{
           display:'flex', alignItems:'center', gap:8,
-          background:'var(--surface2)', border:'1px solid var(--border)',
-          borderRadius:6, padding:'6px 10px'
+          background:'linear-gradient(180deg, #1b1b29 0%, #171723 100%)',
+          border:'1px solid #ffffff14',
+          borderRadius:10,
+          padding:'8px 10px',
+          boxShadow:'0 8px 24px #00000025'
         }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -52,14 +79,27 @@ export default function Sidebar({
             placeholder="Search..."
             style={{
               background:'none', border:'none', color:'var(--text)', fontSize:13,
-              width:'100%', '::placeholder': { color:'var(--text-muted)' }
+              width:'100%'
             }}
           />
+          {!!search && (
+            <button
+              onClick={() => setSearch('')}
+              style={{
+                color:'var(--text-muted)',
+                fontSize:12,
+                lineHeight:1,
+                padding:'0 2px',
+              }}
+              title="Clear search"
+            >
+              x
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Nav */}
-      <nav style={{ padding:'4px 8px 8px', display:'flex', flexDirection:'column', gap:2 }}>
+      <nav style={{ padding:'4px 8px 8px', display:'flex', flexDirection:'column', gap:4 }}>
         <NavItem active={view==='library'} onClick={() => go('library')} icon={<GridIcon />} label="Library" badge={gameCount} />
         <NavItem active={view==='add'}     onClick={() => go('add')}     icon={<PlusIcon />} label="Add Games" />
         <NavItem active={view==='downloads'} onClick={() => go('downloads')} icon={<DownloadIcon />} label="Downloads" />
@@ -67,7 +107,12 @@ export default function Sidebar({
       </nav>
 
       <SectionLabel>Collections</SectionLabel>
-      <div style={{ padding:'0 8px 8px', display:'flex', flexDirection:'column', gap:2 }}>
+      <div style={{
+        padding:'0 8px 8px',
+        display:'flex',
+        flexDirection:'column',
+        gap:4,
+      }}>
         {collections.map(c => (
           <CollectionItem
             key={c.id}
@@ -79,8 +124,15 @@ export default function Sidebar({
         ))}
       </div>
 
-      <SectionLabel>{activeCollection === 'all' ? 'All Games' : 'Games'}</SectionLabel>
-      <div style={{ flex:1, overflow:'auto', padding:'0 8px 10px', display:'flex', flexDirection:'column', gap:2 }}>
+      <SectionLabel>{activeCollection === 'all' ? 'All Games' : activeCollectionLabel}</SectionLabel>
+      <div style={{
+        flex:1,
+        overflow:'auto',
+        padding:'0 8px 10px',
+        display:'flex',
+        flexDirection:'column',
+        gap:4,
+      }}>
         {games.map(game => (
           <GameRow
             key={game.id}
@@ -110,10 +162,10 @@ export default function Sidebar({
 function SectionLabel({ children }) {
   return (
     <div style={{
-      padding:'8px 14px 6px',
+      padding:'10px 14px 6px',
       fontSize:10,
       textTransform:'uppercase',
-      letterSpacing:'0.1em',
+      letterSpacing:'0.12em',
       color:'var(--text-muted)'
     }}>
       {children}
@@ -130,16 +182,19 @@ function CollectionItem({ active, label, count, onClick }) {
       onMouseLeave={() => setHov(false)}
       style={{
         display:'flex', alignItems:'center', gap:8,
-        width:'100%', textAlign:'left', padding:'7px 10px', borderRadius:6,
-        background: active ? 'var(--accent-dim)' : hov ? 'var(--surface2)' : 'transparent',
+        width:'100%', textAlign:'left', padding:'8px 10px', borderRadius:8,
+        background: active ? 'linear-gradient(90deg, #6c63ff2a 0%, #6c63ff10 100%)' : hov ? 'var(--surface2)' : 'transparent',
         color: active ? 'var(--accent)' : 'var(--text-dim)',
         fontSize:12,
+        border:'1px solid ' + (active ? '#6c63ff38' : 'transparent'),
+        transition:'all 0.12s',
       }}
     >
       <span style={{ flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{label}</span>
       <span style={{
-        fontSize:10, fontFamily:'var(--mono)', color:'var(--text-muted)',
-        background:'var(--surface2)', padding:'1px 5px', borderRadius:10
+        fontSize:10, fontFamily:'var(--mono)', color: active ? 'var(--accent)' : 'var(--text-muted)',
+        background: active ? '#6c63ff22' : 'var(--surface2)', padding:'1px 6px', borderRadius:10,
+        border:'1px solid ' + (active ? '#6c63ff30' : 'var(--border)')
       }}>{count || 0}</span>
     </button>
   )
@@ -155,19 +210,22 @@ function GameRow({ game, active, running, showPlaytime, compact, onClick, onLaun
       onContextMenu={onContextMenu}
       style={{
         display:'flex', alignItems:'center', gap:8,
-        borderRadius:6, padding: compact ? '6px 8px' : '7px 9px',
+        borderRadius:8,
+        padding: compact ? '7px 8px' : '8px 9px',
         cursor:'pointer',
-        background: active ? 'var(--accent-dim)' : hov ? 'var(--surface2)' : 'transparent',
-        border: '1px solid ' + (active ? '#6c63ff40' : 'transparent'),
+        background: active ? 'linear-gradient(90deg, #6c63ff2f 0%, #6c63ff12 100%)' : hov ? 'var(--surface2)' : 'transparent',
+        border: '1px solid ' + (active ? '#6c63ff45' : hov ? '#ffffff10' : 'transparent'),
+        transition:'all 0.12s',
       }}
     >
       <div style={{
         width: compact ? 20 : 24,
         height: compact ? 28 : 32,
-        borderRadius:4,
+        borderRadius:6,
         overflow:'hidden',
         background:'var(--surface2)',
         flexShrink:0,
+        border:'1px solid var(--border)',
       }}>
         {game.art?.grid ? (
           <img src={game.art.grid} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
@@ -200,8 +258,9 @@ function GameRow({ game, active, running, showPlaytime, compact, onClick, onLaun
           <button
             onClick={(e) => { e.stopPropagation(); onLaunch() }}
             style={{
-              fontSize:10, padding:'3px 7px', borderRadius:4,
-              background:'var(--accent)', color:'#fff', flexShrink:0
+              fontSize:10, padding:'4px 8px', borderRadius:5,
+              background:'var(--accent)', color:'#fff', flexShrink:0,
+              border:'1px solid #ffffff26'
             }}
           >
             Play
@@ -229,20 +288,36 @@ function NavItem({ active, onClick, icon, label, badge }) {
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        display:'flex', alignItems:'center', gap:10, padding:'8px 10px',
-        borderRadius:6, width:'100%', textAlign:'left',
-        background: active ? 'var(--accent-dim)' : hov ? 'var(--surface2)' : 'transparent',
+        position:'relative',
+        display:'flex', alignItems:'center', gap:10, padding:'9px 10px',
+        borderRadius:8, width:'100%', textAlign:'left',
+        background: active ? 'linear-gradient(90deg, #6c63ff33 0%, #6c63ff10 100%)' : hov ? 'var(--surface2)' : 'transparent',
         color: active ? 'var(--accent)' : hov ? 'var(--text)' : 'var(--text-dim)',
         fontSize:13, fontWeight: active ? 500 : 400,
-        transition:'all 0.12s'
+        transition:'all 0.12s',
+        border:'1px solid ' + (active ? '#6c63ff40' : 'transparent'),
       }}
     >
+      {active && (
+        <span style={{
+          position:'absolute',
+          left:4,
+          top:7,
+          bottom:7,
+          width:3,
+          borderRadius:999,
+          background:'var(--accent)',
+        }} />
+      )}
       <span style={{ opacity: active ? 1 : 0.6 }}>{icon}</span>
       <span style={{ flex:1 }}>{label}</span>
       {badge != null && badge > 0 && (
         <span style={{
           fontSize:10, fontFamily:'var(--mono)', color:'var(--text-muted)',
-          background:'var(--surface2)', padding:'1px 5px', borderRadius:10
+          background: active ? '#6c63ff22' : 'var(--surface2)',
+          padding:'1px 6px',
+          borderRadius:10,
+          border:'1px solid ' + (active ? '#6c63ff30' : 'var(--border)')
         }}>{badge}</span>
       )}
     </button>

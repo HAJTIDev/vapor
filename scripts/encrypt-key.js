@@ -9,20 +9,47 @@ if (!fs.existsSync(buildDir)) {
   fs.mkdirSync(buildDir, { recursive: true });
 }
 
-let API_KEY = process.env.SGDB_API_KEY;
-let ENCRYPTION_KEY = process.env.VAPOR_ENCRYPTION_KEY || 'vapor-default-key-change-me';
+function parseEnvFile(filePath) {
+  const env = {};
+  if (!fs.existsSync(filePath)) return env;
 
-if (fs.existsSync(envPath)) {
-  const envContent = fs.readFileSync(envPath, 'utf8');
-  envContent.split('\n').forEach(line => {
-    const [key, ...valueParts] = line.split('=');
-    const value = valueParts.join('=').trim();
-    if (key && value && !key.startsWith('#')) {
-      if (key === 'SGDB_API_KEY' && !API_KEY) API_KEY = value;
-      if (key === 'VAPOR_ENCRYPTION_KEY' && !ENCRYPTION_KEY) ENCRYPTION_KEY = value;
+  const content = fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, '');
+  content.split(/\r?\n/).forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) return;
+
+    const eqIndex = trimmed.indexOf('=');
+    if (eqIndex <= 0) return;
+
+    const key = trimmed.slice(0, eqIndex).trim();
+    let value = trimmed.slice(eqIndex + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
     }
+    env[key] = value;
   });
+
+  return env;
 }
+
+const fileEnv = parseEnvFile(envPath);
+
+const API_KEY = String(
+  process.env.SGDB_API_KEY ||
+  process.env.SGDB_KEY ||
+  fileEnv.SGDB_API_KEY ||
+  fileEnv.SGDB_KEY ||
+  ''
+).trim();
+
+const ENCRYPTION_KEY = String(
+  process.env.VAPOR_ENCRYPTION_KEY ||
+  fileEnv.VAPOR_ENCRYPTION_KEY ||
+  'vapor-default-key-change-me'
+).trim();
 
 if (!API_KEY || API_KEY === 'none' || API_KEY === '""' || API_KEY === "''" || API_KEY === '') {
   const keyFile = path.join(buildDir, 'sgdb.enc.json');
