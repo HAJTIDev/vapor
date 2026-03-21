@@ -8,7 +8,8 @@
     "build": "node scripts/encrypt-key.js && vite build && electron-builder",
     "build:key": "node scripts/encrypt-key.js",
     "preview": "vite preview",
-    "publish": "node scripts/publish.mjs"
+    "publish": "node scripts/publish.mjs",
+    "push" : "git add . && git commit -m meow && git push"
   },
   "dependencies": {
     "electron-updater": "^6.8.3",
