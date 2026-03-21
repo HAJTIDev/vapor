@@ -28,7 +28,7 @@ function BootAnimation({ onComplete }) {
       pointerEvents: 'none',
     }}>
       <img
-        src="/assets/title.png"
+        src="./img/title.png"
         alt="Vapor"
         style={{
           width: '40vw',
