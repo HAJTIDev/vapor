@@ -1129,9 +1129,9 @@
   <h1>YOUR GAMES<br><span>ONE PLACE</span></h1>
 
   <p class="hero-sub">
-    A clean, fast game launcher for your entire library.
-    Scan folders, pull artwork automatically, track playtime —
-    no accounts, no nonsense.
+    A simple launcher for PC games you already own.
+    Pick a folder, Vapor finds your games, adds artwork,
+    and tracks playtime. No account needed.
   </p>
 
   <div class="hero-actions">
@@ -1315,55 +1315,85 @@
       <div class="section-title">WHAT'S NEW<br>IN VAPOR</div>
     </div>
     <div class="section-sub">
-      The latest release expands control and customization: favorites, collection actions,
-      controller and keyboard flow, in-app downloads, startup options, plus the same fast local library core.
+      Vapor helps you organize and launch your games in one place.
+      It keeps things simple, but still gives you useful controls when you need them.
     </div>
   </div>
   <div class="features-grid reveal">
     <div class="feature-card">
       <div class="feature-icon">🔍</div>
       <h3>Smart Detection</h3>
-      <p>Drop in a folder and Vapor intelligently identifies real game executables, filtering out setup wizards, launchers, and uninstallers automatically.</p>
+      <p>Choose a folder and Vapor finds the game files for you. It skips installers, uninstallers, and other files you do not need to launch.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🎨</div>
       <h3>SteamGridDB Artwork</h3>
-      <p>Pulls high-quality covers, hero banners, logos, and icons automatically. You can still override with custom URLs or local images when needed.</p>
+      <p>Vapor can automatically add cover images, banners, and logos so your library looks clean. You can also set your own images anytime.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">⏱</div>
       <h3>Playtime Tracking</h3>
-      <p>Tracks time played per session and accumulates totals. Know exactly how deep you're in any game, displayed right in your library.</p>
+      <p>Vapor tracks how long you play each game and saves the total time. Your hours are shown directly in your library.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">📁</div>
       <h3>Collections + Favorites</h3>
-      <p>Create collections, mark favorites, and keep your sidebar focused on what you play most. Every game can belong to multiple collections.</p>
+      <p>Mark games as favorites and group them into collections. This makes large libraries easier to browse.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🖱</div>
       <h3>Quick Context Actions</h3>
-      <p>Right-click any game card or sidebar row to toggle favorite status and update collection membership without opening extra dialogs.</p>
+      <p>Right-click a game to open quick actions like favorite, collection updates, and file shortcuts.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🎮</div>
       <h3>Controller + Keyboard</h3>
-      <p>Navigate the app with D-pad or arrow keys, launch with A or Enter, and back out with B or Escape for couch-friendly browsing.</p>
+      <p>You can use mouse, keyboard, or controller. Move with arrows or D-pad, launch with Enter or A, and go back with Escape or B.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🚀</div>
       <h3>Auto Updates</h3>
-      <p>Built-in updater checks GitHub releases so fixes and new capabilities arrive quickly without manual reinstall workflows.</p>
+      <p>Vapor can check for updates and install new versions, so you get fixes and features without manual reinstall steps.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🪟</div>
       <h3>Start With Windows</h3>
-      <p>Enable startup launch so Vapor is ready as soon as you sign in, keeping your library one click away from your desktop session.</p>
+      <p>Turn this on if you want Vapor to open when Windows starts.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🧲</div>
       <h3>In-App Torrent Client</h3>
-      <p>Start downloads from magnet links or .torrent files directly in Vapor with live progress, speed, peers, pause/resume, and quick folder access.</p>
+      <p>Start downloads from magnet links or .torrent files in the app. See progress, speed, and peers, and pause or resume anytime.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🧰</div>
+      <h3>Per-Game Controls</h3>
+      <p>Edit each game's name, executable path, and optional Steam App ID. You can also enable run as admin for games that need it.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Sorting + Filters</h3>
+      <p>Find games faster with search, genre filters, and sorting by name, playtime, last played, or recently added.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🧭</div>
+      <h3>Sidebar Personalization</h3>
+      <p>Change sidebar size, show or hide playtime, and choose sort order so the app feels right for you.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🗂️</div>
+      <h3>Folder + EXE Tools</h3>
+      <p>Open the game folder, reveal the executable file, and manage favorites or collections from one quick menu.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚙️</div>
+      <h3>Download Control Center</h3>
+      <p>Control all downloads in one place. Set speed limits, clear completed items, and manage active downloads.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🛡</div>
+      <h3>Safer Library Cleanup</h3>
+      <p>Optional confirmation prompts help prevent accidental removals from your library.</p>
     </div>
   </div>
 </section>
@@ -1374,23 +1404,23 @@
     <div class="how-header reveal">
       <div class="section-label">How It Works</div>
       <div class="section-title">UP AND RUNNING<br>IN 3 STEPS</div>
-      <p class="section-sub">No complicated setup. No accounts to create. Just your games folder and go.</p>
+      <p class="section-sub">No account setup. Just pick your games folder and start playing.</p>
     </div>
     <div class="steps reveal">
       <div class="step">
         <div class="step-num">01</div>
         <h3>Point at a Folder</h3>
-        <p>Select your games drive or directory. Vapor recursively scans for game executables, scoring each one to find the real game binary.</p>
+        <p>Pick the folder where your games are installed. Vapor scans it and finds the files that actually launch your games.</p>
       </div>
       <div class="step">
         <div class="step-num">02</div>
         <h3>Review & Import</h3>
-        <p>See the detected games list before importing. Select which titles to add, then confirm — Vapor fetches artwork for each game automatically.</p>
+        <p>Check the list, choose the games you want, and import them. Vapor can also add artwork automatically.</p>
       </div>
       <div class="step">
         <div class="step-num">03</div>
         <h3>Launch & Play</h3>
-        <p>Hit play from your library grid. Sessions are tracked automatically. Playtime updates the moment your game closes.</p>
+        <p>Press Play from your library. Vapor tracks your session and updates playtime when the game closes.</p>
       </div>
     </div>
   </div>
@@ -1403,12 +1433,12 @@
       <div class="detail-text">
         <div class="section-label">SteamGridDB Integration</div>
         <h2>ARTWORK THAT SLAPS</h2>
-        <p>Vapor connects to SteamGridDB and automatically fetches cover art, wide hero banners, and transparent logos for every game it detects. Your library looks like a storefront, not a file browser.</p>
+        <p>Vapor connects to SteamGridDB to add cover art, hero banners, and logos for your games. Your library looks clear and organized instead of plain file names.</p>
         <ul class="checklist">
-          <li><span class="check">▸</span> Grid covers, hero images, and logos per game</li>
-          <li><span class="check">▸</span> Paste a custom URL to override any image</li>
-          <li><span class="check">▸</span> Upload local files for total control</li>
-          <li><span class="check">▸</span> Works with any game, even obscure indie titles</li>
+          <li><span class="check">▸</span> Adds cover, hero, and logo images per game</li>
+          <li><span class="check">▸</span> You can paste your own image URL</li>
+          <li><span class="check">▸</span> You can upload local image files</li>
+          <li><span class="check">▸</span> Useful for big games and small indie games</li>
         </ul>
       </div>
       <div class="detail-visual">
@@ -1439,12 +1469,12 @@
       <div class="detail-text">
         <div class="section-label">Intelligent Scanning</div>
         <h2>FINDS THE RIGHT<br>EXECUTABLE</h2>
-        <p>Game folders are full of helper binaries, crash reporters, and updaters. Vapor's scoring engine evaluates each candidate and picks the real game launcher every time.</p>
+        <p>Game folders often include many extra .exe files. Vapor tries to pick the real game launcher and ignore setup or helper tools.</p>
         <ul class="checklist">
-          <li><span class="check">▸</span> Filters setup.exe, uninstall.exe, crashpad, and more</li>
-          <li><span class="check">▸</span> Scores by filename, folder depth, and file size</li>
-          <li><span class="check">▸</span> Skips already-imported paths on rescan</li>
-          <li><span class="check">▸</span> Depth-limited scan for speed</li>
+          <li><span class="check">▸</span> Skips common non-game files like setup and uninstall</li>
+          <li><span class="check">▸</span> Uses file name and location hints to choose the best match</li>
+          <li><span class="check">▸</span> Avoids duplicate paths during rescans</li>
+          <li><span class="check">▸</span> Keeps scans fast with depth limits</li>
         </ul>
       </div>
       <div class="detail-visual">
@@ -1487,12 +1517,12 @@
       <div class="detail-text">
         <div class="section-label">Session Tracking</div>
         <h2>KNOW YOUR<br>HOURS</h2>
-        <p>When you launch a game through Vapor, it watches the process. The moment you close, the session is recorded and your total playtime is updated — no background services needed.</p>
+        <p>When you launch a game from Vapor, it tracks your play session. After you close the game, your total playtime updates automatically.</p>
         <ul class="checklist">
-          <li><span class="check">▸</span> Per-game playtime in hours and minutes</li>
-          <li><span class="check">▸</span> Last played date tracked automatically</li>
-          <li><span class="check">▸</span> Sort library by most played or recently played</li>
-          <li><span class="check">▸</span> Show playtime in sidebar quick list</li>
+          <li><span class="check">▸</span> Shows per-game playtime in hours and minutes</li>
+          <li><span class="check">▸</span> Saves your last played date automatically</li>
+          <li><span class="check">▸</span> Lets you sort by playtime or recent activity</li>
+          <li><span class="check">▸</span> Optional playtime display in the sidebar</li>
         </ul>
       </div>
       <div class="detail-visual">
@@ -1534,8 +1564,8 @@
     <div class="section-label" style="text-align:center">Download</div>
     <div class="section-title">READY TO<br>PLAY?</div>
     <p class="section-sub">
-      Grab the latest Windows installer and have your entire game library
-      organized in under a minute.
+      Download the latest Windows installer,
+      add your games folder, and start from one clean library.
     </p>
     <div class="download-actions">
       <a href="https://github.com/HAJTIDev/vapor/releases/latest" class="btn-primary">
@@ -1547,7 +1577,7 @@
         View on GitHub
       </a>
     </div>
-    <p class="platform-note">Windows 10/11 · Electron · Built with ♥ using React</p>
+    <p class="platform-note">Windows 10/11 · Built with Electron + React</p>
   </div>
 </section>
 
