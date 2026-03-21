@@ -8,6 +8,46 @@ import AddGames from './components/AddGames.jsx'
 import Downloader from './components/Downloader.jsx'
 import vaporApi from './vaporApi.js'
 
+function BootAnimation({ onComplete }) {
+  useEffect(() => {
+    const timer = setTimeout(onComplete, 1500)
+    return () => clearTimeout(timer)
+  }, [onComplete])
+
+  return (
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      background: '#09090e',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 9999,
+      animation: 'bootFadeOut 0.5s ease-out 1s forwards',
+      pointerEvents: 'none',
+    }}>
+      <img
+        src="/assets/title.png"
+        alt="Vapor"
+        style={{
+          width: '40vw',
+          maxWidth: 500,
+          height: 'auto',
+          filter: 'drop-shadow(0 0 40px rgba(147, 51, 234, 0.5))',
+        }}
+      />
+      <style>{`
+        @keyframes bootFadeOut {
+          to {
+            opacity: 0;
+            visibility: hidden;
+          }
+        }
+      `}</style>
+    </div>
+  )
+}
+
 let nextId = Date.now()
 const uid = () => String(++nextId)
 
@@ -77,6 +117,7 @@ export default function App() {
   const [filterGenre, setFilterGenre] = useState('all')
   const [activeCollection, setActiveCollection] = useState('all')
   const [contextMenu, setContextMenu] = useState({ open: false, x: 0, y: 0, gameId: null })
+  const [showBoot, setShowBoot]     = useState(true)
 
   // Load
   useEffect(() => {
@@ -303,7 +344,9 @@ export default function App() {
   const menuY = Math.max(8, Math.min(contextMenu.y, window.innerHeight - 440))
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden' }}>
+    <>
+      {showBoot && <BootAnimation onComplete={() => setShowBoot(false)} />}
+      <div style={{ display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden' }}>
       <Titlebar />
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
         <Sidebar
@@ -496,6 +539,7 @@ export default function App() {
         </div>
       )}
     </div>
+    </>
   )
 }
 

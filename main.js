@@ -80,7 +80,6 @@ if (!gotTheLock && !isDev) {
     if (settings.ui?.autoUpdate !== false) {
       setTimeout(() => checkForUpdates(false), 5000)
     }
-    restorePersistedDownloads()
   })
 
   app.on('window-all-closed', () => {
@@ -304,6 +303,8 @@ function createDetachedTorrentRecord(torrent) {
   const files = Array.isArray(torrent.files)
     ? torrent.files.map(file => ({ path: file.path, length: file.length }))
     : []
+  const setupFile = files.find(file => /(^|[\\/])setup\.exe$/i.test(String(file?.path || '')))
+  const setupExePath = setupFile ? path.join(basePath, setupFile.path) : null
 
   return {
     infoHash: torrent.infoHash,
@@ -318,6 +319,7 @@ function createDetachedTorrentRecord(torrent) {
     timeRemaining: 0,
     path: basePath,
     files,
+    setupExePath,
     done: true,
     paused: true,
     _vaporDetached: true,
@@ -401,11 +403,7 @@ function sendToRenderer(channel, ...args) {
   try {
     webContents.send(channel, ...args)
     return true
-  } catch (err) {
-    const message = String(err?.message || err || '')
-    if (!/Render frame was disposed before WebFrameMain could be accessed/i.test(message)) {
-      console.error(`[ipc] Failed to send ${channel}:`, err)
-    }
+  } catch {
     return false
   }
 }
@@ -805,6 +803,10 @@ function createWindow() {
       event.preventDefault()
       mainWindow.hide()
     }
+  })
+
+  mainWindow.on('ready-to-show', () => {
+    restorePersistedDownloads()
   })
 }
 
@@ -1414,7 +1416,6 @@ ipcMain.handle('downloader:launch-setup', async (_, infoHash) => {
       ? torrent.files.find(file => /(^|[\\/])setup\.exe$/i.test(String(file?.path || '')))
       : null
     if (!setupFile) return { ok: false, error: 'setup.exe not found in this download.' }
-
     const basePath = path.resolve(torrent.path || torrent._vaporSavePath || downloadsDir)
     const setupPath = path.resolve(path.join(basePath, setupFile.path))
     if (!isPathInside(basePath, setupPath)) {
