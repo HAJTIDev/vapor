@@ -2,7 +2,7 @@
 
 A minimal, flat, DRM-free game launcher for Windows.
 
-![Vapor](src/img/image.png)
+![Vapor](assets/title.png)
 
 ## Features
 
