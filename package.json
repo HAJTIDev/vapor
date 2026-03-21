@@ -1,6 +1,6 @@
 {
   "name": "vapor",
-  "version": "1.2.7",
+  "version": "1.2.9",
   "description": "A minimal DRM-free game launcher",
   "main": "main.js",
   "scripts": {
@@ -58,7 +58,9 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "installerHeader": "build/header.png",
+      "installerSidebar": "build/sidebar.png"
     },
     "publish": {
       "provider": "github",
