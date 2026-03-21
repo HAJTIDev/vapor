@@ -633,7 +633,7 @@ function createWindow() {
     }
   })
   if (isDev) mainWindow.loadURL('http://localhost:5173')
-  else mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'))
+  else mainWindow.loadFile(path.join(__dirname, 'dist', 'app.html'))
   
   mainWindow.on('close', (event) => {
     if (!app.isQuitting) {
