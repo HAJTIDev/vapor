@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld('vapor', {
     remove: (infoHash, options) => ipcRenderer.invoke('downloader:remove', infoHash, options),
     clearCompleted: (options) => ipcRenderer.invoke('downloader:clear-completed', options),
     openFolder: (infoHash) => ipcRenderer.invoke('downloader:open-folder', infoHash),
+    launchSetup: (infoHash) => ipcRenderer.invoke('downloader:launch-setup', infoHash),
   },
   on: (channel, fn) => ipcRenderer.on(channel, (_, ...args) => fn(...args)),
   off: (channel, fn) => ipcRenderer.removeListener(channel, fn),

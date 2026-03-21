@@ -212,12 +212,14 @@ function getPersistedDownloads() {
 
 function persistDownloadsState() {
   try {
-    const serialized = Array.from(torrentDownloads.values()).map(torrent => ({
+    const serialized = Array.from(torrentDownloads.values())
+      .filter(torrent => !torrent?.done && !torrent?._vaporDetached)
+      .map(torrent => ({
       source: torrent._vaporSource || torrent.magnetURI,
       savePath: torrent._vaporSavePath || torrent.path || downloadsDir,
       paused: !!torrent.paused,
       createdAt: torrent._vaporCreatedAt || Date.now(),
-    })).filter(item => item.source)
+      })).filter(item => item.source)
     saveJSON(downloadsStateFile, serialized)
   } catch (err) {
     console.error('[downloader] Failed to persist downloads state:', err)
@@ -291,13 +293,88 @@ async function ensureTorrentClient() {
 }
 
 function torrentStatus(torrent) {
+  if (torrent?._vaporDetached) return 'completed'
   if (torrent.done) return 'completed'
   if (torrent.paused) return 'paused'
   return 'downloading'
 }
 
+function createDetachedTorrentRecord(torrent) {
+  const basePath = torrent.path || torrent._vaporSavePath || downloadsDir
+  const files = Array.isArray(torrent.files)
+    ? torrent.files.map(file => ({ path: file.path, length: file.length }))
+    : []
+
+  return {
+    infoHash: torrent.infoHash,
+    name: torrent.name || torrent.infoHash,
+    magnetURI: torrent.magnetURI,
+    progress: 1,
+    downloaded: torrent.length || torrent.downloaded || 0,
+    length: torrent.length || torrent.downloaded || 0,
+    downloadSpeed: 0,
+    uploadSpeed: 0,
+    numPeers: 0,
+    timeRemaining: 0,
+    path: basePath,
+    files,
+    done: true,
+    paused: true,
+    _vaporDetached: true,
+    _vaporSource: torrent._vaporSource || torrent.magnetURI,
+    _vaporSavePath: torrent._vaporSavePath || basePath,
+    _vaporCreatedAt: torrent._vaporCreatedAt || Date.now(),
+    _vaporError: torrent._vaporError || null,
+  }
+}
+
+function stopTorrentCompletely(torrent, options = {}) {
+  const preserveRecord = options?.preserveRecord !== false
+  const persist = options?.persist !== false
+
+  if (!torrent) {
+    return Promise.resolve({ ok: false, error: 'Download not found' })
+  }
+
+  if (torrent._vaporDetached) {
+    return Promise.resolve({ ok: true, alreadyStopped: true })
+  }
+
+  if (!torrentClient) {
+    if (preserveRecord) torrentDownloads.set(torrent.infoHash, createDetachedTorrentRecord(torrent))
+    if (persist) persistDownloadsState()
+    return Promise.resolve({ ok: true, alreadyStopped: true })
+  }
+
+  const detachedRecord = preserveRecord ? createDetachedTorrentRecord(torrent) : null
+  return new Promise((resolve) => {
+    torrentClient.remove(torrent.infoHash, { destroyStore: false }, (err) => {
+      if (err) {
+        resolve({ ok: false, error: err?.message || 'Failed to stop download' })
+        return
+      }
+
+      if (detachedRecord) {
+        torrentDownloads.set(torrent.infoHash, detachedRecord)
+        emitTorrentUpdate(detachedRecord)
+      } else {
+        torrentDownloads.delete(torrent.infoHash)
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('downloader:removed', { infoHash: torrent.infoHash })
+        }
+      }
+
+      if (persist) persistDownloadsState()
+      resolve({ ok: true })
+    })
+  })
+}
+
 function serializeTorrent(torrent) {
   const firstFile = torrent.files?.[0]
+  const setupFile = Array.isArray(torrent.files)
+    ? torrent.files.find(file => /(^|[\\/])setup\.exe$/i.test(String(file?.path || '')))
+    : null
   return {
     infoHash: torrent.infoHash,
     name: torrent.name || torrent.infoHash,
@@ -311,6 +388,7 @@ function serializeTorrent(torrent) {
     timeRemaining: Number.isFinite(torrent.timeRemaining) ? torrent.timeRemaining : null,
     savePath: torrent.path || null,
     firstFilePath: firstFile ? path.join(torrent.path || '', firstFile.path) : null,
+    setupExePath: setupFile ? path.join(torrent.path || '', setupFile.path) : null,
     status: torrentStatus(torrent),
     createdAt: torrent._vaporCreatedAt || Date.now(),
     error: torrent._vaporError || null,
@@ -329,7 +407,11 @@ function registerTorrentListeners(torrent) {
   torrent.on('download', () => emitTorrentUpdate(torrent))
   torrent.on('done', () => {
     emitTorrentUpdate(torrent)
-    persistDownloadsState()
+    stopTorrentCompletely(torrent, { preserveRecord: true, persist: true }).catch((err) => {
+      torrent._vaporError = err?.message || 'Failed to stop seeding'
+      emitTorrentUpdate(torrent)
+      persistDownloadsState()
+    })
   })
   torrent.on('wire', () => emitTorrentUpdate(torrent))
   torrent.on('noPeers', () => emitTorrentUpdate(torrent))
@@ -459,12 +541,22 @@ function deleteTorrentFiles(snapshot) {
 }
 
 function removeTorrentWithOptions(torrent, options = {}) {
-  if (!torrent || !torrentClient) {
+  if (!torrent) {
     return Promise.resolve({ ok: false, error: 'Download not found' })
   }
 
   const deleteData = options?.deleteData !== false
   const deleteSnapshot = deleteData ? getTorrentDeleteSnapshot(torrent) : null
+
+  if (torrent._vaporDetached || !torrentClient) {
+    if (deleteData) deleteTorrentFiles(deleteSnapshot)
+    torrentDownloads.delete(torrent.infoHash)
+    persistDownloadsState()
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('downloader:removed', { infoHash: torrent.infoHash })
+    }
+    return Promise.resolve({ ok: true })
+  }
 
   return new Promise((resolve) => {
     torrentClient.remove(torrent.infoHash, { destroyStore: true }, (err) => {
@@ -1305,6 +1397,38 @@ ipcMain.handle('downloader:open-folder', (_, infoHash) => {
     shell.openPath(torrent.path)
   }
   return { ok: true }
+})
+
+ipcMain.handle('downloader:launch-setup', async (_, infoHash) => {
+  try {
+    const torrent = torrentDownloads.get(infoHash)
+    if (!torrent) return { ok: false, error: 'Download not found' }
+
+    const setupFile = Array.isArray(torrent.files)
+      ? torrent.files.find(file => /(^|[\\/])setup\.exe$/i.test(String(file?.path || '')))
+      : null
+    if (!setupFile) return { ok: false, error: 'setup.exe not found in this download.' }
+
+    const basePath = path.resolve(torrent.path || torrent._vaporSavePath || downloadsDir)
+    const setupPath = path.resolve(path.join(basePath, setupFile.path))
+    if (!isPathInside(basePath, setupPath)) {
+      return { ok: false, error: 'Invalid setup.exe location.' }
+    }
+    if (!fs.existsSync(setupPath)) {
+      return { ok: false, error: 'setup.exe is not downloaded yet.' }
+    }
+
+    const stopResult = await stopTorrentCompletely(torrent, { preserveRecord: true, persist: true })
+    if (!stopResult.ok) {
+      return { ok: false, error: stopResult.error || 'Failed to stop torrent before launch.' }
+    }
+
+    const launchError = await shell.openPath(setupPath)
+    if (launchError) return { ok: false, error: launchError }
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err?.message || 'Failed to launch setup.exe.' }
+  }
 })
 
 ipcMain.handle('downloader:get-limit', () => {

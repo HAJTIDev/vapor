@@ -146,6 +146,13 @@ export default function Downloader({ settings }) {
     }
   }
 
+  const launchSetupExe = async (item) => {
+    const result = await vaporApi.downloader.launchSetup(item.infoHash)
+    if (result && result.ok === false) {
+      setError(result.error || 'Unable to launch setup.exe.')
+    }
+  }
+
   const statusTone = (status) => {
     if (status === 'completed') return { bg: '#4ade8022', border: '#4ade8050', color: '#4ade80' }
     if (status === 'paused') return { bg: '#f59e0b22', border: '#f59e0b50', color: '#f59e0b' }
@@ -297,6 +304,9 @@ export default function Downloader({ settings }) {
                   <button onClick={() => togglePause(item)} style={actionBtn}>
                     {item.status === 'paused' ? 'Resume' : 'Pause'}
                   </button>
+                )}
+                {item.setupExePath && (
+                  <button onClick={() => launchSetupExe(item)} style={actionBtn}>Launch setup.exe</button>
                 )}
                 <button onClick={() => openDownloadFolder(item)} style={actionBtn}>Open Folder</button>
                 <button onClick={() => removeDownload(item)} style={{ ...actionBtn, color: 'var(--red)' }}>Remove</button>
