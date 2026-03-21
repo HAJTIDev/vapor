@@ -157,6 +157,8 @@ export default function Downloader({ settings }) {
     if (status === 'completed') return { bg: '#4ade8022', border: '#4ade8050', color: '#4ade80' }
     if (status === 'paused') return { bg: '#f59e0b22', border: '#f59e0b50', color: '#f59e0b' }
     if (status === 'downloading') return { bg: 'var(--accent-dim)', border: '#6c63ff55', color: 'var(--accent)' }
+    if (status === 'error') return { bg: '#ef444422', border: '#ef444450', color: '#ef4444' }
+    if (status === 'cancelled') return { bg: '#64748b22', border: '#64748b50', color: '#94a3b8' }
     return { bg: 'var(--surface2)', border: 'var(--border)', color: 'var(--text-muted)' }
   }
 
@@ -184,21 +186,6 @@ export default function Downloader({ settings }) {
         <StatCard label="Completed" value={String(completedCount)} sub="finished downloads" />
         <StatCard label="Speed" value={humanSpeed(totalSpeed)} sub="combined rate" />
         <StatCard label="Downloaded" value={humanBytes(totalDownloaded)} sub="all sessions" />
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
-        <button
-          onClick={clearCompleted}
-          disabled={completedCount === 0}
-          style={{
-            ...actionBtn,
-            borderColor: 'var(--border)',
-            color: completedCount === 0 ? 'var(--text-muted)' : 'var(--text-dim)',
-            opacity: completedCount === 0 ? 0.6 : 1,
-          }}
-        >
-          Clear Completed ({completedCount})
-        </button>
       </div>
 
       <div style={{
@@ -251,6 +238,24 @@ export default function Downloader({ settings }) {
         {error && <div style={{ marginTop: 10, color: 'var(--red)', fontSize: 12 }}>{error}</div>}
       </div>
 
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+          Torrent Downloads
+        </span>
+        <button
+          onClick={clearCompleted}
+          disabled={completedCount === 0}
+          style={{
+            ...actionBtn,
+            borderColor: 'var(--border)',
+            color: completedCount === 0 ? 'var(--text-muted)' : 'var(--text-dim)',
+            opacity: completedCount === 0 ? 0.6 : 1,
+          }}
+        >
+          Clear Completed ({completedCount})
+        </button>
+      </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {sortedDownloads.length === 0 && (
           <div style={{
@@ -261,7 +266,7 @@ export default function Downloader({ settings }) {
             border:'1px dashed var(--border2)',
             background:'var(--surface)'
           }}>
-            No active downloads yet.
+            No torrent downloads yet.
           </div>
         )}
 

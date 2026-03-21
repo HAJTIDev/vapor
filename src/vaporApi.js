@@ -91,6 +91,14 @@ const browserFallback = {
     openFolder: async () => ({ ok: false, error: 'Downloader requires Electron runtime.' }),
     launchSetup: async () => ({ ok: false, error: 'Downloader requires Electron runtime.' }),
   },
+  steamcmd: {
+    status: async () => ({ installed: false, path: null }),
+    list: async () => [],
+    download: async () => ({ ok: false, error: 'SteamCMD requires Electron runtime.' }),
+    cancel: async () => ({ ok: false, error: 'SteamCMD requires Electron runtime.' }),
+    remove: async () => ({ ok: false, error: 'SteamCMD requires Electron runtime.' }),
+    openFolder: async () => ({ ok: false, error: 'SteamCMD requires Electron runtime.' }),
+  },
   on: () => {},
   off: () => {},
 }

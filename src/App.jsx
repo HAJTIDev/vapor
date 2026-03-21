@@ -3,6 +3,7 @@ import Titlebar from './components/Titlebar.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import Library from './components/Library.jsx'
 import GameDetail from './components/GameDetail.jsx'
+import GameSettings from './components/GameSettings.jsx'
 import Settings from './components/Settings.jsx'
 import AddGames from './components/AddGames.jsx'
 import Downloader from './components/Downloader.jsx'
@@ -117,6 +118,7 @@ export default function App() {
   const [filterGenre, setFilterGenre] = useState('all')
   const [activeCollection, setActiveCollection] = useState('all')
   const [contextMenu, setContextMenu] = useState({ open: false, x: 0, y: 0, gameId: null })
+  const [settingsPopup, setSettingsPopup] = useState({ open: false, game: null })
   const [showBoot, setShowBoot]     = useState(true)
 
   // Load
@@ -406,6 +408,7 @@ export default function App() {
               onRemove={removeGame}
               onToggleFavorite={toggleFavorite}
               onToggleCollection={toggleCollection}
+              onOpenSettings={(game) => setSettingsPopup({ open: true, game })}
             />
           )}
           {view === 'settings' && (
@@ -435,7 +438,7 @@ export default function App() {
             border:'1px solid var(--border2)',
             borderRadius:8,
             boxShadow:'0 16px 40px #00000080',
-            zIndex:1000,
+            zIndex:1001,
             overflow:'hidden',
           }}
         >
@@ -467,6 +470,14 @@ export default function App() {
               closeGameContextMenu()
             }}
             label="View Details"
+          />
+
+          <MenuButton
+            onClick={() => {
+              setSettingsPopup({ open: true, game: menuGame })
+              closeGameContextMenu()
+            }}
+            label="Settings"
           />
 
           <MenuDivider />
@@ -536,6 +547,50 @@ export default function App() {
             label="Remove From Library"
             tone="danger"
           />
+        </div>
+      )}
+
+      {settingsPopup.open && settingsPopup.game && (
+        <div
+          onClick={() => setSettingsPopup({ open: false, game: null })}
+          style={{
+            position:'fixed',
+            inset:0,
+            background:'#00000080',
+            backdropFilter:'blur(4px)',
+            zIndex:2000,
+            display:'flex',
+            alignItems:'center',
+            justifyContent:'center',
+            padding:20,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width:'100%',
+              maxWidth:600,
+              maxHeight:'90vh',
+              background:'var(--surface)',
+              border:'1px solid var(--border2)',
+              borderRadius:12,
+              overflow:'hidden',
+              boxShadow:'0 24px 60px #00000090',
+            }}
+          >
+            <GameSettings
+              game={settingsPopup.game}
+              collections={settings.collections}
+              onBack={() => setSettingsPopup({ open: false, game: null })}
+              onUpdate={updateGame}
+              onRemove={(id) => {
+                removeGame(id)
+                setSettingsPopup({ open: false, game: null })
+              }}
+              onToggleFavorite={toggleFavorite}
+              onToggleCollection={toggleCollection}
+            />
+          </div>
         </div>
       )}
     </div>

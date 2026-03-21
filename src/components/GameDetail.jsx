@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import vaporApi from '../vaporApi.js'
+import './GameDetail.css'
 
 function fmtTime(mins) {
   if (!mins) return '0 hours'
@@ -21,6 +22,7 @@ export default function GameDetail({
   onRemove,
   onToggleFavorite,
   onToggleCollection,
+  onOpenSettings,
 }) {
   const [editingName, setEditingName] = useState(false)
   const [nameVal, setNameVal]         = useState(game.name)
@@ -34,17 +36,53 @@ export default function GameDetail({
   const [exeVal, setExeVal] = useState(game.exe || '')
   const [editingSteam, setEditingSteam] = useState(false)
   const [steamVal, setSteamVal] = useState(game.steamAppId || '')
+  const [modFolder, setModFolder] = useState(game.modFolder || '')
+  const [workshopId, setWorkshopId] = useState('')
+  const [steamBusy, setSteamBusy] = useState(false)
+  const [steamError, setSteamError] = useState('')
+  const [steamInstalled, setSteamInstalled] = useState(null)
+  const [steamDownloads, setSteamDownloads] = useState([])
 
   useEffect(() => {
     setNameVal(game.name)
     setExeVal(game.exe || '')
     setSteamVal(game.steamAppId || '')
+    setModFolder(game.modFolder || '')
     setManualArt({
       grid: game.art?.grid || '',
       hero: game.art?.hero || '',
       logo: game.art?.logo || '',
     })
   }, [game])
+
+  useEffect(() => {
+    if (!game.steamAppId) return
+    vaporApi.steamcmd.status().then(setSteamInstalled)
+    vaporApi.steamcmd.list().then((list) => {
+      setSteamDownloads(list.filter(item => item.appId === String(game.steamAppId)))
+    })
+
+    const onProgress = (record) => {
+      if (record.appId !== String(game.steamAppId)) return
+      setSteamDownloads(prev => {
+        const idx = prev.findIndex(item => item.id === record.id)
+        if (idx === -1) return [record, ...prev]
+        const next = [...prev]
+        next[idx] = record
+        return next
+      })
+    }
+    const onRemoved = ({ id }) => {
+      setSteamDownloads(prev => prev.filter(item => item.id !== id))
+    }
+
+    vaporApi.on('steamcmd:progress', onProgress)
+    vaporApi.on('steamcmd:removed', onRemoved)
+    return () => {
+      vaporApi.off('steamcmd:progress', onProgress)
+      vaporApi.off('steamcmd:removed', onRemoved)
+    }
+  }, [game.steamAppId])
 
   const fetchArt = async () => {
     setFetchingArt(true)
@@ -94,6 +132,54 @@ export default function GameDetail({
     setEditingSteam(false)
   }
 
+  const browseModFolder = async () => {
+    const result = await vaporApi.dialog.folder()
+    if (result) {
+      setModFolder(result)
+      onUpdate(game.id, { modFolder: result })
+    }
+  }
+
+  const startModDownload = async () => {
+    const modId = String(workshopId || '').trim().split('=')[1]?.match(/\d+/)?.[0]
+    if (!modId) {
+      setSteamError('Enter a valid Workshop Mod ID')
+      return
+    }
+    if (!modFolder) {
+      setSteamError('Select a mod folder first')
+      return
+    }
+
+    setSteamError('')
+    setSteamBusy(true)
+    const result = await vaporApi.steamcmd.download({
+      appId: game.steamAppId,
+      workshopId: modId,
+      name: `Mod ${modId}`,
+      installDir: modFolder,
+    })
+    setSteamBusy(false)
+
+    if (!result?.ok) {
+      setSteamError(result?.error || 'Failed to start download')
+      return
+    }
+    setWorkshopId('')
+  }
+
+  const cancelModDownload = async (item) => {
+    await vaporApi.steamcmd.cancel(item.id)
+  }
+
+  const removeModDownload = async (item) => {
+    await vaporApi.steamcmd.remove(item.id)
+  }
+
+  const openModFolder = async (item) => {
+    await vaporApi.steamcmd.openFolder(item.id)
+  }
+
   const onArtFilePicked = (key, event) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -110,43 +196,44 @@ export default function GameDetail({
   return (
     <div style={{ height:'100%', overflow:'auto', position:'relative' }}>
       {/* Hero */}
-      <div style={{ position:'relative', height:280, overflow:'hidden', background:'var(--surface)' }}>
+      <div style={{ position:'relative', height:320, overflow:'hidden', background:'var(--surface)' }}>
         {game.art?.hero ? (
           <img src={game.art.hero} alt="" style={{
-            width:'100%', height:'100%', objectFit:'cover', display:'block', opacity:0.6
+            width:'100%', height:'100%', objectFit:'cover', display:'block', opacity:0.55
           }} />
         ) : (
-          <div style={{ width:'100%', height:'100%', background:'linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%)' }} />
+          <div style={{ width:'100%', height:'100%', background:'linear-gradient(135deg, var(--surface) 0%, #1a1a2e 50%, var(--surface) 100%)' }} />
         )}
         <div style={{
           position:'absolute', inset:0,
-          background:'linear-gradient(to bottom, transparent 30%, var(--bg) 100%)'
+          background:'linear-gradient(to bottom, transparent 20%, var(--bg) 100%)'
         }} />
 
         {/* Back */}
         <button onClick={onBack} style={{
-          position:'absolute', top:16, left:16, display:'flex', alignItems:'center', gap:6,
-          color:'#fff', fontSize:13, opacity:0.8,
-          background:'#00000040', padding:'6px 12px', borderRadius:6,
-          backdropFilter:'blur(4px)'
-        }}>
+          position:'absolute', top:20, left:20, display:'flex', alignItems:'center', gap:6,
+          color:'#fff', fontSize:13, opacity:0.9,
+          background:'#00000050', padding:'8px 14px', borderRadius:8,
+          backdropFilter:'blur(8px)', border:'1px solid #ffffff20', cursor:'pointer',
+          fontFamily:'inherit', boxShadow:'0 4px 16px #00000040'
+        }} className="gd-btn">
           ← Back
         </button>
 
         {/* Logo or name overlay */}
-        <div style={{ position:'absolute', bottom:20, left:24, right:24, display:'flex', alignItems:'flex-end', gap:16 }}>
+        <div style={{ position:'absolute', bottom:28, left:28, right:28, display:'flex', alignItems:'flex-end', gap:20 }}>
           {game.art?.grid && (
             <img src={game.art.grid} alt="" style={{
-              width:90, height:135, objectFit:'cover', borderRadius:6,
-              boxShadow:'0 8px 32px #00000080', flexShrink:0,
-              border:'1px solid var(--border2)'
+              width:100, height:150, objectFit:'cover', borderRadius:10,
+              boxShadow:'0 12px 40px #00000080', flexShrink:0,
+              border:'2px solid var(--border2)'
             }} />
           )}
           <div style={{ flex:1 }}>
             {game.art?.logo ? (
-              <img src={game.art.logo} alt={game.name} style={{ maxHeight:70, maxWidth:300, objectFit:'contain' }} />
+              <img src={game.art.logo} alt={game.name} style={{ maxHeight:80, maxWidth:340, objectFit:'contain' }} />
             ) : (
-              <h1 style={{ fontSize:28, fontWeight:700, color:'#fff', textShadow:'0 2px 8px #000' }}>
+              <h1 style={{ fontSize:34, fontWeight:700, color:'#fff', textShadow:'0 4px 20px #000', letterSpacing:'-0.02em' }}>
                 {game.name}
               </h1>
             )}
@@ -155,97 +242,90 @@ export default function GameDetail({
       </div>
 
       {/* Content */}
-      <div style={{ padding:'24px 24px 40px' }}>
-        <div style={{ display:'flex', gap:16, flexWrap:'wrap', alignItems:'flex-start' }}>
+      <div style={{ padding:'28px 28px 48px', maxWidth:1100 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'220px 1fr', gap:24, alignItems:'flex-start' }}>
           {/* Left - actions */}
-          <div style={{ display:'flex', flexDirection:'column', gap:10, minWidth:200 }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             <button
               onClick={() => onLaunch(game)}
               disabled={running}
               style={{
-                padding:'12px 24px', borderRadius:7, fontSize:14, fontWeight:600,
-                background: running ? 'var(--green)' : 'var(--accent)',
-                color:'#fff', opacity: running ? 0.9 : 1,
-                boxShadow: running ? '0 0 20px #4ade8040' : '0 0 20px #6c63ff30'
+                padding:'14px 24px', borderRadius:10, fontSize:15, fontWeight:700,
+                background: running ? 'linear-gradient(135deg, #4ade80, #22c55e)' : 'linear-gradient(135deg, #7c6fff, #6c63ff)',
+                color:'#fff', border:'none', cursor:'pointer', fontFamily:'inherit',
+                boxShadow: running ? '0 6px 24px #4ade8040' : '0 6px 24px #6c63ff40',
+                letterSpacing:'0.02em'
               }}
+              className="gd-btn"
             >
-              {running ? '▶ Running' : '▶ Play'}
+              {running ? '● Running' : '▶ Play Now'}
             </button>
 
-            <button onClick={() => onToggleFavorite(game.id)} style={{
-              padding:'8px 16px', borderRadius:6, fontSize:12,
-              background: game.favorite ? '#f59e0b22' : 'var(--surface2)',
-              color: game.favorite ? '#f59e0b' : 'var(--text-dim)',
-              border:'1px solid ' + (game.favorite ? '#f59e0b55' : 'var(--border)'),
-            }}>
-              {game.favorite ? '★ Favorited' : '☆ Add Favorite'}
+            <button onClick={() => onOpenSettings && onOpenSettings(game)} style={{
+              padding:'10px 16px', borderRadius:8, fontSize:13,
+              background:'var(--surface2)', color:'var(--text)',
+              border:'1px solid var(--border)', cursor:'pointer', fontFamily:'inherit',
+              display:'flex', alignItems:'center', gap:8
+            }} className="gd-btn">
+              <span style={{ fontSize:15 }}>⚙</span> Game Settings
             </button>
 
             <button onClick={fetchArt} disabled={fetchingArt} style={{
-              padding:'8px 16px', borderRadius:6, fontSize:12,
-              background:'var(--surface2)', color:'var(--text-dim)',
-              border:'1px solid var(--border)', transition:'all 0.12s'
-            }}>
-              {fetchingArt ? 'Fetching...' : '🎨 Fetch Art'}
+              padding:'10px 16px', borderRadius:8, fontSize:13,
+              background:'var(--surface2)', color:'var(--text)',
+              border:'1px solid var(--border)', cursor:'pointer', fontFamily:'inherit',
+              display:'flex', alignItems:'center', gap:8
+            }} className="gd-btn">
+              <span style={{ fontSize:15 }}>🎨</span> {fetchingArt ? 'Fetching...' : 'Fetch Art'}
             </button>
 
+            <button onClick={() => onToggleFavorite(game.id)} style={{
+              padding:'10px 16px', borderRadius:8, fontSize:13,
+              background: game.favorite ? '#f59e0b18' : 'var(--surface2)',
+              color: game.favorite ? '#f59e0b' : 'var(--text)',
+              border:'1px solid ' + (game.favorite ? '#f59e0b40' : 'var(--border)'),
+              cursor:'pointer', fontFamily:'inherit',
+              display:'flex', alignItems:'center', gap:8
+            }} className="gd-btn">
+              <span style={{ fontSize:15 }}>{game.favorite ? '★' : '☆'}</span> {game.favorite ? 'Favorited' : 'Add to Favorites'}
+            </button>
+
+            <div style={{ height:1, background:'var(--border)', margin:'8px 0' }} />
+
             <button onClick={() => onRemove(game.id)} style={{
-              padding:'8px 16px', borderRadius:6, fontSize:12,
-              background:'transparent', color:'var(--red)',
-              border:'1px solid #f8717130', transition:'all 0.12s'
-            }}>
-              Remove from Library
+              padding:'10px 16px', borderRadius:8, fontSize:13,
+              background:'transparent', color:'#f87171',
+              border:'1px solid #f8717130', cursor:'pointer', fontFamily:'inherit',
+              display:'flex', alignItems:'center', gap:8
+            }} className="gd-btn">
+              <span style={{ fontSize:15 }}>🗑</span> Remove Game
             </button>
           </div>
 
           {/* Right - metadata */}
-          <div style={{ flex:1, display:'flex', flexDirection:'column', gap:20 }}>
-            {/* Editable name */}
-            <div>
-              <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.08em' }}>Game Name</div>
-              {editingName ? (
-                <div style={{ display:'flex', gap:8 }}>
-                  <input value={nameVal} onChange={e => setNameVal(e.target.value)}
-                    onKeyDown={e => { if(e.key==='Enter') saveName(); if(e.key==='Escape') setEditingName(false) }}
-                    autoFocus
-                    style={{
-                      flex:1, background:'var(--surface2)', border:'1px solid var(--accent)',
-                      borderRadius:6, padding:'6px 10px', color:'var(--text)', fontSize:14
-                    }}
-                  />
-                  <button onClick={saveName} style={{ padding:'6px 12px', borderRadius:6, background:'var(--accent)', color:'#fff', fontSize:12 }}>Save</button>
-                </div>
-              ) : (
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <span style={{ fontSize:16, fontWeight:500 }}>{game.name}</span>
-                  <button onClick={() => { setNameVal(game.name); setEditingName(true) }}
-                    style={{ fontSize:11, color:'var(--text-muted)', padding:'2px 8px', borderRadius:4, background:'var(--surface2)', border:'1px solid var(--border)' }}>
-                    Edit
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Stats */}
-            <div style={{ display:'flex', gap:24, flexWrap:'wrap' }}>
-              <Stat label="Playtime" value={fmtTime(game.playtime)} />
-              <Stat label="Last Played" value={fmtDate(game.lastPlayed)} />
-              {game.art?.sgdbName && game.art.sgdbName !== game.name && (
-                <Stat label="Matched As" value={game.art.sgdbName} />
-              )}
+          <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+            {/* Stats Card */}
+            <div className="gd-section">
+              <div style={{ display:'flex', gap:32, flexWrap:'wrap' }}>
+                <Stat label="Playtime" value={fmtTime(game.playtime)} icon="⏱" />
+                <Stat label="Last Played" value={fmtDate(game.lastPlayed)} icon="📅" />
+                {game.art?.sgdbName && game.art.sgdbName !== game.name && (
+                  <Stat label="Matched As" value={game.art.sgdbName} icon="🔗" />
+                )}
+              </div>
             </div>
 
             {/* Genres */}
             {game.genres?.length > 0 && (
-              <div>
-                <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6, textTransform:'uppercase', letterSpacing:'0.08em' }}>Genres</div>
-                <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              <div className="gd-section">
+                <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:10, textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:600 }}>Genres</div>
+                <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
                   {game.genres.map(g => (
                     <span key={g} style={{
-                      fontSize:11, padding:'3px 10px', borderRadius:20,
-                      background:'var(--surface2)', border:'1px solid var(--border)',
-                      color:'var(--text-dim)'
-                    }}>{g}</span>
+                      fontSize:12, padding:'5px 12px', borderRadius:16,
+                      background:'var(--accent-dim)', border:'1px solid #6c63ff30',
+                      color:'var(--accent)'
+                    }} className="gd-tag">{g}</span>
                   ))}
                 </div>
               </div>
@@ -253,11 +333,11 @@ export default function GameDetail({
 
             {/* Collections */}
             {collections?.length > 0 && (
-              <div>
-                <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6, textTransform:'uppercase', letterSpacing:'0.08em' }}>
+              <div className="gd-section">
+                <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:10, textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:600 }}>
                   Collections
                 </div>
-                <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
                   {collections.map(c => {
                     const inCollection = (game.collections || []).includes(c.id)
                     return (
@@ -265,15 +345,18 @@ export default function GameDetail({
                         key={c.id}
                         onClick={() => onToggleCollection(game.id, c.id)}
                         style={{
-                          fontSize:11,
-                          padding:'4px 10px',
-                          borderRadius:20,
-                          background: inCollection ? 'var(--accent-dim)' : 'var(--surface2)',
-                          border:'1px solid ' + (inCollection ? '#6c63ff55' : 'var(--border)'),
-                          color: inCollection ? 'var(--accent)' : 'var(--text-dim)',
+                          fontSize:12,
+                          padding:'6px 14px',
+                          borderRadius:16,
+                          background: inCollection ? 'var(--accent)' : 'var(--surface)',
+                          border:'1px solid ' + (inCollection ? 'var(--accent)' : 'var(--border)'),
+                          color: inCollection ? '#fff' : 'var(--text-dim)',
+                          cursor:'pointer', fontFamily:'inherit',
+                          transition:'all 0.12s ease'
                         }}
+                        className="gd-tag"
                       >
-                        {inCollection ? '✓ ' : ''}{c.name}
+                        {inCollection ? '✓ ' : '+ '}{c.name}
                       </button>
                     )
                   })}
@@ -281,169 +364,92 @@ export default function GameDetail({
               </div>
             )}
 
-            {/* Exe path */}
-            <div>
-              <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.08em' }}>Executable</div>
-              {editingExe ? (
-                <div style={{ display:'flex', gap:8 }}>
-                  <input value={exeVal} onChange={e => setExeVal(e.target.value)}
-                    autoFocus
-                    style={{
-                      flex:1, background:'var(--surface2)', border:'1px solid var(--accent)',
-                      borderRadius:6, padding:'6px 10px', color:'var(--text)', fontSize:11, fontFamily:'var(--mono)'
-                    }}
-                  />
-                  <button onClick={browseExe} style={{ padding:'6px 10px', borderRadius:6, background:'var(--surface2)', color:'var(--text)', border:'1px solid var(--border)', fontSize:11 }}>Browse</button>
-                  <button onClick={saveExe} style={{ padding:'6px 12px', borderRadius:6, background:'var(--accent)', color:'#fff', fontSize:11 }}>Save</button>
-                  <button onClick={() => { setExeVal(game.exe || ''); setEditingExe(false) }} style={{ padding:'6px 10px', borderRadius:6, background:'var(--surface2)', color:'var(--text)', border:'1px solid var(--border)', fontSize:11 }}>Cancel</button>
+            {/* Steam Workshop Mods */}
+            {game.steamAppId && (
+              <div className="gd-section">
+                <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:12, textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:600, display:'flex', alignItems:'center', gap:8 }}>
+                  <span>🎮</span> Steam Workshop Mods
                 </div>
-              ) : (
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <span style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'var(--mono)', wordBreak:'break-all', flex:1 }}>
-                    {game.exe}
-                  </span>
-                  <button onClick={() => { setExeVal(game.exe || ''); setEditingExe(true) }}
-                    style={{ fontSize:11, color:'var(--text-muted)', padding:'2px 8px', borderRadius:4, background:'var(--surface2)', border:'1px solid var(--border)', flexShrink:0 }}>
-                    Edit
+
+                <div style={{ display:'flex', gap:10, marginBottom:10 }}>
+                  <input
+                    value={modFolder}
+                    onChange={e => setModFolder(e.target.value)}
+                    placeholder="Mod download folder"
+                    className="gd-input"
+                  />
+                  <button onClick={browseModFolder} style={{ padding:'10px 16px', borderRadius:8, background:'var(--surface)', color:'var(--text)', border:'1px solid var(--border)', fontSize:12, cursor:'pointer', fontFamily:'inherit' }} className="gd-btn">Browse</button>
+                </div>
+
+                <div style={{ display:'flex', gap:10, marginBottom:10 }}>
+                  <input
+                    value={workshopId}
+                    onChange={e => setWorkshopId(e.target.value)}
+                    placeholder="Workshop Mod URL or ID"
+                    className="gd-input"
+                  />
+                  <button
+                    onClick={startModDownload}
+                    disabled={steamBusy || !modFolder || steamInstalled?.installed === false}
+                    style={{
+                      padding:'10px 18px', borderRadius:8, background:'var(--accent)', color:'#fff', fontSize:13, fontWeight:600,
+                      border:'none', cursor:'pointer', fontFamily:'inherit',
+                      opacity: steamBusy || !modFolder || steamInstalled?.installed === false ? 0.5 : 1
+                    }}
+                    className="gd-btn"
+                  >
+                    {steamBusy ? '⏳ Downloading...' : '⬇ Download'}
                   </button>
                 </div>
-              )}
-            </div>
 
-            {/* Steam App ID */}
-            <div>
-              <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.08em' }}>Steam App ID (optional)</div>
-              {editingSteam ? (
-                <div style={{ display:'flex', gap:8 }}>
-                  <input value={steamVal} onChange={e => setSteamVal(e.target.value)}
-                    autoFocus
-                    placeholder="e.g. 413150 for Portal 2"
-                    style={{
-                      flex:1, background:'var(--surface2)', border:'1px solid var(--accent)',
-                      borderRadius:6, padding:'6px 10px', color:'var(--text)', fontSize:12
-                    }}
-                  />
-                  <button onClick={saveSteam} style={{ padding:'6px 12px', borderRadius:6, background:'var(--accent)', color:'#fff', fontSize:11 }}>Save</button>
-                  <button onClick={() => { setSteamVal(game.steamAppId || ''); setEditingSteam(false) }} style={{ padding:'6px 10px', borderRadius:6, background:'var(--surface2)', color:'var(--text)', border:'1px solid var(--border)', fontSize:11 }}>Cancel</button>
-                </div>
-              ) : (
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <span style={{ fontSize:12, color: game.steamAppId ? 'var(--accent)' : 'var(--text-muted)', flex:1 }}>
-                    {game.steamAppId ? `steam://run/${game.steamAppId}` : 'Not configured'}
-                  </span>
-                  <button onClick={() => { setSteamVal(game.steamAppId || ''); setEditingSteam(true) }}
-                    style={{ fontSize:11, color:'var(--text-muted)', padding:'2px 8px', borderRadius:4, background:'var(--surface2)', border:'1px solid var(--border)', flexShrink:0 }}>
-                    {game.steamAppId ? 'Edit' : 'Add'}
-                  </button>
-                </div>
-              )}
-            </div>
+                {steamError && (
+                  <div style={{ fontSize:12, color:'#f87171', marginBottom:10, padding:'8px 12px', background:'#f8717115', borderRadius:6, border:'1px solid #f8717130' }}>{steamError}</div>
+                )}
 
-            {/* Launch mode */}
-            <div>
-              <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6, textTransform:'uppercase', letterSpacing:'0.08em' }}>
-                Launch Mode
-              </div>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, marginBottom:6 }}>
-                <div style={{ fontSize:13, color:'var(--text)' }}>Run as administrator</div>
-                <button
-                  role="switch"
-                  aria-checked={!!game.runAsAdmin}
-                  onClick={() => onUpdate(game.id, { runAsAdmin: !game.runAsAdmin })}
-                  style={{
-                    width:44,
-                    height:24,
-                    borderRadius:12,
-                    padding:2,
-                    border:'none',
-                    cursor:'pointer',
-                    background: game.runAsAdmin ? 'var(--accent)' : 'var(--surface2)',
-                    transition:'background 0.2s ease',
-                    flexShrink:0,
-                  }}
-                >
-                  <div style={{
-                    width:20,
-                    height:20,
-                    borderRadius:'50%',
-                    background:'#fff',
-                    transition:'transform 0.2s ease',
-                    transform: game.runAsAdmin ? 'translateX(20px)' : 'translateX(0)',
-                    boxShadow:'0 1px 3px rgba(0,0,0,0.3)',
-                  }} />
-                </button>
-              </div>
-              <div style={{ fontSize:11, color:'var(--text-muted)' }}>
-                When enabled, playtime tracking is disabled for this game.
-              </div>
-            </div>
-
-            {/* Manual artwork */}
-            <div>
-              <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.08em' }}>
-                Manual Artwork
-              </div>
-
-              {[
-                { key: 'grid', label: 'Cover (Grid)' },
-                { key: 'hero', label: 'Hero Background' },
-                { key: 'logo', label: 'Logo' },
-              ].map((field) => (
-                <div key={field.key} style={{ marginBottom:10 }}>
-                  <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:4 }}>{field.label}</div>
-                  <div style={{ display:'flex', gap:8 }}>
-                    <input
-                      value={manualArt[field.key]}
-                      onChange={(e) => setManualArt(prev => ({ ...prev, [field.key]: e.target.value }))}
-                      placeholder={`Paste image URL for ${field.label.toLowerCase()}...`}
-                      style={{
-                        flex:1,
-                        background:'var(--surface2)',
-                        border:'1px solid var(--border)',
-                        borderRadius:6,
-                        padding:'6px 10px',
-                        color:'var(--text)',
-                        fontSize:12,
-                        fontFamily:'var(--mono)'
-                      }}
-                    />
-                    <label style={{
-                      padding:'6px 10px',
-                      borderRadius:6,
-                      fontSize:12,
-                      background:'var(--surface2)',
-                      color:'var(--text-dim)',
-                      border:'1px solid var(--border)',
-                      cursor:'pointer',
-                      whiteSpace:'nowrap'
-                    }}>
-                      Upload
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => onArtFilePicked(field.key, e)}
-                        style={{ display:'none' }}
-                      />
-                    </label>
+                {steamDownloads.length > 0 && (
+                  <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:14 }}>
+                    {steamDownloads.map(item => (
+                      <div key={item.id} style={{
+                        padding:'12px 14px', borderRadius:10, background:'var(--surface)',
+                        border:'1px solid var(--border)', display:'flex', alignItems:'center', gap:12
+                      }}>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:13, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontWeight:500 }}>
+                            {item.name}
+                          </div>
+                          <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:4 }}>
+                            <span style={{
+                              fontSize:10, padding:'2px 8px', borderRadius:999,
+                              background: item.status === 'completed' ? 'var(--green)18' : item.status === 'error' ? '#f8717118' : 'var(--accent-dim)',
+                              color: item.status === 'completed' ? 'var(--green)' : item.status === 'error' ? '#f87171' : 'var(--accent)',
+                              fontWeight:600
+                            }}>
+                              {item.status.toUpperCase()}
+                            </span>
+                            <span style={{ fontSize:12, color:'var(--text-muted)' }}>
+                              {item.progress}%
+                            </span>
+                            {item.status === 'downloading' && (
+                                <div style={{ width:60, height:4, background:'var(--surface2)', borderRadius:2, overflow:'hidden' }}>
+                                <div style={{ width:item.progress+'%', height:'100%', background:'var(--green)', transition:'width 0.3s' }} />
+                              </div>
+                            )}
+                          </div>
+                          {item.error && <div style={{ fontSize:11, color:'#f87171', marginTop:4 }}>{item.error}</div>}
+                        </div>
+                        <div style={{ display:'flex', gap:6 }}>
+                          {item.status === 'downloading' && (
+                            <button onClick={() => cancelModDownload(item)} style={{ fontSize:11, padding:'6px 10px', borderRadius:6, background:'var(--surface2)', color:'#f87171', border:'1px solid var(--border)', cursor:'pointer', fontFamily:'inherit' }}>Cancel</button>
+                          )}
+                          <button onClick={() => openModFolder(item)} style={{ fontSize:11, padding:'6px 10px', borderRadius:6, background:'var(--surface2)', color:'var(--text)', border:'1px solid var(--border)', cursor:'pointer', fontFamily:'inherit' }}>Open</button>
+                          <button onClick={() => removeModDownload(item)} style={{ fontSize:11, padding:'6px 10px', borderRadius:6, background:'var(--surface2)', color:'#f87171', border:'1px solid var(--border)', cursor:'pointer', fontFamily:'inherit' }}>Remove</button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              ))}
-
-              <div style={{ display:'flex', gap:8, marginTop:6 }}>
-                <button onClick={saveManualArt} style={{
-                  padding:'7px 12px', borderRadius:6, fontSize:12,
-                  background:'var(--accent)', color:'#fff'
-                }}>
-                  Save Artwork
-                </button>
-                <button onClick={clearManualArt} style={{
-                  padding:'7px 12px', borderRadius:6, fontSize:12,
-                  background:'var(--surface2)', color:'var(--text-dim)', border:'1px solid var(--border)'
-                }}>
-                  Clear
-                </button>
+                )}
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -451,11 +457,14 @@ export default function GameDetail({
   )
 }
 
-function Stat({ label, value }) {
+function Stat({ label, value, icon }) {
   return (
     <div>
-      <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:2, textTransform:'uppercase', letterSpacing:'0.08em' }}>{label}</div>
-      <div style={{ fontSize:14, fontWeight:500, color:'var(--text)' }}>{value}</div>
+      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+        {icon && <span style={{ fontSize:12 }}>{icon}</span>}
+        <span style={{ fontSize:11, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:600 }}>{label}</span>
+      </div>
+      <div style={{ fontSize:15, fontWeight:600, color:'var(--text)' }}>{value}</div>
     </div>
   )
 }

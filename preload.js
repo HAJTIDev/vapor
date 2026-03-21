@@ -50,6 +50,14 @@ contextBridge.exposeInMainWorld('vapor', {
     openFolder: (infoHash) => ipcRenderer.invoke('downloader:open-folder', infoHash),
     launchSetup: (infoHash) => ipcRenderer.invoke('downloader:launch-setup', infoHash),
   },
+  steamcmd: {
+    status: () => ipcRenderer.invoke('steamcmd:status'),
+    list: () => ipcRenderer.invoke('steamcmd:list'),
+    download: (options) => ipcRenderer.invoke('steamcmd:download', options),
+    cancel: (id) => ipcRenderer.invoke('steamcmd:cancel', id),
+    remove: (id) => ipcRenderer.invoke('steamcmd:remove', id),
+    openFolder: (id) => ipcRenderer.invoke('steamcmd:open-folder', id),
+  },
   on: (channel, fn) => ipcRenderer.on(channel, (_, ...args) => fn(...args)),
   off: (channel, fn) => ipcRenderer.removeListener(channel, fn),
 })
