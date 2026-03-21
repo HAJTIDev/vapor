@@ -344,15 +344,36 @@ export default function GameDetail({
               <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6, textTransform:'uppercase', letterSpacing:'0.08em' }}>
                 Launch Mode
               </div>
-              <label style={{ display:'flex', alignItems:'center', gap:8, color:'var(--text)', fontSize:12 }}>
-                <input
-                  type="checkbox"
-                  checked={!!game.runAsAdmin}
-                  onChange={(e) => onUpdate(game.id, { runAsAdmin: e.target.checked })}
-                />
-                Run as administrator
-              </label>
-              <div style={{ marginTop:6, fontSize:11, color:'var(--text-muted)' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, marginBottom:6 }}>
+                <div style={{ fontSize:13, color:'var(--text)' }}>Run as administrator</div>
+                <button
+                  role="switch"
+                  aria-checked={!!game.runAsAdmin}
+                  onClick={() => onUpdate(game.id, { runAsAdmin: !game.runAsAdmin })}
+                  style={{
+                    width:44,
+                    height:24,
+                    borderRadius:12,
+                    padding:2,
+                    border:'none',
+                    cursor:'pointer',
+                    background: game.runAsAdmin ? 'var(--accent)' : 'var(--surface2)',
+                    transition:'background 0.2s ease',
+                    flexShrink:0,
+                  }}
+                >
+                  <div style={{
+                    width:20,
+                    height:20,
+                    borderRadius:'50%',
+                    background:'#fff',
+                    transition:'transform 0.2s ease',
+                    transform: game.runAsAdmin ? 'translateX(20px)' : 'translateX(0)',
+                    boxShadow:'0 1px 3px rgba(0,0,0,0.3)',
+                  }} />
+                </button>
+              </div>
+              <div style={{ fontSize:11, color:'var(--text-muted)' }}>
                 When enabled, playtime tracking is disabled for this game.
               </div>
             </div>
