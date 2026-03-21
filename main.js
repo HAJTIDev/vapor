@@ -895,9 +895,10 @@ function escapePowerShellSingleQuoted(value) {
 function isElevationLaunchError(err) {
   if (!err) return false
   const code = String(err.code || '').toUpperCase()
-  if (code === 'EACCES' || code === 'EPERM') return true
+  if (code === 'EACCES' || code === 'EPERM' || code === 'UNKNOWN') return true
   const msg = String(err.message || '').toLowerCase()
-  return code === 'UNKNOWN' && (msg.includes('elevation') || msg.includes('operation not permitted'))
+  if (msg.includes('elevation') || msg.includes('operation not permitted')) return true
+  return msg.includes('requires elevation')
 }
 
 function launchElevatedWindows(game) {
@@ -907,7 +908,7 @@ function launchElevatedWindows(game) {
     const command = `Start-Process -FilePath '${filePath}' -WorkingDirectory '${workingDir}' -Verb RunAs`
     const helper = spawn(
       'powershell.exe',
-      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', command],
+      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command],
       { windowsHide: true, stdio: 'ignore' }
     )
     helper.once('error', reject)
@@ -918,35 +919,109 @@ function launchElevatedWindows(game) {
   })
 }
 
+function minimizeMainWindowForLaunch() {
+  setTimeout(() => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.minimize()
+    }
+  }, 100)
+}
+
+function startTrackedSession(gameId) {
+  gameSessionStart = Date.now()
+  currentGameId = gameId
+}
+
+function endTrackedSession(gameId) {
+  const startedAt = currentGameId === gameId && typeof gameSessionStart === 'number'
+    ? gameSessionStart
+    : null
+  const minutes = startedAt ? Math.max(0, Math.round((Date.now() - startedAt) / 60000)) : 0
+  if (minutes > 0) {
+    saveGamePlaytime(gameId, minutes)
+  }
+  if (currentGameId === gameId) {
+    gameSessionStart = null
+    currentGameId = null
+  }
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show()
+    mainWindow.focus()
+    mainWindow.webContents.send('game:session-end', { id: gameId, minutes })
+  }
+  return minutes
+}
+
+function isProcessRunningByNameWindows(processName) {
+  return new Promise((resolve) => {
+    const escaped = escapePowerShellSingleQuoted(processName)
+    const command = `$p = Get-Process -Name '${escaped}' -ErrorAction SilentlyContinue; if ($p) { exit 0 } else { exit 1 }`
+    const checker = spawn(
+      'powershell.exe',
+      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command],
+      { windowsHide: true, stdio: 'ignore' }
+    )
+    checker.once('error', () => resolve(false))
+    checker.once('close', (code) => resolve(code === 0))
+  })
+}
+
+function monitorElevatedSession(game) {
+  const processName = path.basename(String(game?.exe || ''), '.exe').trim()
+  if (!processName) {
+    endTrackedSession(game.id)
+    return
+  }
+
+  let sawRunning = false
+  let checks = 0
+  const maxChecksBeforeGivingUp = 24
+
+  const tick = async () => {
+    if (currentGameId !== game.id) return
+
+    const running = await isProcessRunningByNameWindows(processName)
+    if (currentGameId !== game.id) return
+
+    checks += 1
+    if (running) {
+      sawRunning = true
+      setTimeout(tick, 5000)
+      return
+    }
+
+    if (!sawRunning) {
+      if (checks < maxChecksBeforeGivingUp) {
+        setTimeout(tick, 1500)
+        return
+      }
+
+      gameSessionStart = null
+      currentGameId = null
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('game:launch-error', {
+          id: game.id,
+          error: 'Game did not start after elevation.',
+        })
+      }
+      return
+    }
+
+    endTrackedSession(game.id)
+  }
+
+  setTimeout(tick, 1500)
+}
+
 ipcMain.handle('game:launch', async (_, game) => {
   if (game.steamAppId) {
     const steamUrl = `steam://run/${game.steamAppId}`
     try {
       shell.openExternal(steamUrl)
-      gameSessionStart = Date.now()
-      currentGameId = game.id
+      startTrackedSession(game.id)
+      minimizeMainWindowForLaunch()
       setTimeout(() => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.minimize()
-        }
-      }, 100)
-      setTimeout(() => {
-        const startedAt = currentGameId === game.id && typeof gameSessionStart === 'number'
-          ? gameSessionStart
-          : null
-        const minutes = startedAt ? Math.max(0, Math.round((Date.now() - startedAt) / 60000)) : 0
-        if (minutes > 0) {
-          saveGamePlaytime(game.id, minutes)
-        }
-        if (currentGameId === game.id) {
-          gameSessionStart = null
-          currentGameId = null
-        }
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.show()
-          mainWindow.focus()
-          mainWindow.webContents.send('game:session-end', { id: game.id, minutes })
-        }
+        endTrackedSession(game.id)
       }, 5000)
       return { ok: true, via: 'steam', tracking: true }
     } catch (err) {
@@ -964,32 +1039,11 @@ ipcMain.handle('game:launch', async (_, game) => {
 
     try {
       const proc = spawn(game.exe, [], { cwd: game.folder, detached: false, stdio: 'ignore' })
-      gameSessionStart = Date.now()
-      currentGameId = game.id
-
-      setTimeout(() => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.minimize()
-        }
-      }, 100)
+      startTrackedSession(game.id)
+      minimizeMainWindowForLaunch()
 
       proc.once('close', () => {
-        const startedAt = currentGameId === game.id && typeof gameSessionStart === 'number'
-          ? gameSessionStart
-          : null
-        const minutes = startedAt ? Math.max(0, Math.round((Date.now() - startedAt) / 60000)) : 0
-        if (minutes > 0) {
-          saveGamePlaytime(game.id, minutes)
-        }
-        if (currentGameId === game.id) {
-          gameSessionStart = null
-          currentGameId = null
-        }
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.show()
-          mainWindow.focus()
-          mainWindow.webContents.send('game:session-end', { id: game.id, minutes })
-        }
+        endTrackedSession(game.id)
       })
 
       proc.once('error', (err) => {
@@ -1000,7 +1054,10 @@ ipcMain.handle('game:launch', async (_, game) => {
         finishOnce({ ok: false, error: err?.message || 'Failed to launch game.', code: err?.code || null })
       })
 
-      finishOnce({ ok: true, pid: proc.pid, tracking: true })
+      // Only treat launch as successful once the child actually spawns.
+      proc.once('spawn', () => {
+        finishOnce({ ok: true, pid: proc.pid, tracking: true })
+      })
     } catch (err) {
       finishOnce({ ok: false, error: err?.message || 'Failed to launch game.', code: err?.code || null })
     }
@@ -1014,10 +1071,10 @@ ipcMain.handle('game:launch', async (_, game) => {
 
   try {
     await launchElevatedWindows(game)
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.minimize()
-    }
-    return { ok: true, via: 'elevated', tracking: false }
+    startTrackedSession(game.id)
+    minimizeMainWindowForLaunch()
+    monitorElevatedSession(game)
+    return { ok: true, via: 'elevated', tracking: true }
   } catch (elevatedErr) {
     return { ok: false, error: elevatedErr?.message || result.error }
   }

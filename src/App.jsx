@@ -104,6 +104,19 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    const handleLaunchError = ({ id, error }) => {
+      setRunning(r => {
+        const n = { ...r }
+        delete n[id]
+        return n
+      })
+      if (error) window.alert(error)
+    }
+    vaporApi.on('game:launch-error', handleLaunchError)
+    return () => vaporApi.off('game:launch-error', handleLaunchError)
+  }, [])
+
+  useEffect(() => {
     const valid = new Set(settings.collections.map(c => c.id))
     if (activeCollection !== 'all' && activeCollection !== 'favorites' && !valid.has(activeCollection)) {
       setActiveCollection('all')
