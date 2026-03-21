@@ -1,6 +1,6 @@
 {
   "name": "vapor",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "A minimal DRM-free game launcher",
   "main": "main.js",
   "scripts": {
@@ -53,6 +53,12 @@
       "target": "nsis",
       "icon": "build/icon.png",
       "artifactName": "${productName}-${version}-setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
     },
     "publish": {
       "provider": "github",

@@ -57,6 +57,8 @@ Games and settings are stored in `%APPDATA%\vapor\`:
 - `games.json` - Your game library
 - `settings.json` - User preferences
 
+During installation, you can choose a directory where downloaded games are installed by default. This directory can later be changed in Settings.
+
 ## Keyboard Shortcuts
 
 | Key | Action |

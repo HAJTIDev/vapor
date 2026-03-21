@@ -163,7 +163,7 @@ const userDataPath = app.getPath('userData')
 const gamesFile = path.join(userDataPath, 'games.json')
 const settingsFile = path.join(userDataPath, 'settings.json')
 const SGDB_KEY_FILE = path.join(userDataPath, 'sgdb.key')
-const downloadsDir = path.join(app.getPath('downloads'), 'Vapor Downloads')
+const downloadsDir = path.join(app.getPath('home'), 'Vapor Games')
 const downloadsStateFile = path.join(userDataPath, 'downloads.json')
 
 function getPersistedDownloads() {
@@ -895,7 +895,9 @@ ipcMain.handle('update:install', () => {
 
 ipcMain.handle('downloader:start', async (_, payload = {}) => {
   const source = normalizeDownloadSource(payload.source)
-  const targetPath = String(payload.savePath || '').trim() || downloadsDir
+  const settings = loadJSON(settingsFile, defaultSettings)
+  const defaultDir = settings.downloadDir || downloadsDir
+  const targetPath = String(payload.savePath || '').trim() || defaultDir
   if (!source) return { ok: false, error: 'Missing source' }
 
   const sourceKey = normalizeDownloadSource(source)

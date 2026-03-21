@@ -38,10 +38,10 @@ function parseInputSource(raw) {
   return null
 }
 
-export default function Downloader() {
+export default function Downloader({ settings }) {
   const [downloads, setDownloads] = useState([])
   const [source, setSource] = useState('')
-  const [savePath, setSavePath] = useState('')
+  const [savePath, setSavePath] = useState(settings?.downloadDir || '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 

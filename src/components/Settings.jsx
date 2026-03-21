@@ -228,6 +228,47 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
       </Section>
 
       <Section title="Quality of Life">
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:12, color:'var(--text-dim)', marginBottom:6 }}>Download Directory</div>
+          <div style={{ display:'flex', gap:8 }}>
+            <input
+              value={settings.downloadDir || ''}
+              readOnly
+              placeholder="No directory selected"
+              style={{
+                flex:1,
+                background:'var(--surface2)',
+                border:'1px solid var(--border)',
+                borderRadius:6,
+                padding:'8px 10px',
+                color:'var(--text)',
+                fontSize:13,
+              }}
+            />
+            <button
+              onClick={async () => {
+                const dir = await vaporApi.dialog.folder()
+                if (dir) {
+                  onSave({ ...settings, downloadDir: dir })
+                }
+              }}
+              style={{
+                padding:'8px 12px',
+                borderRadius:6,
+                fontSize:12,
+                background:'var(--accent)',
+                color:'#fff',
+                border:'none',
+                cursor:'pointer',
+              }}
+            >
+              Browse
+            </button>
+          </div>
+          <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>
+            Directory where downloaded games will be installed.
+          </div>
+        </div>
         <ToggleRow
           label="Start with System"
           desc="Launch Vapor automatically when you log in to Windows."

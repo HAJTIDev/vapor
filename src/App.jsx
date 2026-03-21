@@ -335,7 +335,7 @@ export default function App() {
               onDone={() => setView('library')}
             />
           )}
-          {view === 'downloads' && <Downloader />}
+          {view === 'downloads' && <Downloader settings={settings} />}
         </main>
       </div>
 
