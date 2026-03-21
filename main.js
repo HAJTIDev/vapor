@@ -359,9 +359,7 @@ function stopTorrentCompletely(torrent, options = {}) {
         emitTorrentUpdate(detachedRecord)
       } else {
         torrentDownloads.delete(torrent.infoHash)
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('downloader:removed', { infoHash: torrent.infoHash })
-        }
+        sendToRenderer('downloader:removed', { infoHash: torrent.infoHash })
       }
 
       if (persist) persistDownloadsState()
@@ -395,9 +393,25 @@ function serializeTorrent(torrent) {
   }
 }
 
+function sendToRenderer(channel, ...args) {
+  if (!mainWindow || mainWindow.isDestroyed()) return false
+  const webContents = mainWindow.webContents
+  if (!webContents || webContents.isDestroyed()) return false
+
+  try {
+    webContents.send(channel, ...args)
+    return true
+  } catch (err) {
+    const message = String(err?.message || err || '')
+    if (!/Render frame was disposed before WebFrameMain could be accessed/i.test(message)) {
+      console.error(`[ipc] Failed to send ${channel}:`, err)
+    }
+    return false
+  }
+}
+
 function emitTorrentUpdate(torrent) {
-  if (!mainWindow || mainWindow.isDestroyed()) return
-  mainWindow.webContents.send('downloader:progress', serializeTorrent(torrent))
+  sendToRenderer('downloader:progress', serializeTorrent(torrent))
 }
 
 function registerTorrentListeners(torrent) {
@@ -552,9 +566,7 @@ function removeTorrentWithOptions(torrent, options = {}) {
     if (deleteData) deleteTorrentFiles(deleteSnapshot)
     torrentDownloads.delete(torrent.infoHash)
     persistDownloadsState()
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('downloader:removed', { infoHash: torrent.infoHash })
-    }
+    sendToRenderer('downloader:removed', { infoHash: torrent.infoHash })
     return Promise.resolve({ ok: true })
   }
 
@@ -567,9 +579,7 @@ function removeTorrentWithOptions(torrent, options = {}) {
       if (deleteData) deleteTorrentFiles(deleteSnapshot)
       torrentDownloads.delete(torrent.infoHash)
       persistDownloadsState()
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('downloader:removed', { infoHash: torrent.infoHash })
-      }
+      sendToRenderer('downloader:removed', { infoHash: torrent.infoHash })
       resolve({ ok: true })
     })
   })
@@ -873,9 +883,7 @@ function setupAutoUpdater() {
 }
 
 function sendUpdateStatus(status, version = null, progress = null, error = null) {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('update:status', { status, version, progress, error })
-  }
+  sendToRenderer('update:status', { status, version, progress, error })
 }
 
 function checkForUpdates(autoDownload = true) {
@@ -1058,7 +1066,7 @@ function endTrackedSession(gameId, options = {}) {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.show()
     mainWindow.focus()
-    mainWindow.webContents.send('game:session-end', { id: gameId, minutes })
+    sendToRenderer('game:session-end', { id: gameId, minutes })
   }
   return minutes
 }
@@ -1109,12 +1117,10 @@ function monitorElevatedSession(game) {
 
       gameSessionStart = null
       currentGameId = null
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('game:launch-error', {
-          id: game.id,
-          error: 'Game did not start after elevation.',
-        })
-      }
+      sendToRenderer('game:launch-error', {
+        id: game.id,
+        error: 'Game did not start after elevation.',
+      })
       return
     }
 
