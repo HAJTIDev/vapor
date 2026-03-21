@@ -339,6 +339,24 @@ export default function GameDetail({
               )}
             </div>
 
+            {/* Launch mode */}
+            <div>
+              <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6, textTransform:'uppercase', letterSpacing:'0.08em' }}>
+                Launch Mode
+              </div>
+              <label style={{ display:'flex', alignItems:'center', gap:8, color:'var(--text)', fontSize:12 }}>
+                <input
+                  type="checkbox"
+                  checked={!!game.runAsAdmin}
+                  onChange={(e) => onUpdate(game.id, { runAsAdmin: e.target.checked })}
+                />
+                Run as administrator
+              </label>
+              <div style={{ marginTop:6, fontSize:11, color:'var(--text-muted)' }}>
+                When enabled, playtime tracking is disabled for this game.
+              </div>
+            </div>
+
             {/* Manual artwork */}
             <div>
               <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.08em' }}>

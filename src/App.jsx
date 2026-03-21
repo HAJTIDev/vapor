@@ -50,6 +50,7 @@ function normalizeGame(input) {
   return {
     ...safe,
     favorite: !!safe.favorite,
+    runAsAdmin: !!safe.runAsAdmin,
     collections: Array.isArray(safe.collections) ? safe.collections.map(String) : [],
   }
 }

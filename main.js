@@ -901,7 +901,7 @@ function isElevationLaunchError(err) {
   return msg.includes('requires elevation')
 }
 
-function launchElevatedWindows(game) {
+function launchAsAdminWindows(game) {
   return new Promise((resolve, reject) => {
     const filePath = escapePowerShellSingleQuoted(game.exe)
     const workingDir = escapePowerShellSingleQuoted(game.folder || path.dirname(game.exe || ''))
@@ -914,7 +914,25 @@ function launchElevatedWindows(game) {
     helper.once('error', reject)
     helper.once('close', (code) => {
       if (code === 0) resolve()
-      else reject(new Error(code === 1 ? 'Elevation prompt was canceled.' : `Elevation launch failed (${code}).`))
+      else reject(new Error(code === 1 ? 'Administrator launch was canceled.' : `Administrator launch failed (${code}).`))
+    })
+  })
+}
+
+function launchRunAsInvokerWindows(game) {
+  return new Promise((resolve, reject) => {
+    const filePath = escapePowerShellSingleQuoted(game.exe)
+    const workingDir = escapePowerShellSingleQuoted(game.folder || path.dirname(game.exe || ''))
+    const command = `$env:__COMPAT_LAYER='RunAsInvoker'; Start-Process -FilePath '${filePath}' -WorkingDirectory '${workingDir}'`
+    const helper = spawn(
+      'powershell.exe',
+      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command],
+      { windowsHide: true, stdio: 'ignore' }
+    )
+    helper.once('error', reject)
+    helper.once('close', (code) => {
+      if (code === 0) resolve()
+      else reject(new Error(code === 1 ? 'Game launch was canceled.' : `Non-admin launch failed (${code}).`))
     })
   })
 }
@@ -932,12 +950,13 @@ function startTrackedSession(gameId) {
   currentGameId = gameId
 }
 
-function endTrackedSession(gameId) {
+function endTrackedSession(gameId, options = {}) {
+  const countPlaytime = options.countPlaytime !== false
   const startedAt = currentGameId === gameId && typeof gameSessionStart === 'number'
     ? gameSessionStart
     : null
   const minutes = startedAt ? Math.max(0, Math.round((Date.now() - startedAt) / 60000)) : 0
-  if (minutes > 0) {
+  if (countPlaytime && minutes > 0) {
     saveGamePlaytime(gameId, minutes)
   }
   if (currentGameId === gameId) {
@@ -1007,7 +1026,7 @@ function monitorElevatedSession(game) {
       return
     }
 
-    endTrackedSession(game.id)
+    endTrackedSession(game.id, { countPlaytime: !game?.runAsAdmin })
   }
 
   setTimeout(tick, 1500)
@@ -1029,6 +1048,19 @@ ipcMain.handle('game:launch', async (_, game) => {
     }
   }
 
+  const runAsAdmin = process.platform === 'win32' && !!game?.runAsAdmin
+  if (runAsAdmin) {
+    try {
+      await launchAsAdminWindows(game)
+      startTrackedSession(game.id)
+      minimizeMainWindowForLaunch()
+      monitorElevatedSession(game)
+      return { ok: true, via: 'admin', tracking: true, playtimeTracked: false }
+    } catch (adminErr) {
+      return { ok: false, error: adminErr?.message || 'Failed to launch as administrator.' }
+    }
+  }
+
   const launchNormally = () => new Promise((resolve) => {
     let finished = false
     const finishOnce = (result) => {
@@ -1038,7 +1070,12 @@ ipcMain.handle('game:launch', async (_, game) => {
     }
 
     try {
-      const proc = spawn(game.exe, [], { cwd: game.folder, detached: false, stdio: 'ignore' })
+      const proc = spawn(game.exe, [], {
+        cwd: game.folder,
+        detached: false,
+        stdio: 'ignore',
+        env: { ...process.env, __COMPAT_LAYER: 'RunAsInvoker' },
+      })
       startTrackedSession(game.id)
       minimizeMainWindowForLaunch()
 
@@ -1065,18 +1102,24 @@ ipcMain.handle('game:launch', async (_, game) => {
 
   const result = await launchNormally()
   if (result.ok) return result
-  if (process.platform !== 'win32' || !isElevationLaunchError(result)) {
+  if (process.platform === 'win32' && isElevationLaunchError(result)) {
+    return {
+      ok: false,
+      error: 'This game appears to require administrator rights. Enable Run as administrator in game settings.',
+    }
+  }
+  if (process.platform !== 'win32') {
     return result
   }
 
   try {
-    await launchElevatedWindows(game)
+    await launchRunAsInvokerWindows(game)
     startTrackedSession(game.id)
     minimizeMainWindowForLaunch()
     monitorElevatedSession(game)
-    return { ok: true, via: 'elevated', tracking: true }
-  } catch (elevatedErr) {
-    return { ok: false, error: elevatedErr?.message || result.error }
+    return { ok: true, via: 'runasinvoker', tracking: true }
+  } catch (fallbackErr) {
+    return { ok: false, error: fallbackErr?.message || result.error }
   }
 })
 
