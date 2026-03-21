@@ -1,6 +1,6 @@
 {
   "name": "vapor",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "A minimal DRM-free game launcher",
   "main": "main.js",
   "scripts": {
@@ -35,7 +35,8 @@
     "files": [
       "dist/**/*",
       "main.js",
-      "preload.js"
+      "preload.js",
+      ".env"
     ],
     "extraResources": [
       {

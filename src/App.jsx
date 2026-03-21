@@ -8,6 +8,7 @@ import Settings from './components/Settings.jsx'
 import AddGames from './components/AddGames.jsx'
 import Downloader from './components/Downloader.jsx'
 import vaporApi from './vaporApi.js'
+import titleLogo from './img/title.png'
 
 function BootAnimation({ onComplete }) {
   useEffect(() => {
@@ -28,7 +29,7 @@ function BootAnimation({ onComplete }) {
       pointerEvents: 'none',
     }}>
       <img
-        src="./img/title.png"
+        src={titleLogo}
         alt="Vapor"
         style={{
           width: '40vw',

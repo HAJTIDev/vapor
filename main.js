@@ -47,34 +47,8 @@ let downloadPulse = null
 const torrentDownloads = new Map()
 const pendingTorrentSources = new Set()
 
-const steamcmdDownloads = new Map()
-const STEAMCMD_PATHS = [
-  path.join(app.getPath('home'), 'SteamCMD', 'steamcmd.exe'),
-  path.join('C:', 'SteamCMD', 'steamcmd.exe'),
-  path.join(process.env.PROGRAMFILES || 'C:\\Program Files', 'SteamCMD', 'steamcmd.exe'),
-  path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'SteamCMD', 'steamcmd.exe'),
-]
 
-function findSteamcmd() {
-  for (const p of STEAMCMD_PATHS) {
-    if (fs.existsSync(p)) return p
-  }
-  return null
-}
-
-function getSteamcmdPath() {
-  return findSteamcmd()
-}
-
-function getSteamcmdDefaultDir() {
-  return path.join(app.getPath('home'), 'SteamCMD', 'steamapps')
-}
-
-function isSteamcmdInstalled() {
-  return findSteamcmd() !== null
-}
-
-const ENCRYPTION_KEY = 'vapor-default-key-change-me'
+const ENCRYPTION_KEY = process.env.VAPOR_ENCRYPTION_KEY || 'vapor-default-key-change-me'
 const ENCRYPTED_KEY_FILE = isDev 
   ? path.join(__dirname, 'build', 'sgdb.enc.json')
   : path.join(process.resourcesPath, 'sgdb.enc.json')
@@ -738,7 +712,7 @@ function netFetch(url, headers = {}) {
     let body = ''
     req.on('response', res => {
       res.on('data', c => body += c)
-      res.on('end', () => resolve(body))
+      res.on('end', () => resolve({ status: res.statusCode, body }))
     })
     req.on('error', reject)
     req.end()
@@ -758,10 +732,14 @@ async function sgdbFetch(endpoint) {
   }
   try {
     const url = `${SGDB_BASE}${endpoint}`
-    const body = await netFetch(url, {
+    const { status, body } = await netFetch(url, {
       'Authorization': `Bearer ${key}`,
       'Accept': 'application/json'
     })
+    if (status >= 400) {
+      console.error('[sgdbFetch] HTTP Error:', status, body?.substring?.(0, 200))
+      return null
+    }
     if (!body || !body.trim().startsWith('{')) {
       console.error('[sgdbFetch] Non-JSON response:', body?.substring?.(0, 300))
       return null
@@ -1485,243 +1463,3 @@ ipcMain.handle('downloader:set-limit', async (_, limitKbps) => {
   }
 })
 
-ipcMain.handle('steamcmd:status', () => {
-  return { installed: isSteamcmdInstalled(), path: findSteamcmd() }
-})
-
-ipcMain.handle('steamcmd:list', () => {
-  return Array.from(steamcmdDownloads.values()).map(({ _proc, ...rest }) => rest)
-})
-
-ipcMain.handle('steamcmd:download', async (_, options = {}) => {
-  const { appId, workshopId, name, installDir } = options
-  if (!appId) return { ok: false, error: 'Missing Steam App ID' }
-  if (!workshopId) return { ok: false, error: 'Missing Workshop Mod ID' }
-  if (!installDir) return { ok: false, error: 'Select a mod download folder' }
-
-  const steamcmdPath = findSteamcmd()
-  if (!steamcmdPath) {
-    return { ok: false, error: 'SteamCMD not found. Please install SteamCMD first.' }
-  }
-
-  const userInstallDir = installDir
-  const steamcmdDir = path.dirname(steamcmdPath)
-  const workshopSourceDir = path.join(steamcmdDir, 'steamapps', 'workshop', 'content', String(appId))
-  const id = `steam_${appId}_${workshopId}_${Date.now()}`
-
-  const record = {
-    id,
-    appId: String(appId),
-    workshopId: String(workshopId),
-    name: name || `Workshop Mod ${workshopId}`,
-    installDir: userInstallDir,
-    status: 'downloading',
-    progress: 0,
-    downloaded: 0,
-    length: 0,
-    downloadSpeed: 0,
-    error: null,
-    createdAt: Date.now(),
-    _proc: null,
-  }
-  steamcmdDownloads.set(id, record)
-
-  const sendUpdate = () => {
-    sendToRenderer('steamcmd:progress', {
-      id: record.id,
-      appId: record.appId,
-      workshopId: record.workshopId,
-      name: record.name,
-      installDir: record.installDir,
-      status: record.status,
-      progress: record.progress,
-      downloaded: record.downloaded,
-      length: record.length,
-      downloadSpeed: record.downloadSpeed,
-      error: record.error,
-      createdAt: record.createdAt,
-    })
-  }
-
-  sendUpdate()
-
-  return new Promise((resolve) => {
-    fs.mkdirSync(userInstallDir, { recursive: true })
-
-    const args = [
-      '+login anonymous',
-      '+workshop_download_item', appId, workshopId,
-      '+quit'
-    ]
-
-    const proc = spawn(steamcmdPath, args, { windowsHide: true, cwd: steamcmdDir })
-
-    let stderr = ''
-    record._proc = proc
-
-    proc.stdout.on('data', (data) => {
-      const lines = data.toString().split('\n')
-      for (const line of lines) {
-        if (/downloading\s+\d+\s+bytes/i.test(line)) {
-          const match = line.match(/downloading\s+(\d+)\s+bytes/i)
-          if (match) record.downloaded = parseInt(match[1], 10)
-        }
-        if (/\.\.\.\s+(\d+)%/i.test(line)) {
-          const match = line.match(/\.\.\.\s+(\d+)%/i)
-          if (match) record.progress = parseInt(match[1], 10)
-        }
-        if (/downloading\s+\d+\.\d+\s+mb/i.test(line)) {
-          record.status = 'downloading'
-        }
-        record.downloadSpeed = 0
-        sendUpdate()
-      }
-    })
-
-    proc.stderr.on('data', (data) => {
-      stderr += data.toString()
-    })
-
-    proc.on('error', (err) => {
-      record.status = 'error'
-      record.error = err?.message || 'Failed to start SteamCMD'
-      record._proc = null
-      sendUpdate()
-      resolve({ ok: false, error: record.error })
-    })
-
-    proc.on('close', (code) => {
-      record._proc = null
-      if (code === 0 || code === null) {
-        if (fs.existsSync(workshopSourceDir)) {
-          try {
-            copyDirContents(workshopSourceDir, userInstallDir)
-          } catch (copyErr) {
-            record.status = 'error'
-            record.error = 'Download succeeded but failed to move files: ' + (copyErr?.message || 'Unknown error')
-            sendUpdate()
-            resolve({ ok: false, error: record.error, record: {
-              id: record.id,
-              appId: record.appId,
-              workshopId: record.workshopId,
-              name: record.name,
-              installDir: record.installDir,
-              status: record.status,
-              progress: record.progress,
-              downloaded: record.downloaded,
-              length: record.length,
-              downloadSpeed: record.downloadSpeed,
-              error: record.error,
-              createdAt: record.createdAt,
-            } })
-            return
-          }
-        }
-        record.status = 'completed'
-        record.progress = 100
-      } else {
-        if (/No subscription/i.test(stderr) || /is not accessible/i.test(stderr)) {
-          record.status = 'error'
-          record.error = 'App not accessible or requires login'
-        } else if (/workshop.*failed/i.test(stderr) || /ERROR.*workshop/i.test(stderr)) {
-          record.status = 'error'
-          record.error = 'Workshop download failed. Check the mod ID.'
-        } else if (code !== 0) {
-          record.status = 'error'
-          record.error = `SteamCMD exited with code ${code}`
-        }
-      }
-      sendUpdate()
-      resolve({ ok: record.status === 'completed', error: record.status === 'error' ? record.error : null, record: {
-        id: record.id,
-        appId: record.appId,
-        workshopId: record.workshopId,
-        name: record.name,
-        installDir: record.installDir,
-        status: record.status,
-        progress: record.progress,
-        downloaded: record.downloaded,
-        length: record.length,
-        downloadSpeed: record.downloadSpeed,
-        error: record.error,
-        createdAt: record.createdAt,
-      } })
-    })
-  })
-})
-
-function copyDirRecursive(src, dest) {
-  if (!fs.existsSync(src)) return
-  fs.mkdirSync(dest, { recursive: true })
-  const entries = fs.readdirSync(src, { withFileTypes: true })
-  for (const entry of entries) {
-    const srcPath = path.join(src, entry.name)
-    const destPath = path.join(dest, entry.name)
-    if (entry.isDirectory()) {
-      copyDirRecursive(srcPath, destPath)
-    } else {
-      fs.copyFileSync(srcPath, destPath)
-    }
-  }
-}
-
-function copyDirContents(src, dest) {
-  if (!fs.existsSync(src)) return
-  fs.mkdirSync(dest, { recursive: true })
-  const entries = fs.readdirSync(src, { withFileTypes: true })
-  for (const entry of entries) {
-    const srcPath = path.join(src, entry.name)
-    const destPath = path.join(dest, entry.name)
-    if (entry.isDirectory()) {
-      copyDirRecursive(srcPath, destPath)
-    } else {
-      fs.copyFileSync(srcPath, destPath)
-    }
-  }
-}
-
-ipcMain.handle('steamcmd:cancel', async (_, id) => {
-  const record = steamcmdDownloads.get(id)
-  if (!record) return { ok: false, error: 'Download not found' }
-  if (record._proc) {
-    record._proc.kill()
-    record._proc = null
-  }
-  record.status = 'cancelled'
-  sendToRenderer('steamcmd:progress', {
-    id: record.id,
-    appId: record.appId,
-    workshopId: record.workshopId,
-    name: record.name,
-    installDir: record.installDir,
-    status: record.status,
-    progress: record.progress,
-    downloaded: record.downloaded,
-    length: record.length,
-    downloadSpeed: record.downloadSpeed,
-    error: record.error,
-    createdAt: record.createdAt,
-  })
-  return { ok: true }
-})
-
-ipcMain.handle('steamcmd:remove', async (_, id) => {
-  const record = steamcmdDownloads.get(id)
-  if (!record) return { ok: false, error: 'Download not found' }
-  if (record._proc) {
-    record._proc.kill()
-  }
-  steamcmdDownloads.delete(id)
-  sendToRenderer('steamcmd:removed', { id })
-  return { ok: true }
-})
-
-ipcMain.handle('steamcmd:open-folder', async (_, id) => {
-  const record = steamcmdDownloads.get(id)
-  if (!record) return { ok: false, error: 'Download not found' }
-  if (fs.existsSync(record.installDir)) {
-    shell.openPath(record.installDir)
-    return { ok: true }
-  }
-  return { ok: false, error: 'Folder does not exist' }
-})

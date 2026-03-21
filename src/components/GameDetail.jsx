@@ -27,6 +27,8 @@ export default function GameDetail({
   const [editingName, setEditingName] = useState(false)
   const [nameVal, setNameVal]         = useState(game.name)
   const [fetchingArt, setFetchingArt] = useState(false)
+  const [artError, setArtError] = useState('')
+  const [logoFailed, setLogoFailed] = useState(false)
   const [manualArt, setManualArt] = useState({
     grid: game.art?.grid || '',
     hero: game.art?.hero || '',
@@ -36,58 +38,38 @@ export default function GameDetail({
   const [exeVal, setExeVal] = useState(game.exe || '')
   const [editingSteam, setEditingSteam] = useState(false)
   const [steamVal, setSteamVal] = useState(game.steamAppId || '')
-  const [modFolder, setModFolder] = useState(game.modFolder || '')
-  const [workshopId, setWorkshopId] = useState('')
-  const [steamBusy, setSteamBusy] = useState(false)
-  const [steamError, setSteamError] = useState('')
-  const [steamInstalled, setSteamInstalled] = useState(null)
-  const [steamDownloads, setSteamDownloads] = useState([])
 
   useEffect(() => {
     setNameVal(game.name)
     setExeVal(game.exe || '')
     setSteamVal(game.steamAppId || '')
-    setModFolder(game.modFolder || '')
     setManualArt({
       grid: game.art?.grid || '',
       hero: game.art?.hero || '',
       logo: game.art?.logo || '',
     })
+    setLogoFailed(false)
   }, [game])
 
-  useEffect(() => {
-    if (!game.steamAppId) return
-    vaporApi.steamcmd.status().then(setSteamInstalled)
-    vaporApi.steamcmd.list().then((list) => {
-      setSteamDownloads(list.filter(item => item.appId === String(game.steamAppId)))
-    })
-
-    const onProgress = (record) => {
-      if (record.appId !== String(game.steamAppId)) return
-      setSteamDownloads(prev => {
-        const idx = prev.findIndex(item => item.id === record.id)
-        if (idx === -1) return [record, ...prev]
-        const next = [...prev]
-        next[idx] = record
-        return next
-      })
-    }
-    const onRemoved = ({ id }) => {
-      setSteamDownloads(prev => prev.filter(item => item.id !== id))
-    }
-
-    vaporApi.on('steamcmd:progress', onProgress)
-    vaporApi.on('steamcmd:removed', onRemoved)
-    return () => {
-      vaporApi.off('steamcmd:progress', onProgress)
-      vaporApi.off('steamcmd:removed', onRemoved)
-    }
-  }, [game.steamAppId])
-
-  const fetchArt = async () => {
+  const fetchArt = async (retry = false) => {
     setFetchingArt(true)
-    const art = await vaporApi.art.fetch(game.name)
-    if (art) onUpdate(game.id, { art })
+    setArtError('')
+    try {
+      const art = await vaporApi.art.fetch(game.name)
+      if (art?.error) {
+        setArtError(art.error === 'no-api-key' ? 'No API key configured' : 
+                    art.error === 'not-found' ? 'Game not found on SteamGridDB' : 
+                    art.error)
+      } else if (art && (art.grid || art.hero || art.logo)) {
+        onUpdate(game.id, { art })
+      } else if (!retry) {
+        setTimeout(() => fetchArt(true), 1000)
+      } else {
+        setArtError('No artwork found')
+      }
+    } catch (err) {
+      setArtError(err.message || 'Failed to fetch art')
+    }
     setFetchingArt(false)
   }
 
@@ -130,54 +112,6 @@ export default function GameDetail({
     const id = steamVal.trim()
     onUpdate(game.id, { steamAppId: id || null })
     setEditingSteam(false)
-  }
-
-  const browseModFolder = async () => {
-    const result = await vaporApi.dialog.folder()
-    if (result) {
-      setModFolder(result)
-      onUpdate(game.id, { modFolder: result })
-    }
-  }
-
-  const startModDownload = async () => {
-    const modId = String(workshopId || '').trim().split('=')[1]?.match(/\d+/)?.[0]
-    if (!modId) {
-      setSteamError('Enter a valid Workshop Mod ID')
-      return
-    }
-    if (!modFolder) {
-      setSteamError('Select a mod folder first')
-      return
-    }
-
-    setSteamError('')
-    setSteamBusy(true)
-    const result = await vaporApi.steamcmd.download({
-      appId: game.steamAppId,
-      workshopId: modId,
-      name: `Mod ${modId}`,
-      installDir: modFolder,
-    })
-    setSteamBusy(false)
-
-    if (!result?.ok) {
-      setSteamError(result?.error || 'Failed to start download')
-      return
-    }
-    setWorkshopId('')
-  }
-
-  const cancelModDownload = async (item) => {
-    await vaporApi.steamcmd.cancel(item.id)
-  }
-
-  const removeModDownload = async (item) => {
-    await vaporApi.steamcmd.remove(item.id)
-  }
-
-  const openModFolder = async (item) => {
-    await vaporApi.steamcmd.openFolder(item.id)
   }
 
   const onArtFilePicked = (key, event) => {
@@ -230,7 +164,7 @@ export default function GameDetail({
             }} />
           )}
           <div style={{ flex:1 }}>
-            {game.art?.logo ? (
+            {game.art?.logo && !logoFailed && (
               <img 
                 src={game.art.logo} 
                 alt={game.name} 
@@ -239,12 +173,11 @@ export default function GameDetail({
                   maxWidth:380, 
                   objectFit:'contain',
                   filter: 'drop-shadow(0 4px 12px #00000080)',
-                  padding: '4px 8px',
                 }} 
-                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling && (e.target.nextSibling.style.display = 'block'); }}
+                onError={() => setLogoFailed(true)}
               />
-            ) : null}
-            <h1 style={{ fontSize:34, fontWeight:700, color:'#fff', textShadow:'0 4px 20px #000', letterSpacing:'-0.02em', display: game.art?.logo ? 'none' : 'block' }}>
+            )}
+            <h1 style={{ fontSize:34, fontWeight:700, color:'#fff', textShadow:'0 4px 20px #000', letterSpacing:'-0.02em', display: game.art?.logo && !logoFailed ? 'none' : 'block' }}>
               {game.name}
             </h1>
           </div>
@@ -288,6 +221,9 @@ export default function GameDetail({
             }} className="gd-btn">
               <span style={{ fontSize:15 }}>🎨</span> {fetchingArt ? 'Fetching...' : 'Fetch Art'}
             </button>
+            {artError && (
+              <div style={{ fontSize:11, color:'#f87171', padding:'4px 8px' }}>{artError}</div>
+            )}
 
             <button onClick={() => onToggleFavorite(game.id)} style={{
               padding:'10px 16px', borderRadius:8, fontSize:13,
@@ -341,6 +277,54 @@ export default function GameDetail({
               </div>
             )}
 
+            {/* Executable & Launch Options */}
+            <div className="gd-section">
+              <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:10, textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:600 }}>
+                Executable
+              </div>
+              {editingExe ? (
+                <div style={{ display:'flex', gap:8 }}>
+                  <input
+                    value={exeVal}
+                    onChange={e => setExeVal(e.target.value)}
+                    onKeyDown={e => { if(e.key==='Enter') saveExe(); if(e.key==='Escape') setEditingExe(false) }}
+                    autoFocus
+                    style={{ flex:1, background:'var(--surface2)', border:'1px solid var(--accent)', borderRadius:6, padding:'8px 10px', color:'var(--text)', fontSize:12, fontFamily:'var(--mono)' }}
+                  />
+                  <button onClick={browseExe} style={{ padding:'8px 12px', borderRadius:6, background:'var(--surface2)', color:'var(--text)', border:'1px solid var(--border)', fontSize:11 }}>Browse</button>
+                  <button onClick={saveExe} style={{ padding:'8px 12px', borderRadius:6, background:'var(--accent)', color:'#fff', fontSize:11 }}>Save</button>
+                </div>
+              ) : (
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <span style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'var(--mono)', wordBreak:'break-all', flex:1 }}>
+                    {game.exe || 'No executable set'}
+                  </span>
+                  <button onClick={() => { setExeVal(game.exe || ''); setEditingExe(true) }}
+                    style={{ fontSize:11, color:'var(--text-muted)', padding:'4px 8px', borderRadius:4, background:'var(--surface2)', border:'1px solid var(--border)', flexShrink:0 }}>
+                    Edit
+                  </button>
+                </div>
+              )}
+
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, marginTop:14 }}>
+                <div style={{ fontSize:13, color:'var(--text)' }}>Run as administrator</div>
+                <button role="switch" aria-checked={!!game.runAsAdmin}
+                  onClick={() => onUpdate(game.id, { runAsAdmin: !game.runAsAdmin })}
+                  style={{
+                    width:44, height:24, borderRadius:12, padding:2, border:'none', cursor:'pointer',
+                    background: game.runAsAdmin ? 'var(--accent)' : 'var(--surface2)',
+                    transition:'background 0.2s ease', flexShrink:0,
+                  }}>
+                  <div style={{
+                    width:20, height:20, borderRadius:'50%', background:'#fff',
+                    transition:'transform 0.2s ease',
+                    transform: game.runAsAdmin ? 'translateX(20px)' : 'translateX(0)',
+                    boxShadow:'0 1px 3px rgba(0,0,0,0.3)',
+                  }} />
+                </button>
+              </div>
+            </div>
+
             {/* Collections */}
             {collections?.length > 0 && (
               <div className="gd-section">
@@ -374,92 +358,7 @@ export default function GameDetail({
               </div>
             )}
 
-            {/* Steam Workshop Mods */}
-            {game.steamAppId && (
-              <div className="gd-section">
-                <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:12, textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:600, display:'flex', alignItems:'center', gap:8 }}>
-                  <span>🎮</span> Steam Workshop Mods
-                </div>
 
-                <div style={{ display:'flex', gap:10, marginBottom:10 }}>
-                  <input
-                    value={modFolder}
-                    onChange={e => setModFolder(e.target.value)}
-                    placeholder="Mod download folder"
-                    className="gd-input"
-                  />
-                  <button onClick={browseModFolder} style={{ padding:'10px 16px', borderRadius:8, background:'var(--surface)', color:'var(--text)', border:'1px solid var(--border)', fontSize:12, cursor:'pointer', fontFamily:'inherit' }} className="gd-btn">Browse</button>
-                </div>
-
-                <div style={{ display:'flex', gap:10, marginBottom:10 }}>
-                  <input
-                    value={workshopId}
-                    onChange={e => setWorkshopId(e.target.value)}
-                    placeholder="Workshop Mod URL or ID"
-                    className="gd-input"
-                  />
-                  <button
-                    onClick={startModDownload}
-                    disabled={steamBusy || !modFolder || steamInstalled?.installed === false}
-                    style={{
-                      padding:'10px 18px', borderRadius:8, background:'var(--accent)', color:'#fff', fontSize:13, fontWeight:600,
-                      border:'none', cursor:'pointer', fontFamily:'inherit',
-                      opacity: steamBusy || !modFolder || steamInstalled?.installed === false ? 0.5 : 1
-                    }}
-                    className="gd-btn"
-                  >
-                    {steamBusy ? '⏳ Downloading...' : '⬇ Download'}
-                  </button>
-                </div>
-
-                {steamError && (
-                  <div style={{ fontSize:12, color:'#f87171', marginBottom:10, padding:'8px 12px', background:'#f8717115', borderRadius:6, border:'1px solid #f8717130' }}>{steamError}</div>
-                )}
-
-                {steamDownloads.length > 0 && (
-                  <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:14 }}>
-                    {steamDownloads.map(item => (
-                      <div key={item.id} style={{
-                        padding:'12px 14px', borderRadius:10, background:'var(--surface)',
-                        border:'1px solid var(--border)', display:'flex', alignItems:'center', gap:12
-                      }}>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:13, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontWeight:500 }}>
-                            {item.name}
-                          </div>
-                          <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:4 }}>
-                            <span style={{
-                              fontSize:10, padding:'2px 8px', borderRadius:999,
-                              background: item.status === 'completed' ? 'var(--green)18' : item.status === 'error' ? '#f8717118' : 'var(--accent-dim)',
-                              color: item.status === 'completed' ? 'var(--green)' : item.status === 'error' ? '#f87171' : 'var(--accent)',
-                              fontWeight:600
-                            }}>
-                              {item.status.toUpperCase()}
-                            </span>
-                            <span style={{ fontSize:12, color:'var(--text-muted)' }}>
-                              {item.progress}%
-                            </span>
-                            {item.status === 'downloading' && (
-                                <div style={{ width:60, height:4, background:'var(--surface2)', borderRadius:2, overflow:'hidden' }}>
-                                <div style={{ width:item.progress+'%', height:'100%', background:'var(--green)', transition:'width 0.3s' }} />
-                              </div>
-                            )}
-                          </div>
-                          {item.error && <div style={{ fontSize:11, color:'#f87171', marginTop:4 }}>{item.error}</div>}
-                        </div>
-                        <div style={{ display:'flex', gap:6 }}>
-                          {item.status === 'downloading' && (
-                            <button onClick={() => cancelModDownload(item)} style={{ fontSize:11, padding:'6px 10px', borderRadius:6, background:'var(--surface2)', color:'#f87171', border:'1px solid var(--border)', cursor:'pointer', fontFamily:'inherit' }}>Cancel</button>
-                          )}
-                          <button onClick={() => openModFolder(item)} style={{ fontSize:11, padding:'6px 10px', borderRadius:6, background:'var(--surface2)', color:'var(--text)', border:'1px solid var(--border)', cursor:'pointer', fontFamily:'inherit' }}>Open</button>
-                          <button onClick={() => removeModDownload(item)} style={{ fontSize:11, padding:'6px 10px', borderRadius:6, background:'var(--surface2)', color:'#f87171', border:'1px solid var(--border)', cursor:'pointer', fontFamily:'inherit' }}>Remove</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </div>
