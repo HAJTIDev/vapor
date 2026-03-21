@@ -231,12 +231,22 @@ export default function GameDetail({
           )}
           <div style={{ flex:1 }}>
             {game.art?.logo ? (
-              <img src={game.art.logo} alt={game.name} style={{ maxHeight:80, maxWidth:340, objectFit:'contain' }} />
-            ) : (
-              <h1 style={{ fontSize:34, fontWeight:700, color:'#fff', textShadow:'0 4px 20px #000', letterSpacing:'-0.02em' }}>
-                {game.name}
-              </h1>
-            )}
+              <img 
+                src={game.art.logo} 
+                alt={game.name} 
+                style={{ 
+                  maxHeight:90, 
+                  maxWidth:380, 
+                  objectFit:'contain',
+                  filter: 'drop-shadow(0 4px 12px #00000080)',
+                  padding: '4px 8px',
+                }} 
+                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling && (e.target.nextSibling.style.display = 'block'); }}
+              />
+            ) : null}
+            <h1 style={{ fontSize:34, fontWeight:700, color:'#fff', textShadow:'0 4px 20px #000', letterSpacing:'-0.02em', display: game.art?.logo ? 'none' : 'block' }}>
+              {game.name}
+            </h1>
           </div>
         </div>
       </div>
