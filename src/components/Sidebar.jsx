@@ -183,17 +183,12 @@ function GameRow({ game, active, running, showPlaytime, compact, onClick, onLaun
 
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{
-          fontSize:12,
+          fontSize:14,
           color: active ? 'var(--text)' : 'var(--text-dim)',
           whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'
         }}>
           {game.name}
         </div>
-        {showPlaytime && !compact && (
-          <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'var(--mono)', marginTop:1 }}>
-            {fmtTime(game.playtime || 0)}
-          </div>
-        )}
       </div>
 
       {running ? (
@@ -201,15 +196,26 @@ function GameRow({ game, active, running, showPlaytime, compact, onClick, onLaun
           width:7, height:7, borderRadius:'50%', background:'var(--green)', boxShadow:'0 0 6px var(--green)', flexShrink:0
         }} />
       ) : hov ? (
-        <button
-          onClick={(e) => { e.stopPropagation(); onLaunch() }}
-          style={{
-            fontSize:10, padding:'3px 7px', borderRadius:4,
-            background:'var(--accent)', color:'#fff', flexShrink:0
-          }}
-        >
-          Play
-        </button>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); onLaunch() }}
+            style={{
+              fontSize:10, padding:'3px 7px', borderRadius:4,
+              background:'var(--accent)', color:'#fff', flexShrink:0
+            }}
+          >
+            Play
+          </button>
+          {showPlaytime && !compact && (
+            <span style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'var(--mono)' }}>
+              {fmtTime(game.playtime || 0)}
+            </span>
+          )}
+        </div>
+      ) : showPlaytime && !compact && !hov ? (
+        <span style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'var(--mono)', flexShrink:0 }}>
+          {fmtTime(game.playtime || 0)}
+        </span>
       ) : null}
     </div>
   )
