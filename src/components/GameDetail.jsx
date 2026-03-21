@@ -32,10 +32,13 @@ export default function GameDetail({
   })
   const [editingExe, setEditingExe] = useState(false)
   const [exeVal, setExeVal] = useState(game.exe || '')
+  const [editingSteam, setEditingSteam] = useState(false)
+  const [steamVal, setSteamVal] = useState(game.steamAppId || '')
 
   useEffect(() => {
     setNameVal(game.name)
     setExeVal(game.exe || '')
+    setSteamVal(game.steamAppId || '')
     setManualArt({
       grid: game.art?.grid || '',
       hero: game.art?.hero || '',
@@ -83,6 +86,12 @@ export default function GameDetail({
       onUpdate(game.id, { exe: path, exeName: path.split(/[\\/]/).pop() })
     }
     setEditingExe(false)
+  }
+
+  const saveSteam = () => {
+    const id = steamVal.trim()
+    onUpdate(game.id, { steamAppId: id || null })
+    setEditingSteam(false)
   }
 
   const onArtFilePicked = (key, event) => {
@@ -296,6 +305,35 @@ export default function GameDetail({
                   <button onClick={() => { setExeVal(game.exe || ''); setEditingExe(true) }}
                     style={{ fontSize:11, color:'var(--text-muted)', padding:'2px 8px', borderRadius:4, background:'var(--surface2)', border:'1px solid var(--border)', flexShrink:0 }}>
                     Edit
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Steam App ID */}
+            <div>
+              <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.08em' }}>Steam App ID (optional)</div>
+              {editingSteam ? (
+                <div style={{ display:'flex', gap:8 }}>
+                  <input value={steamVal} onChange={e => setSteamVal(e.target.value)}
+                    autoFocus
+                    placeholder="e.g. 413150 for Portal 2"
+                    style={{
+                      flex:1, background:'var(--surface2)', border:'1px solid var(--accent)',
+                      borderRadius:6, padding:'6px 10px', color:'var(--text)', fontSize:12
+                    }}
+                  />
+                  <button onClick={saveSteam} style={{ padding:'6px 12px', borderRadius:6, background:'var(--accent)', color:'#fff', fontSize:11 }}>Save</button>
+                  <button onClick={() => { setSteamVal(game.steamAppId || ''); setEditingSteam(false) }} style={{ padding:'6px 10px', borderRadius:6, background:'var(--surface2)', color:'var(--text)', border:'1px solid var(--border)', fontSize:11 }}>Cancel</button>
+                </div>
+              ) : (
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <span style={{ fontSize:12, color: game.steamAppId ? 'var(--accent)' : 'var(--text-muted)', flex:1 }}>
+                    {game.steamAppId ? `steam://run/${game.steamAppId}` : 'Not configured'}
+                  </span>
+                  <button onClick={() => { setSteamVal(game.steamAppId || ''); setEditingSteam(true) }}
+                    style={{ fontSize:11, color:'var(--text-muted)', padding:'2px 8px', borderRadius:4, background:'var(--surface2)', border:'1px solid var(--border)', flexShrink:0 }}>
+                    {game.steamAppId ? 'Edit' : 'Add'}
                   </button>
                 </div>
               )}

@@ -826,6 +826,34 @@ ipcMain.handle('art:fetch', async (_, name) => {
 })
 
 ipcMain.handle('game:launch', (_, game) => {
+  if (game.steamAppId) {
+    const steamUrl = `steam://run/${game.steamAppId}`
+    try {
+      shell.openExternal(steamUrl)
+      gameSessionStart = Date.now()
+      currentGameId = game.id
+      setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.minimize()
+        }
+      }, 100)
+      setTimeout(() => {
+        const minutes = Math.max(0, Math.round((Date.now() - gameSessionStart) / 60000))
+        if (minutes > 0) {
+          saveGamePlaytime(game.id, minutes)
+        }
+        gameSessionStart = null
+        currentGameId = null
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.show()
+          mainWindow.focus()
+          mainWindow.webContents.send('game:session-end', { id: game.id, minutes })
+        }
+      }, 5000)
+      return { ok: true, via: 'steam' }
+    } catch (err) { return { ok: false, error: err.message } }
+  }
+
   try {
     const proc = spawn(game.exe, [], { cwd: game.folder, detached: false, stdio: 'ignore' })
     gameSessionStart = Date.now()
