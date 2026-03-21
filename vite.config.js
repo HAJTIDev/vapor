@@ -6,14 +6,10 @@ export default defineConfig({
   base: './',
   build: {
     outDir: 'dist',
-    assetsDir: '.',
-    rollupOptions: {
-      input: 'app.html'
-    }
+    assetsDir: '.'
   },
   server: {
     port: 5173,
-    open: "app.html"
   },
   optimizeDeps: {
     rollupOptions: undefined
