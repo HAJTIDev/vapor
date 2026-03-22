@@ -131,7 +131,7 @@ export default function GameSettings({
                   autoFocus
                   style={{ flex:1, background:'var(--surface2)', border:'1px solid var(--accent)', borderRadius:6, padding:'6px 10px', color:'var(--text)', fontSize:14 }}
                 />
-                <button onClick={saveName} style={{ padding:'6px 12px', borderRadius:6, background:'var(--accent)', color:'#fff', fontSize:12 }}>Save</button>
+                <button onClick={saveName} className="btn-accent" style={{ padding:'6px 12px', borderRadius:6, fontSize:12 }}>Save</button>
               </div>
             ) : (
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -152,7 +152,7 @@ export default function GameSettings({
                   style={{ flex:1, background:'var(--surface2)', border:'1px solid var(--accent)', borderRadius:6, padding:'6px 10px', color:'var(--text)', fontSize:11, fontFamily:'var(--mono)' }}
                 />
                 <button onClick={browseExe} style={{ padding:'6px 10px', borderRadius:6, background:'var(--surface2)', color:'var(--text)', border:'1px solid var(--border)', fontSize:11 }}>Browse</button>
-                <button onClick={saveExe} style={{ padding:'6px 12px', borderRadius:6, background:'var(--accent)', color:'#fff', fontSize:11 }}>Save</button>
+                <button onClick={saveExe} className="btn-accent" style={{ padding:'6px 12px', borderRadius:6, fontSize:11 }}>Save</button>
               </div>
             ) : (
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -174,7 +174,7 @@ export default function GameSettings({
                 <input value={steamVal} onChange={e => setSteamVal(e.target.value)} autoFocus placeholder="e.g. 413150"
                   style={{ flex:1, background:'var(--surface2)', border:'1px solid var(--accent)', borderRadius:6, padding:'6px 10px', color:'var(--text)', fontSize:12 }}
                 />
-                <button onClick={saveSteam} style={{ padding:'6px 12px', borderRadius:6, background:'var(--accent)', color:'#fff', fontSize:11 }}>Save</button>
+                <button onClick={saveSteam} className="btn-accent" style={{ padding:'6px 12px', borderRadius:6, fontSize:11 }}>Save</button>
               </div>
             ) : (
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -255,7 +255,7 @@ export default function GameSettings({
               </div>
             ))}
             <div style={{ display:'flex', gap:8, marginTop:6 }}>
-              <button onClick={saveManualArt} style={{ padding:'7px 12px', borderRadius:6, fontSize:12, background:'var(--accent)', color:'#fff' }}>Save</button>
+              <button onClick={saveManualArt} className="btn-accent" style={{ padding:'7px 12px', borderRadius:6, fontSize:12 }}>Save</button>
               <button onClick={clearManualArt} style={{ padding:'7px 12px', borderRadius:6, fontSize:12, background:'var(--surface2)', color:'var(--text-dim)', border:'1px solid var(--border)' }}>Clear</button>
             </div>
           </div>

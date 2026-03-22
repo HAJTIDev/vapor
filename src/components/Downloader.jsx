@@ -230,7 +230,7 @@ export default function Downloader({ settings }) {
             }}
           />
           <button onClick={chooseSaveFolder} style={actionBtn}>Folder</button>
-          <button onClick={startDownload} disabled={busy} style={{ ...actionBtn, background: 'var(--accent)', color: '#fff', borderColor:'#6c63ff' }}>
+          <button onClick={startDownload} disabled={busy} className="btn-accent" style={{ ...actionBtn, borderColor:'#6c63ff' }}>
             {busy ? 'Starting...' : 'Download'}
           </button>
         </div>

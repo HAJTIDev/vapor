@@ -10,9 +10,12 @@
   --text-dim:   #707088;
   --text-muted: #40404d;
   --accent:     #6c63ff;
+  --accent2:    #8b5cf6;
   --accent-dim: #6c63ff22;
   --green:      #4ade80;
+  --green2:     #22c55e;
   --red:        #f87171;
+  --red2:       #ef4444;
   --font:       'Outfit', sans-serif;
   --mono:       'DM Mono', monospace;
 }
@@ -44,4 +47,43 @@ button {
 input {
   font-family: var(--font);
   outline: none;
+}
+
+.btn-accent {
+  background: var(--accent-gradient);
+  color: #fff;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+.btn-accent:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+.btn-accent:active {
+  transform: translateY(0);
+}
+
+.btn-green {
+  background: var(--green-gradient);
+  color: #fff;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+.btn-green:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+.btn-green:active {
+  transform: translateY(0);
+}
+
+.btn-red {
+  background: var(--red-gradient);
+  color: #fff;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+.btn-red:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+.btn-red:active {
+  transform: translateY(0);
 }

@@ -294,7 +294,7 @@ export default function GameDetail({
                     style={{ flex:1, background:'var(--surface2)', border:'1px solid var(--accent)', borderRadius:6, padding:'8px 10px', color:'var(--text)', fontSize:12, fontFamily:'var(--mono)' }}
                   />
                   <button onClick={browseExe} style={{ padding:'8px 12px', borderRadius:6, background:'var(--surface2)', color:'var(--text)', border:'1px solid var(--border)', fontSize:11 }}>Browse</button>
-                  <button onClick={saveExe} style={{ padding:'8px 12px', borderRadius:6, background:'var(--accent)', color:'#fff', fontSize:11 }}>Save</button>
+                  <button onClick={saveExe} className="btn-accent" style={{ padding:'8px 12px', borderRadius:6, fontSize:11 }}>Save</button>
                 </div>
               ) : (
                 <div style={{ display:'flex', alignItems:'center', gap:8 }}>

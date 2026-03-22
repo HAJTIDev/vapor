@@ -199,11 +199,12 @@ function GameCard({ game, running, onSelect, onLaunch, onContextMenu }) {
             background:'linear-gradient(to top, #000000cc 0%, transparent 50%)',
             display:'flex', alignItems:'flex-end', justifyContent:'center', padding:12
           }}>
-            <button onClick={e => { e.stopPropagation(); onLaunch(game) }} style={{
-              padding:'6px 18px', borderRadius:5, fontSize:12, fontWeight:600,
-              background: running ? 'var(--green)' : 'var(--accent)',
-              color:'#fff', transition:'all 0.1s', width:'100%'
-            }}>
+            <button onClick={e => { e.stopPropagation(); onLaunch(game) }} 
+              className={running ? 'btn-green' : 'btn-accent'}
+              style={{
+                padding:'6px 18px', borderRadius:5, fontSize:12, fontWeight:600,
+                color:'#fff', transition:'all 0.1s', width:'100%'
+              }}>
               {running ? 'Running' : 'Play'}
             </button>
           </div>
@@ -239,9 +240,8 @@ function Empty({ onAddClick }) {
         <div style={{ fontSize:15, color:'var(--text)', fontWeight:500 }}>Your library is empty</div>
         <div style={{ fontSize:13, marginTop:4 }}>Add your game folders to get started</div>
       </div>
-      <button onClick={onAddClick} style={{
-        padding:'8px 20px', borderRadius:6, background:'var(--accent)',
-        color:'#fff', fontSize:13, fontWeight:500, marginTop:4
+      <button onClick={onAddClick} className="btn-accent" style={{
+        padding:'8px 20px', borderRadius:6, fontSize:13, fontWeight:500, marginTop:4
       }}>Add Games</button>
     </div>
   )
