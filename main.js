@@ -697,6 +697,33 @@ function pickBestExe(exes, gameName, gameFolder) {
   return exes[0]
 }
 
+// Calculate total folder size in bytes
+function calculateFolderSize(folderPath) {
+  try {
+    let totalBytes = 0
+    const walk = (dir) => {
+      try {
+        const entries = fs.readdirSync(dir, { withFileTypes: true })
+        for (const e of entries) {
+          try {
+            const fullPath = path.join(dir, e.name)
+            if (e.isFile()) {
+              const stat = fs.statSync(fullPath)
+              totalBytes += stat.size || 0
+            } else if (e.isDirectory()) {
+              walk(fullPath)
+            }
+          } catch {}
+        }
+      } catch {}
+    }
+    walk(folderPath)
+    return totalBytes
+  } catch {
+    return 0
+  }
+}
+
 // Scan: each immediate subfolder = one game, named after the folder
 function scanDir(dir) {
   const games = []
@@ -712,7 +739,15 @@ function scanDir(dir) {
         .trim()
       const exes = collectExes(gameFolder)
       const best = pickBestExe(exes, gameName, gameFolder)
-      if (best) games.push({ name: gameName, exe: best.exe, folder: gameFolder, exeName: best.exeName })
+      if (best) {
+        games.push({
+          name: gameName,
+          exe: best.exe,
+          folder: gameFolder,
+          exeName: best.exeName,
+          fileSize: calculateFolderSize(gameFolder)
+        })
+      }
     }
   } catch {}
   return games
@@ -943,6 +978,10 @@ ipcMain.handle('dialog:file', async (_, options = {}) => {
 
 ipcMain.handle('folder:scan', async (_, folder) => {
   return scanDir(folder)
+})
+
+ipcMain.handle('folder:getSize', async (_, folderPath) => {
+  return calculateFolderSize(folderPath)
 })
 
 ipcMain.handle('games:load', () => {

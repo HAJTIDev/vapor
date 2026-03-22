@@ -8,6 +8,7 @@ import Settings from './components/Settings.jsx'
 import AddGames from './components/AddGames.jsx'
 import Downloader from './components/Downloader.jsx'
 import vaporApi from './vaporApi.js'
+import { applyTheme } from './themes.js'
 import titleLogo from './img/title.png'
 
 function BootAnimation({ onComplete }) {
@@ -54,6 +55,7 @@ let nextId = Date.now()
 const uid = () => String(++nextId)
 
 const defaultSettings = {
+  theme: 'dark',
   folders: [],
   collections: [],
   downloadSpeedLimitKbps: 0,
@@ -75,6 +77,7 @@ function normalizeSettings(input) {
         .map(c => ({ id: String(c.id), name: String(c.name) }))
     : []
   return {
+    theme: safe.theme || defaultSettings.theme,
     folders: Array.isArray(safe.folders) ? safe.folders : [],
     collections,
     downloadSpeedLimitKbps: Number.isFinite(Number(safe.downloadSpeedLimitKbps))
@@ -93,6 +96,7 @@ function normalizeGame(input) {
     ...safe,
     favorite: !!safe.favorite,
     runAsAdmin: !!safe.runAsAdmin,
+    fileSize: Number.isFinite(Number(safe.fileSize)) ? Math.max(0, Math.round(Number(safe.fileSize))) : 0,
     collections: Array.isArray(safe.collections) ? safe.collections.map(String) : [],
   }
 }
@@ -124,12 +128,39 @@ export default function App() {
 
   // Load
   useEffect(() => {
-    vaporApi.games.load().then(g => {
+    vaporApi.games.load().then(async g => {
       const normalized = (g || []).map(normalizeGame)
       setGames(normalized)
       if (normalized.length) nextId = Math.max(nextId, ...normalized.map(x => +x.id || 0))
+
+      const canReadFolderSize = typeof vaporApi?.folder?.getSize === 'function'
+      if (!canReadFolderSize || normalized.length === 0) return
+
+      const needsSizeBackfill = normalized.some(game => game.folder && (game.fileSize || 0) <= 0)
+      if (!needsSizeBackfill) return
+
+      const withSizes = await Promise.all(normalized.map(async (game) => {
+        if (!game.folder || (game.fileSize || 0) > 0) return game
+        try {
+          const size = await vaporApi.folder.getSize(game.folder)
+          const nextSize = Number.isFinite(Number(size)) ? Math.max(0, Math.round(Number(size))) : 0
+          return nextSize > 0 ? { ...game, fileSize: nextSize } : game
+        } catch {
+          return game
+        }
+      }))
+
+      const changed = withSizes.some((game, idx) => (game.fileSize || 0) !== (normalized[idx].fileSize || 0))
+      if (!changed) return
+
+      setGames(withSizes)
+      vaporApi.games.save(withSizes)
     })
-    vaporApi.settings.load().then(s => setSettings(normalizeSettings(s)))
+    vaporApi.settings.load().then(s => {
+      const normalized = normalizeSettings(s)
+      setSettings(normalized)
+      applyTheme(normalized.theme)
+    })
   }, [])
 
   // Listen for session end
@@ -208,6 +239,7 @@ export default function App() {
   const saveSettings = useCallback((s) => {
     const normalized = normalizeSettings(s)
     setSettings(normalized)
+    applyTheme(normalized.theme)
     vaporApi.settings.save(normalized)
   }, [])
 

@@ -44,6 +44,7 @@ const browserFallback = {
   },
   folder: {
     scan: async () => [],
+    getSize: async () => 0,
   },
   games: {
     load: async () => loadLocalJson(GAME_STORAGE_KEY, []),

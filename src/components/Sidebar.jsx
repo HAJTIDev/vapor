@@ -33,7 +33,7 @@ export default function Sidebar({
     <aside style={{
       width: compactSidebar ? 250 : 290,
       flexShrink: 0,
-      background: 'linear-gradient(180deg, #121220 0%, #101018 100%)',
+      background: 'var(--bg)',
       borderRight: '1px solid var(--border)',
       display: 'flex',
       flexDirection: 'column',
@@ -64,8 +64,8 @@ export default function Sidebar({
 
         <div style={{
           display:'flex', alignItems:'center', gap:8,
-          background:'linear-gradient(180deg, #1b1b29 0%, #171723 100%)',
-          border:'1px solid #ffffff14',
+          background:'var(--surface2)',
+          border:'1px solid var(--border)',
           borderRadius:10,
           padding:'8px 10px',
           boxShadow:'0 8px 24px #00000025'
@@ -183,18 +183,18 @@ function CollectionItem({ active, label, count, onClick }) {
       style={{
         display:'flex', alignItems:'center', gap:8,
         width:'100%', textAlign:'left', padding:'8px 10px', borderRadius:8,
-        background: active ? 'linear-gradient(90deg, #6c63ff2a 0%, #6c63ff10 100%)' : hov ? 'var(--surface2)' : 'transparent',
+        background: active ? 'var(--accent-dim)' : hov ? 'var(--surface2)' : 'transparent',
         color: active ? 'var(--accent)' : 'var(--text-dim)',
         fontSize:12,
-        border:'1px solid ' + (active ? '#6c63ff38' : 'transparent'),
+        border:'1px solid ' + (active ? 'var(--accent)' : 'transparent'),
         transition:'all 0.12s',
       }}
     >
       <span style={{ flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{label}</span>
       <span style={{
         fontSize:10, fontFamily:'var(--mono)', color: active ? 'var(--accent)' : 'var(--text-muted)',
-        background: active ? '#6c63ff22' : 'var(--surface2)', padding:'1px 6px', borderRadius:10,
-        border:'1px solid ' + (active ? '#6c63ff30' : 'var(--border)')
+        background: active ? 'var(--accent-dim)' : 'var(--surface2)', padding:'1px 6px', borderRadius:10,
+        border:'1px solid ' + (active ? 'var(--accent)' : 'var(--border)')
       }}>{count || 0}</span>
     </button>
   )
@@ -213,8 +213,8 @@ function GameRow({ game, active, running, showPlaytime, compact, onClick, onLaun
         borderRadius:8,
         padding: compact ? '7px 8px' : '8px 9px',
         cursor:'pointer',
-        background: active ? 'linear-gradient(90deg, #6c63ff2f 0%, #6c63ff12 100%)' : hov ? 'var(--surface2)' : 'transparent',
-        border: '1px solid ' + (active ? '#6c63ff45' : hov ? '#ffffff10' : 'transparent'),
+        background: active ? 'var(--accent-dim)' : hov ? 'var(--surface2)' : 'transparent',
+        border: '1px solid ' + (active ? 'var(--accent)' : hov ? 'var(--border)' : 'transparent'),
         transition:'all 0.12s',
       }}
     >
@@ -291,11 +291,11 @@ function NavItem({ active, onClick, icon, label, badge }) {
         position:'relative',
         display:'flex', alignItems:'center', gap:10, padding:'9px 10px',
         borderRadius:8, width:'100%', textAlign:'left',
-        background: active ? 'linear-gradient(90deg, #6c63ff33 0%, #6c63ff10 100%)' : hov ? 'var(--surface2)' : 'transparent',
+        background: active ? 'var(--accent-dim)' : hov ? 'var(--surface2)' : 'transparent',
         color: active ? 'var(--accent)' : hov ? 'var(--text)' : 'var(--text-dim)',
         fontSize:13, fontWeight: active ? 500 : 400,
         transition:'all 0.12s',
-        border:'1px solid ' + (active ? '#6c63ff40' : 'transparent'),
+        border:'1px solid ' + (active ? 'var(--accent)' : 'transparent'),
       }}
     >
       {active && (

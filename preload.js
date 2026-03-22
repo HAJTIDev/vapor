@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('vapor', {
   },
   folder: {
     scan: (dir) => ipcRenderer.invoke('folder:scan', dir),
+    getSize: (folderPath) => ipcRenderer.invoke('folder:getSize', folderPath),
   },
   games: {
     load: ()        => ipcRenderer.invoke('games:load'),

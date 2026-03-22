@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import vaporApi from '../vaporApi'
+import { themes, getThemeNames } from '../themes'
+import { formatFileSize } from '../utils'
 
 export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
   const [saved, setSaved] = useState(false)
@@ -117,6 +119,38 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
     }
   }
 
+  const storageByDrive = useMemo(() => {
+    const groups = new Map()
+
+    const inferDrive = (game) => {
+      const sourcePath = String(game?.folder || game?.exe || '').trim()
+      if (!sourcePath) return 'Unknown'
+
+      // Windows style: C:\Games\...
+      const winMatch = sourcePath.match(/^([a-zA-Z]):[\\/]/)
+      if (winMatch) return `${winMatch[1].toUpperCase()}:`
+
+      // Unix-like fallback: /mnt/d/... or /
+      const mntMatch = sourcePath.match(/^\/mnt\/([a-zA-Z])\//)
+      if (mntMatch) return `${mntMatch[1].toUpperCase()}:`
+      if (sourcePath.startsWith('/')) return '/'
+
+      return 'Unknown'
+    }
+
+    for (const game of games || []) {
+      const drive = inferDrive(game)
+      const fileSize = Math.max(0, Number(game?.fileSize) || 0)
+      const current = groups.get(drive) || { drive, totalBytes: 0, gameCount: 0, sizedGameCount: 0 }
+      current.totalBytes += fileSize
+      current.gameCount += 1
+      if (fileSize > 0) current.sizedGameCount += 1
+      groups.set(drive, current)
+    }
+
+    return Array.from(groups.values()).sort((a, b) => b.totalBytes - a.totalBytes)
+  }, [games])
+
   return (
     <div style={{ height:'100%', overflow:'auto', padding:'28px 28px' }}>
       <h2 style={{ fontSize:18, fontWeight:600, marginBottom:4 }}>Settings</h2>
@@ -172,6 +206,77 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
             onChange={(checked) => onSave({ ...settings, ui: { ...(settings.ui || {}), autoUpdate: checked } })}
           />
         </div>
+      </Section>
+
+      <Section title="Storage">
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:13, color:'var(--text)', marginBottom:4 }}>Total Storage Used</div>
+          <div style={{ display:'flex', alignItems:'baseline', gap:8 }}>
+            <div style={{ fontSize:28, fontWeight:700, color:'var(--accent)' }}>
+              {formatFileSize((games || []).reduce((sum, g) => sum + (g.fileSize || 0), 0))}
+            </div>
+            <div style={{ fontSize:12, color:'var(--text-muted)' }}>
+              across {(games || []).length} game{(games || []).length !== 1 ? 's' : ''}
+            </div>
+          </div>
+          <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>
+            File sizes are calculated when games are added or scanned.
+          </div>
+        </div>
+
+        {storageByDrive.length > 0 && (
+          <div style={{ marginTop:16 }}>
+            <div style={{ fontSize:11, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:600, marginBottom:10 }}>
+              Storage by Drive
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              {storageByDrive.map((row) => (
+                <div key={row.drive} style={{
+                  display:'flex', justifyContent:'space-between', alignItems:'center',
+                  background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:6,
+                  padding:'8px 10px', gap:12,
+                }}>
+                  <div style={{ display:'flex', flexDirection:'column', minWidth:0 }}>
+                    <span style={{ fontSize:12, color:'var(--text)', fontWeight:600 }}>{row.drive}</span>
+                    <span style={{ fontSize:11, color:'var(--text-muted)' }}>
+                      {row.gameCount} game{row.gameCount !== 1 ? 's' : ''} ({row.sizedGameCount} with size data)
+                    </span>
+                  </div>
+                  <span style={{ fontSize:12, color:'var(--text-dim)', fontFamily:'var(--mono)', flexShrink:0 }}>
+                    {formatFileSize(row.totalBytes)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(games || []).length > 0 && (
+          <div style={{ marginTop:16 }}>
+            <div style={{ fontSize:11, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:600, marginBottom:10 }}>
+              Top Games by Size
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:6, maxHeight:240, overflow:'auto' }}>
+              {(games || [])
+                .sort((a, b) => (b.fileSize || 0) - (a.fileSize || 0))
+                .slice(0, 10)
+                .map(g => (
+                  <div key={g.id} style={{
+                    display:'flex', justifyContent:'space-between', alignItems:'center',
+                    background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:6,
+                    padding:'8px 10px'
+                  }}>
+                    <span style={{ fontSize:12, color:'var(--text-dim)', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {g.name}
+                    </span>
+                    <span style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'var(--mono)', marginLeft:12, flexShrink:0 }}>
+                      {formatFileSize(g.fileSize || 0)}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
       </Section>
 
       <Section title="Artwork">
@@ -248,6 +353,31 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
       </Section>
 
       <Section title="Settings">
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:12, color:'var(--text-dim)', marginBottom:6 }}>Theme</div>
+          <select
+            value={settings.theme || 'dark'}
+            onChange={(e) => onSave({ ...settings, theme: e.target.value })}
+            style={{
+              background:'var(--surface2)',
+              color:'var(--text)',
+              border:'1px solid var(--border)',
+              borderRadius:6,
+              padding:'8px 10px',
+              fontSize:12,
+              cursor:'pointer',
+            }}
+          >
+            {getThemeNames().map(themeName => (
+              <option key={themeName} value={themeName}>
+                {themes[themeName]?.name || themeName}
+              </option>
+            ))}
+          </select>
+          <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>
+            Choose your preferred color theme.
+          </div>
+        </div>
         <div style={{ marginBottom:16 }}>
           <div style={{ fontSize:12, color:'var(--text-dim)', marginBottom:6 }}>Download Directory</div>
           <div style={{ display:'flex', gap:8 }}>

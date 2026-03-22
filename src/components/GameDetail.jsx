@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import vaporApi from '../vaporApi.js'
+import { formatFileSize } from '../utils.js'
 import './GameDetail.css'
 
 function fmtTime(mins) {
@@ -255,6 +256,7 @@ export default function GameDetail({
               <div style={{ display:'flex', gap:32, flexWrap:'wrap' }}>
                 <Stat label="Playtime" value={fmtTime(game.playtime)} icon="⏱" />
                 <Stat label="Last Played" value={fmtDate(game.lastPlayed)} icon="📅" />
+                <Stat label="File Size" value={formatFileSize(game.fileSize)} icon="💾" />
                 {game.art?.sgdbName && game.art.sgdbName !== game.name && (
                   <Stat label="Matched As" value={game.art.sgdbName} icon="🔗" />
                 )}
