@@ -1114,7 +1114,10 @@ function destroyDiscordRpc() {
 
 function updateDiscordActivity(gameName) {
   const settings = loadJSON(settingsFile, defaultSettings)
-  if (!DISCORD_CLIENT_ID || settings.ui?.discordRpc === false) return
+  if (!DISCORD_CLIENT_ID || settings.ui?.discordRpc === false) {
+    clearDiscordActivity()
+    return
+  }
   initDiscordRpc()
 
   const detailsName = String(gameName || '').trim() || 'a game'
@@ -1129,6 +1132,8 @@ function updateDiscordActivity(gameName) {
     instance: false,
     largeImageKey: currentGameArt || undefined,
     largeImageText: currentGameArt ? detailsName : undefined,
+    smallImageKey: 'vaporicon',
+    smallImageText: 'Vapor',
     buttons,
   }).catch((err) => {
     console.error('[discord-rpc] Failed to set activity:', err?.message || err)
@@ -1143,12 +1148,13 @@ function clearDiscordActivity() {
 async function startTrackedSession(game) {
   const gameId = typeof game === 'object' && game ? game.id : game
   const gameName = typeof game === 'object' && game ? game.name : null
+  const gameArt = typeof game === 'object' && game ? game.art : null
   gameSessionStart = Date.now()
   currentGameId = gameId
   currentGameName = gameName || null
-  currentGameArt = null
+  currentGameArt = gameArt?.grid || gameArt?.hero || gameArt?.logo || null
 
-  if (DISCORD_CLIENT_ID && gameName) {
+  if (DISCORD_CLIENT_ID && !currentGameArt) {
     try {
       const key = loadSgdbKey()
       if (key) {
@@ -1167,7 +1173,9 @@ async function startTrackedSession(game) {
     }
   }
 
-  updateDiscordActivity(currentGameName)
+  if (currentGameId === gameId) {
+    updateDiscordActivity(currentGameName)
+  }
 }
 
 function endTrackedSession(gameId, options = {}) {
@@ -1184,7 +1192,6 @@ function endTrackedSession(gameId, options = {}) {
     currentGameId = null
     currentGameName = null
     currentGameArt = null
-    currentGameSteamId = null
     clearDiscordActivity()
   }
   if (mainWindow && !mainWindow.isDestroyed()) {
