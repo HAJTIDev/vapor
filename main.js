@@ -1303,16 +1303,99 @@ function monitorElevatedSession(game) {
   setTimeout(tick, 1500)
 }
 
+function monitorSteamGameSession(game) {
+  const processName = path.basename(String(game?.exe || ''), '.exe').trim()
+  
+  if (!processName) {
+    console.log('[steam] No exe path set for game, using basic 5-minute session')
+    startTrackedSession(game)
+    minimizeMainWindowForLaunch()
+    setTimeout(() => {
+      if (currentGameId === game.id) {
+        endTrackedSession(game.id)
+      }
+    }, 5 * 60 * 1000)
+    return
+  }
+
+  let gameProcessStarted = false
+  let checks = 0
+  const maxStartupChecks = 40
+
+  const tick = async () => {
+    if (currentGameId !== game.id) return
+
+    const running = await isProcessRunningByNameWindows(processName)
+    if (currentGameId !== game.id) return
+
+    checks += 1
+
+    if (running) {
+      if (!gameProcessStarted) {
+        console.log(`[steam] Game process "${processName}" started, tracking session`)
+        gameProcessStarted = true
+      }
+      setTimeout(tick, 5000)
+      return
+    }
+
+    if (!gameProcessStarted) {
+      if (checks < maxStartupChecks) {
+        setTimeout(tick, 1500)
+        return
+      }
+
+      console.log(`[steam] Game process "${processName}" never started, ending session`)
+      gameSessionStart = null
+      currentGameId = null
+      currentGameName = null
+      currentGameArt = null
+      clearDiscordActivity()
+      sendToRenderer('game:launch-error', {
+        id: game.id,
+        error: 'Game did not start. Make sure Steam is running and the game is installed.',
+      })
+      return
+    }
+
+    console.log(`[steam] Game process "${processName}" exited, ending session`)
+    endTrackedSession(game.id)
+  }
+
+  startTrackedSession(game)
+  minimizeMainWindowForLaunch()
+  setTimeout(tick, 1500)
+}
+
+async function isSteamRunningWindows() {
+  return new Promise((resolve) => {
+    const command = `$p = Get-Process -Name 'steam' -ErrorAction SilentlyContinue; if ($p) { exit 0 } else { exit 1 }`
+    const checker = spawn(
+      'powershell.exe',
+      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command],
+      { windowsHide: true, stdio: 'ignore' }
+    )
+    checker.once('error', () => resolve(false))
+    checker.once('close', (code) => resolve(code === 0))
+  })
+}
+
 ipcMain.handle('game:launch', async (_, game) => {
   if (game.steamAppId) {
     const steamUrl = `steam://run/${game.steamAppId}`
+    
+    if (process.platform === 'win32') {
+      const steamRunning = await isSteamRunningWindows()
+      if (!steamRunning) {
+        const errorMsg = 'Steam is not running. Please start Steam first.'
+        sendToRenderer('game:launch-error', { id: game.id, error: errorMsg })
+        return { ok: false, error: errorMsg }
+      }
+    }
+
     try {
       shell.openExternal(steamUrl)
-      startTrackedSession(game)
-      minimizeMainWindowForLaunch()
-      setTimeout(() => {
-        endTrackedSession(game.id)
-      }, 5000)
+      monitorSteamGameSession(game)
       return { ok: true, via: 'steam', tracking: true }
     } catch (err) {
       return { ok: false, error: err.message }
