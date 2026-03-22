@@ -43,6 +43,7 @@ let tray = null
 let gameSessionStart = null
 let currentGameId = null
 let currentGameName = null
+let currentGameArt = null
 let torrentClient = null
 let webTorrentCtor = null
 let downloadPulse = null
@@ -183,6 +184,7 @@ const defaultSettings = {
     confirmRemoveGame: true,
     autoUpdate: true,
     autoStart: true,
+    discordRpc: true,
   },
 }
 
@@ -1064,7 +1066,8 @@ function minimizeMainWindowForLaunch() {
 }
 
 function initDiscordRpc() {
-  if (!DISCORD_CLIENT_ID || discordRpcClient || discordRpcConnecting) return
+  const settings = loadJSON(settingsFile, defaultSettings)
+  if (!DISCORD_CLIENT_ID || settings.ui?.discordRpc === false || discordRpcClient || discordRpcConnecting) return
 
   try {
     discordRpcConnecting = true
@@ -1110,17 +1113,23 @@ function destroyDiscordRpc() {
 }
 
 function updateDiscordActivity(gameName) {
-  if (!DISCORD_CLIENT_ID) return
+  const settings = loadJSON(settingsFile, defaultSettings)
+  if (!DISCORD_CLIENT_ID || settings.ui?.discordRpc === false) return
   initDiscordRpc()
 
   const detailsName = String(gameName || '').trim() || 'a game'
   if (!discordRpcClient || !discordRpcReady) return
+
+  const buttons = [{ label: 'Download Vapor', url: 'https://github.com/HAJTIDev/vapor/releases' }]
 
   discordRpcClient.setActivity({
     details: `Playing ${detailsName}`,
     state: DISCORD_ACTIVITY_STATE,
     startTimestamp: gameSessionStart ? new Date(gameSessionStart) : undefined,
     instance: false,
+    largeImageKey: currentGameArt || undefined,
+    largeImageText: currentGameArt ? detailsName : undefined,
+    buttons,
   }).catch((err) => {
     console.error('[discord-rpc] Failed to set activity:', err?.message || err)
   })
@@ -1131,12 +1140,33 @@ function clearDiscordActivity() {
   discordRpcClient.clearActivity().catch(() => {})
 }
 
-function startTrackedSession(game) {
+async function startTrackedSession(game) {
   const gameId = typeof game === 'object' && game ? game.id : game
   const gameName = typeof game === 'object' && game ? game.name : null
   gameSessionStart = Date.now()
   currentGameId = gameId
   currentGameName = gameName || null
+  currentGameArt = null
+
+  if (DISCORD_CLIENT_ID && gameName) {
+    try {
+      const key = loadSgdbKey()
+      if (key) {
+        const sgdbGame = await sgdbSearch(gameName)
+        if (sgdbGame?.id) {
+          const art = await sgdbArt(sgdbGame.id)
+          currentGameArt = art.grid || art.hero || art.logo || null
+          if (currentGameId === gameId) {
+            updateDiscordActivity(currentGameName)
+          }
+          return
+        }
+      }
+    } catch (err) {
+      console.log('[discord-rpc] Could not fetch game art:', err?.message)
+    }
+  }
+
   updateDiscordActivity(currentGameName)
 }
 
@@ -1153,6 +1183,8 @@ function endTrackedSession(gameId, options = {}) {
     gameSessionStart = null
     currentGameId = null
     currentGameName = null
+    currentGameArt = null
+    currentGameSteamId = null
     clearDiscordActivity()
   }
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -1210,6 +1242,7 @@ function monitorElevatedSession(game) {
       gameSessionStart = null
       currentGameId = null
       currentGameName = null
+      currentGameArt = null
       clearDiscordActivity()
       sendToRenderer('game:launch-error', {
         id: game.id,
@@ -1280,6 +1313,7 @@ ipcMain.handle('game:launch', async (_, game) => {
           gameSessionStart = null
           currentGameId = null
           currentGameName = null
+          currentGameArt = null
           clearDiscordActivity()
         }
         finishOnce({ ok: false, error: err?.message || 'Failed to launch game.', code: err?.code || null })

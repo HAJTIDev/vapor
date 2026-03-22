@@ -316,6 +316,12 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
           checked={!!settings.ui?.confirmRemoveGame}
           onChange={(checked) => updateUi({ confirmRemoveGame: checked })}
         />
+        <ToggleRow
+          label="Discord Rich Presence"
+          desc="Shows what you're playing on your Discord status."
+          checked={!!settings.ui?.discordRpc}
+          onChange={(checked) => updateUi({ discordRpc: checked })}
+        />
 
         <div style={{ marginTop:14 }}>
           <div style={{ fontSize:12, color:'var(--text-dim)', marginBottom:6 }}>Download Speed Limit</div>
