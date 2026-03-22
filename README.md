@@ -16,7 +16,6 @@ A minimal, flat, DRM-free game launcher for Windows.
 - **Collections** to organize your games
 - **Game folder management** with multiple library paths
 - **Environment variable loading** per game
-- **Controller support** - D-pad navigation, A to launch, B to back
 - **Keyboard navigation** - Arrow keys + Enter, Escape to go back
 - **Auto-updates** via GitHub Releases
 - **Auto-start** on Windows login
@@ -83,14 +82,6 @@ DISCORD_CLIENT_ID=YOUR_DISCORD_APPLICATION_ID
 
 When a game is launched from Vapor, Discord will show `Playing <Game Name>` for the active session.
 
-## Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| D-pad / Arrows | Navigate |
-| A / Enter | Launch game / Select |
-| B / Escape | Go back |
-| Start (controller) | Open settings |
 
 ## Tech Stack
 
