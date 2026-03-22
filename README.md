@@ -12,6 +12,7 @@ A minimal, flat, DRM-free game launcher for Windows.
 - **Auto-scans folders** for `.exe` games (GOG, itch.io, Epic, Steam, etc.)
 - **SteamGridDB integration** for cover art, hero banners, logos, and icons
 - **Playtime tracking** per session, auto-saved
+- **Discord Rich Presence** updates while a tracked game session is active
 - **Collections** to organize your games
 - **Game folder management** with multiple library paths
 - **Environment variable loading** per game
@@ -71,6 +72,16 @@ Games and settings are stored in `%APPDATA%\vapor\`:
 - `settings.json` - User preferences
 
 During installation, you can choose a directory where downloaded games are installed by default. This directory can later be changed in Settings.
+
+### Discord Rich Presence
+
+To enable Discord Rich Presence, add your Discord application client ID to `.env`:
+
+```env
+DISCORD_CLIENT_ID=YOUR_DISCORD_APPLICATION_ID
+```
+
+When a game is launched from Vapor, Discord will show `Playing <Game Name>` for the active session.
 
 ## Keyboard Shortcuts
 

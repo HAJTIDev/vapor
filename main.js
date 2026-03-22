@@ -4,6 +4,7 @@ const fs = require('fs')
 const { spawn } = require('child_process')
 const crypto = require('crypto')
 const { autoUpdater } = require('electron-updater')
+const DiscordRPC = require('discord-rpc')
 
 function loadLocalEnv() {
   const envPath = path.join(__dirname, '.env')
@@ -41,11 +42,18 @@ let mainWindow
 let tray = null
 let gameSessionStart = null
 let currentGameId = null
+let currentGameName = null
 let torrentClient = null
 let webTorrentCtor = null
 let downloadPulse = null
+let discordRpcClient = null
+let discordRpcReady = false
+let discordRpcConnecting = false
 const torrentDownloads = new Map()
 const pendingTorrentSources = new Set()
+
+const DISCORD_CLIENT_ID = String(process.env.DISCORD_CLIENT_ID || '').trim()
+const DISCORD_ACTIVITY_STATE = 'Launched from Vapor'
 
 
 const ENCRYPTION_KEY = process.env.VAPOR_ENCRYPTION_KEY || 'vapor-default-key-change-me'
@@ -73,6 +81,7 @@ if (!gotTheLock && !isDev) {
 
   app.whenReady().then(() => {
     console.log('[init] app.whenReady fired')
+    initDiscordRpc()
     configureAutoStart()
     createWindow()
     createTray()
@@ -93,6 +102,8 @@ if (!gotTheLock && !isDev) {
 
   app.on('before-quit', () => {
     app.isQuitting = true
+    clearDiscordActivity()
+    destroyDiscordRpc()
     if (downloadPulse) {
       clearInterval(downloadPulse)
       downloadPulse = null
@@ -1052,9 +1063,81 @@ function minimizeMainWindowForLaunch() {
   }, 100)
 }
 
-function startTrackedSession(gameId) {
+function initDiscordRpc() {
+  if (!DISCORD_CLIENT_ID || discordRpcClient || discordRpcConnecting) return
+
+  try {
+    discordRpcConnecting = true
+    DiscordRPC.register(DISCORD_CLIENT_ID)
+    const client = new DiscordRPC.Client({ transport: 'ipc' })
+
+    client.on('ready', () => {
+      discordRpcReady = true
+      discordRpcConnecting = false
+      if (currentGameId) {
+        updateDiscordActivity(currentGameName)
+      }
+    })
+
+    client.on('disconnected', () => {
+      discordRpcReady = false
+      discordRpcConnecting = false
+    })
+
+    client.on('error', (err) => {
+      console.error('[discord-rpc] Client error:', err?.message || err)
+    })
+
+    client.login({ clientId: DISCORD_CLIENT_ID }).then(() => {
+      discordRpcClient = client
+    }).catch((err) => {
+      discordRpcConnecting = false
+      console.error('[discord-rpc] Login failed:', err?.message || err)
+    })
+  } catch (err) {
+    discordRpcConnecting = false
+    console.error('[discord-rpc] Init failed:', err?.message || err)
+  }
+}
+
+function destroyDiscordRpc() {
+  if (!discordRpcClient) return
+  const client = discordRpcClient
+  discordRpcClient = null
+  discordRpcReady = false
+  discordRpcConnecting = false
+  client.destroy().catch(() => {})
+}
+
+function updateDiscordActivity(gameName) {
+  if (!DISCORD_CLIENT_ID) return
+  initDiscordRpc()
+
+  const detailsName = String(gameName || '').trim() || 'a game'
+  if (!discordRpcClient || !discordRpcReady) return
+
+  discordRpcClient.setActivity({
+    details: `Playing ${detailsName}`,
+    state: DISCORD_ACTIVITY_STATE,
+    startTimestamp: gameSessionStart ? new Date(gameSessionStart) : undefined,
+    instance: false,
+  }).catch((err) => {
+    console.error('[discord-rpc] Failed to set activity:', err?.message || err)
+  })
+}
+
+function clearDiscordActivity() {
+  if (!discordRpcClient || !discordRpcReady) return
+  discordRpcClient.clearActivity().catch(() => {})
+}
+
+function startTrackedSession(game) {
+  const gameId = typeof game === 'object' && game ? game.id : game
+  const gameName = typeof game === 'object' && game ? game.name : null
   gameSessionStart = Date.now()
   currentGameId = gameId
+  currentGameName = gameName || null
+  updateDiscordActivity(currentGameName)
 }
 
 function endTrackedSession(gameId, options = {}) {
@@ -1069,6 +1152,8 @@ function endTrackedSession(gameId, options = {}) {
   if (currentGameId === gameId) {
     gameSessionStart = null
     currentGameId = null
+    currentGameName = null
+    clearDiscordActivity()
   }
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.show()
@@ -1124,6 +1209,8 @@ function monitorElevatedSession(game) {
 
       gameSessionStart = null
       currentGameId = null
+      currentGameName = null
+      clearDiscordActivity()
       sendToRenderer('game:launch-error', {
         id: game.id,
         error: 'Game did not start after elevation.',
@@ -1142,7 +1229,7 @@ ipcMain.handle('game:launch', async (_, game) => {
     const steamUrl = `steam://run/${game.steamAppId}`
     try {
       shell.openExternal(steamUrl)
-      startTrackedSession(game.id)
+      startTrackedSession(game)
       minimizeMainWindowForLaunch()
       setTimeout(() => {
         endTrackedSession(game.id)
@@ -1157,7 +1244,7 @@ ipcMain.handle('game:launch', async (_, game) => {
   if (runAsAdmin) {
     try {
       await launchAsAdminWindows(game)
-      startTrackedSession(game.id)
+      startTrackedSession(game)
       minimizeMainWindowForLaunch()
       monitorElevatedSession(game)
       return { ok: true, via: 'admin', tracking: true, playtimeTracked: false }
@@ -1181,7 +1268,7 @@ ipcMain.handle('game:launch', async (_, game) => {
         stdio: 'ignore',
         env: { ...process.env, __COMPAT_LAYER: 'RunAsInvoker' },
       })
-      startTrackedSession(game.id)
+      startTrackedSession(game)
       minimizeMainWindowForLaunch()
 
       proc.once('close', () => {
@@ -1192,6 +1279,8 @@ ipcMain.handle('game:launch', async (_, game) => {
         if (currentGameId === game.id) {
           gameSessionStart = null
           currentGameId = null
+          currentGameName = null
+          clearDiscordActivity()
         }
         finishOnce({ ok: false, error: err?.message || 'Failed to launch game.', code: err?.code || null })
       })
@@ -1219,7 +1308,7 @@ ipcMain.handle('game:launch', async (_, game) => {
 
   try {
     await launchRunAsInvokerWindows(game)
-    startTrackedSession(game.id)
+    startTrackedSession(game)
     minimizeMainWindowForLaunch()
     monitorElevatedSession(game)
     return { ok: true, via: 'runasinvoker', tracking: true }

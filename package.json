@@ -12,6 +12,7 @@
     "push": "git add . && git commit -m meow && git push"
   },
   "dependencies": {
+    "discord-rpc": "^4.0.1",
     "electron-updater": "^6.8.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
