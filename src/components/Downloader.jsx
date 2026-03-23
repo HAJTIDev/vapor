@@ -154,11 +154,11 @@ export default function Downloader({ settings }) {
   }
 
   const statusTone = (status) => {
-    if (status === 'completed') return { bg: '#4ade8022', border: '#4ade8050', color: '#4ade80' }
-    if (status === 'paused') return { bg: '#f59e0b22', border: '#f59e0b50', color: '#f59e0b' }
-    if (status === 'downloading') return { bg: 'var(--accent-dim)', border: '#6c63ff55', color: 'var(--accent)' }
-    if (status === 'error') return { bg: '#ef444422', border: '#ef444450', color: '#ef4444' }
-    if (status === 'cancelled') return { bg: '#64748b22', border: '#64748b50', color: '#94a3b8' }
+    if (status === 'completed') return { bg: 'var(--surface2)', border: 'var(--green)', color: 'var(--green)' }
+    if (status === 'paused') return { bg: 'var(--surface2)', border: 'var(--accent2)', color: 'var(--accent2)' }
+    if (status === 'downloading') return { bg: 'var(--accent-dim)', border: 'var(--accent)', color: 'var(--accent)' }
+    if (status === 'error') return { bg: 'var(--surface2)', border: 'var(--red)', color: 'var(--red)' }
+    if (status === 'cancelled') return { bg: 'var(--surface2)', border: 'var(--border2)', color: 'var(--text-muted)' }
     return { bg: 'var(--surface2)', border: 'var(--border)', color: 'var(--text-muted)' }
   }
 
@@ -167,7 +167,7 @@ export default function Downloader({ settings }) {
       height: '100%',
       overflow: 'auto',
       padding: '26px 24px 28px',
-      background: 'radial-gradient(circle at 95% -10%, #6c63ff30 0%, transparent 35%)',
+      background: 'radial-gradient(circle at 95% -10%, var(--accent-dim) 0%, transparent 35%)',
     }}>
       <div style={{ marginBottom: 18 }}>
         <h2 style={{ fontSize: 24, fontWeight: 650, marginBottom: 6, letterSpacing: '-0.01em' }}>Downloader</h2>
@@ -192,7 +192,7 @@ export default function Downloader({ settings }) {
         padding: 14,
         borderRadius: 12,
         border: '1px solid var(--border2)',
-        background: 'linear-gradient(180deg, #151526 0%, #12121c 100%)',
+        background: 'var(--surface)',
         marginBottom: 14,
         boxShadow:'0 14px 35px #00000040',
       }}>
@@ -203,8 +203,8 @@ export default function Downloader({ settings }) {
             placeholder="Paste magnet link or choose a .torrent file"
             style={{
               flex: 1,
-              background: '#151521',
-              border: '1px solid #ffffff20',
+              background: 'var(--surface2)',
+              border: '1px solid var(--border2)',
               color: 'var(--text)',
               fontSize: 12,
               borderRadius: 8,
@@ -221,8 +221,8 @@ export default function Downloader({ settings }) {
             placeholder="Download folder (optional)"
             style={{
               flex: 1,
-              background: '#151521',
-              border: '1px solid #ffffff20',
+              background: 'var(--surface2)',
+              border: '1px solid var(--border2)',
               color: 'var(--text)',
               fontSize: 12,
               borderRadius: 8,
@@ -230,7 +230,7 @@ export default function Downloader({ settings }) {
             }}
           />
           <button onClick={chooseSaveFolder} style={actionBtn}>Folder</button>
-          <button onClick={startDownload} disabled={busy} className="btn-accent" style={{ ...actionBtn, borderColor:'#6c63ff' }}>
+          <button onClick={startDownload} disabled={busy} className="btn-accent" style={{ ...actionBtn, borderColor:'var(--accent)' }}>
             {busy ? 'Starting...' : 'Download'}
           </button>
         </div>
@@ -277,7 +277,7 @@ export default function Downloader({ settings }) {
           <div key={item.infoHash} style={{
             borderRadius: 12,
             border: '1px solid var(--border2)',
-            background: 'linear-gradient(180deg, #151521 0%, #11111a 100%)',
+            background: 'var(--surface)',
             padding: 12,
             boxShadow:'0 10px 24px #0000002f',
           }}>
@@ -318,7 +318,7 @@ export default function Downloader({ settings }) {
               </div>
             </div>
 
-            <div style={{ height: 7, background: '#0f0f16', borderRadius: 999, overflow: 'hidden', marginBottom: 8, border:'1px solid #ffffff10' }}>
+            <div style={{ height: 7, background: 'var(--surface2)', borderRadius: 999, overflow: 'hidden', marginBottom: 8, border:'1px solid var(--border)' }}>
               <div style={{
                 height: '100%',
                 width: `${Math.max(0, Math.min(100, item.progress || 0))}%`,
@@ -343,8 +343,8 @@ export default function Downloader({ settings }) {
 function StatCard({ label, value, sub }) {
   return (
     <div style={{
-      background:'linear-gradient(180deg, #181826 0%, #12121c 100%)',
-      border:'1px solid #ffffff18',
+      background:'var(--surface)',
+      border:'1px solid var(--border2)',
       borderRadius:10,
       padding:'10px 12px',
       boxShadow:'0 8px 18px #00000028',
@@ -361,8 +361,8 @@ function StatCard({ label, value, sub }) {
 const actionBtn = {
   padding: '8px 12px',
   borderRadius: 8,
-  border: '1px solid #ffffff1f',
-  background: '#1a1a28',
+  border: '1px solid var(--border2)',
+  background: 'var(--surface2)',
   color: 'var(--text-dim)',
   fontSize: 12,
 }
