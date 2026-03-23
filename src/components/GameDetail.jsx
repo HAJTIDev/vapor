@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import vaporApi from '../vaporApi.js'
-import { formatFileSize } from '../utils.js'
+import { formatFileSize, sanitizeSteamAppId } from '../utils.js'
 import './GameDetail.css'
 
 function fmtTime(mins) {
@@ -110,7 +110,7 @@ export default function GameDetail({
   }
 
   const saveSteam = () => {
-    const id = steamVal.trim()
+    const id = sanitizeSteamAppId(steamVal)
     onUpdate(game.id, { steamAppId: id || null })
     setEditingSteam(false)
   }

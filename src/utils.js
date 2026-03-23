@@ -30,3 +30,32 @@ export function formatDate(ts) {
   if (!ts) return 'Never'
   return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
+
+export function sanitizeSteamAppId(input) {
+  const raw = String(input || '').trim()
+  if (!raw) return ''
+
+  if (/^\d+$/.test(raw)) return raw
+
+  const decoded = (() => {
+    try {
+      return decodeURIComponent(raw)
+    } catch {
+      return raw
+    }
+  })()
+
+  const patterns = [
+    /store\.steampowered\.com\/app\/(\d+)/i,
+    /steam:\/\/run\/(\d+)/i,
+    /steam:\/\/rungameid\/(\d+)/i,
+  ]
+
+  for (const pattern of patterns) {
+    const match = decoded.match(pattern)
+    if (match?.[1]) return match[1]
+  }
+
+  const fallback = decoded.match(/\b(\d{3,})\b/)
+  return fallback?.[1] || ''
+}

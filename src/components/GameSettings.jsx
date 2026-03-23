@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import vaporApi from '../vaporApi.js'
+import { sanitizeSteamAppId } from '../utils.js'
 
 export default function GameSettings({
   game,
@@ -41,7 +42,7 @@ export default function GameSettings({
   }
 
   const saveSteam = () => {
-    const id = steamVal.trim()
+    const id = sanitizeSteamAppId(steamVal)
     onUpdate(game.id, { steamAppId: id || null })
     setEditingSteam(false)
   }
