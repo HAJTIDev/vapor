@@ -9,6 +9,7 @@
     "build:key": "node scripts/encrypt-key.js",
     "preview": "vite preview",
     "publish": "node scripts/publish.mjs",
+    "publish:linux": "node scripts/publish.mjs --linux --no-bump",
     "push": "git add . && git commit -m meow && git push"
   },
   "dependencies": {
