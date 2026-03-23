@@ -183,8 +183,8 @@ const defaultSettings = {
     compactSidebar: false,
     confirmRemoveGame: true,
     autoUpdate: true,
-    autoStart: true,
-    discordRpc: true,
+    autoStart: false,
+    discordRpc: false,
   },
 }
 
