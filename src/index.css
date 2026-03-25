@@ -19,6 +19,9 @@
   --red2:       #ef4444;
   --font:       'Outfit', sans-serif;
   --mono:       'DM Mono', monospace;
+  --accent-gradient: linear-gradient(135deg, #7c5cff 0%, #a06aff 100%);
+  --green-gradient: linear-gradient(135deg, #5eea90 0%, #2dd46a 100%);
+  --red-gradient: linear-gradient(135deg, #ff7878 0%, #f25454 100%);
 }
 
 html, body, #root { height: 100%; overflow: hidden; }

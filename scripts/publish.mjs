@@ -208,7 +208,7 @@ runCommand(
 );
 if (shouldBumpVersion) {
   runCommand('git', ['add', '.']);
-  runCommand('git', ['commit', '-m', `chore: publish ${tag}`]);
+  runCommand('git', ['commit', '-m', `chore:publish-${tag}`]);
   runCommand('git', ['push']);
 }
 

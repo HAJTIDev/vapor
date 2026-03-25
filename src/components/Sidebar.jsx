@@ -185,18 +185,18 @@ function CollectionItem({ active, label, count, onClick }) {
       style={{
         display:'flex', alignItems:'center', gap:8,
         width:'100%', textAlign:'left', padding:'8px 10px', borderRadius:8,
-        background: active ? 'var(--accent-dim)' : hov ? 'var(--surface2)' : 'transparent',
-        color: active ? 'var(--accent)' : 'var(--text-dim)',
+        background: active ? 'var(--accent-gradient)' : hov ? 'var(--surface2)' : 'transparent',
+        color: active ? '#fff' : 'var(--text-dim)',
         fontSize:12,
-        border:'1px solid ' + (active ? 'var(--accent)' : 'transparent'),
+        border:'1px solid transparent',
         transition:'all 0.12s',
       }}
     >
       <span style={{ flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{label}</span>
       <span style={{
-        fontSize:10, fontFamily:'var(--mono)', color: active ? 'var(--accent)' : 'var(--text-muted)',
-        background: active ? 'var(--accent-dim)' : 'var(--surface2)', padding:'1px 6px', borderRadius:10,
-        border:'1px solid ' + (active ? 'var(--accent)' : 'var(--border)')
+        fontSize:10, fontFamily:'var(--mono)', color: active ? '#fff' : 'var(--text-muted)',
+        background: active ? 'rgba(255,255,255,0.15)' : 'var(--surface2)', padding:'1px 6px', borderRadius:10,
+        border:'1px solid ' + (active ? 'rgba(255,255,255,0.2)' : 'var(--border)')
       }}>{count || 0}</span>
     </button>
   )
@@ -259,9 +259,10 @@ function GameRow({ game, active, running, showPlaytime, compact, onClick, onLaun
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
           <button
             onClick={(e) => { e.stopPropagation(); onLaunch() }}
+            className="ui-btn"
             style={{
               fontSize:10, padding:'4px 8px', borderRadius:5,
-              background:'var(--accent)', color:'#fff', flexShrink:0,
+              background:'var(--accent-gradient)', color:'#fff', flexShrink:0,
               border:'1px solid #ffffff26'
             }}
           >
@@ -293,11 +294,11 @@ function NavItem({ active, onClick, icon, label, badge }) {
         position:'relative',
         display:'flex', alignItems:'center', gap:10, padding:'9px 10px',
         borderRadius:8, width:'100%', textAlign:'left',
-        background: active ? 'var(--accent-dim)' : hov ? 'var(--surface2)' : 'transparent',
-        color: active ? 'var(--accent)' : hov ? 'var(--text)' : 'var(--text-dim)',
+        background: active ? 'var(--accent-gradient)' : hov ? 'var(--surface2)' : 'transparent',
+        color: active ? '#fff' : hov ? 'var(--text)' : 'var(--text-dim)',
         fontSize:13, fontWeight: active ? 500 : 400,
         transition:'all 0.12s',
-        border:'1px solid ' + (active ? 'var(--accent)' : 'transparent'),
+        border:'1px solid ' + (active ? 'transparent' : 'transparent'),
       }}
     >
       {active && (
@@ -308,18 +309,19 @@ function NavItem({ active, onClick, icon, label, badge }) {
           bottom:7,
           width:3,
           borderRadius:999,
-          background:'var(--accent)',
+          background:'#fff',
+          opacity:0.3,
         }} />
       )}
       <span style={{ opacity: active ? 1 : 0.6 }}>{icon}</span>
       <span style={{ flex:1 }}>{label}</span>
       {badge != null && badge > 0 && (
         <span style={{
-          fontSize:10, fontFamily:'var(--mono)', color:'var(--text-muted)',
-          background: active ? '#6c63ff22' : 'var(--surface2)',
+          fontSize:10, fontFamily:'var(--mono)', color: active ? '#fff' : 'var(--text-muted)',
+          background: active ? 'rgba(255,255,255,0.15)' : 'var(--surface2)',
           padding:'1px 6px',
           borderRadius:10,
-          border:'1px solid ' + (active ? '#6c63ff30' : 'var(--border)')
+          border:'1px solid ' + (active ? 'rgba(255,255,255,0.2)' : 'var(--border)')
         }}>{badge}</span>
       )}
     </button>
