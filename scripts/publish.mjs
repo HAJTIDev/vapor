@@ -1,10 +1,12 @@
 import {execFileSync, spawnSync} from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { run } from 'node:test';
 
 const repo = 'HAJTIDev/vapor';
 const distDir = path.resolve('release');
+const args = new Set(process.argv.slice(2));
+const isLinuxPublish = args.has('--linux');
+const shouldBumpVersion = args.has('--no-bump') ? false : !isLinuxPublish;
 
 function runCommand(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -72,7 +74,20 @@ function bumpVersion() {
   }
 }
 
-const version = bumpVersion();
+function getPackageVersion() {
+  try {
+    const packageJsonPath = path.resolve('package.json');
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    const version = String(packageJson.version || '').trim();
+    if (!version) throw new Error('Missing package version');
+    return version;
+  } catch {
+    console.error('Failed to read version from package.json.');
+    process.exit(1);
+  }
+}
+
+const version = shouldBumpVersion ? bumpVersion() : getPackageVersion();
 const tag = `v${version}`;
 const ghToken = getGhToken();
 
@@ -89,6 +104,10 @@ function fileMustExist(filePath) {
     console.error(`Expected build artifact is missing: ${filePath}`);
     process.exit(1);
   }
+}
+
+function listLinuxArtifacts() {
+  return [path.join(distDir, `vapor-${version}.tar.gz`)];
 }
 
 function getReleaseAssetNames() {
@@ -153,15 +172,26 @@ function uploadAssetWithRetry(filePath, maxAttempts = 3) {
 }
 
 runCommand('gh', ['auth', 'status'], {env: getAuthenticatedGhEnv()});
-runCommand('npm', ['run', 'build']);
+if (isLinuxPublish) {
+  runCommand('npm', ['run', 'build', '--', '--linux', 'tar.gz']);
+} else {
+  runCommand('npm', ['run', 'build']);
+}
 
-const artifactExe = path.join(distDir, `Vapor-${version}-setup.exe`);
-const artifactBlockmap = `${artifactExe}.blockmap`;
-const latestYml = path.join(distDir, 'latest.yml');
+const artifacts = isLinuxPublish
+  ? listLinuxArtifacts()
+  : [
+      path.join(distDir, `Vapor-${version}-setup.exe`),
+      path.join(distDir, `Vapor-${version}-setup.exe.blockmap`),
+      path.join(distDir, 'latest.yml'),
+    ];
 
-fileMustExist(artifactExe);
-fileMustExist(artifactBlockmap);
-fileMustExist(latestYml);
+if (artifacts.length === 0) {
+  console.error(`No ${isLinuxPublish ? 'Linux' : 'Windows'} build artifacts were found in ${distDir}.`);
+  process.exit(1);
+}
+
+artifacts.forEach(fileMustExist);
 
 if (!releaseExists()) {
   runCommand('gh', ['release', 'create', tag, '--repo', repo, '--title', tag, '--latest', '--generate-notes'], {env: getAuthenticatedGhEnv()});
@@ -169,14 +199,17 @@ if (!releaseExists()) {
 
 waitForRelease();
 
+runCommand('gh', ['release', 'edit', tag, '--repo', repo, '--latest'], {env: getAuthenticatedGhEnv()});
+
 runCommand(
   'gh',
   ['release', 'view', tag, '--repo', repo],
   {env: getAuthenticatedGhEnv()},
 );
-runCommand("git", ['add', '.']);
-runCommand("git", ['commit', '-m', `"chore: publish ${tag}"`]);
-runCommand("git", ['push']);
-uploadAssetWithRetry(artifactExe);
-uploadAssetWithRetry(artifactBlockmap);
-uploadAssetWithRetry(latestYml);
+if (shouldBumpVersion) {
+  runCommand('git', ['add', '.']);
+  runCommand('git', ['commit', '-m', `chore: publish ${tag}`]);
+  runCommand('git', ['push']);
+}
+
+artifacts.forEach((artifact) => uploadAssetWithRetry(artifact));
