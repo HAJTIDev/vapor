@@ -4,6 +4,7 @@
   --bg:         #09090e;
   --surface:    #111118;
   --surface2:   #18181f;
+  --surface3:   #20202a;
   --border:     #ffffff0d;
   --border2:    #ffffff18;
   --text:       #f0f0f5;
@@ -29,6 +30,35 @@ body {
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
   user-select: none;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(900px 500px at 82% -120px, color-mix(in srgb, var(--accent) 24%, transparent), transparent 70%),
+    radial-gradient(700px 420px at 8% 12%, color-mix(in srgb, var(--accent2) 16%, transparent), transparent 72%),
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 72%, transparent), transparent 52%);
+  opacity: 0.85;
+  z-index: -1;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 ::-webkit-scrollbar { width: 4px; }
@@ -47,6 +77,42 @@ button {
 input {
   font-family: var(--font);
   outline: none;
+}
+
+input:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 65%, #ffffff 35%);
+  outline-offset: 2px;
+}
+
+.ui-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  transition: border-color 0.14s ease, box-shadow 0.14s ease, background 0.14s ease;
+}
+
+.ui-input:hover {
+  border-color: var(--border2);
+}
+
+.ui-input:focus {
+  border-color: color-mix(in srgb, var(--accent) 70%, #ffffff 30%);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.ui-btn {
+  transition: transform 0.14s ease, filter 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+}
+
+.ui-btn:hover {
+  transform: translateY(-1px);
+}
+
+.ui-btn:active {
+  transform: translateY(0);
 }
 
 .btn-accent {

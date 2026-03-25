@@ -69,7 +69,7 @@ export default function Sidebar({
           borderRadius:10,
           padding:'8px 10px',
           boxShadow:'0 8px 24px #00000025'
-        }}>
+        }} className="ui-input">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
@@ -77,6 +77,7 @@ export default function Sidebar({
             value={search}
             onChange={e => { setSearch(e.target.value); go('library') }}
             placeholder="Search..."
+            className="ui-input"
             style={{
               background:'none', border:'none', color:'var(--text)', fontSize:13,
               width:'100%'
@@ -85,6 +86,7 @@ export default function Sidebar({
           {!!search && (
             <button
               onClick={() => setSearch('')}
+              className="ui-btn"
               style={{
                 color:'var(--text-muted)',
                 fontSize:12,

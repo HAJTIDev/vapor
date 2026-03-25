@@ -1,5 +1,6 @@
 const fs = require('fs')
 const path = require('path')
+const { spawnSync } = require('child_process')
 
 const SKIP_EXE = [
   /setup/i, /install/i, /unins/i, /crash/i, /report/i,
@@ -7,6 +8,24 @@ const SKIP_EXE = [
   /oalinst/i, /dotnet/i, /directx/i, /redist/i, /prereq/i,
   /launcher/i, /UE4/i, /UE5/i, /EasyAntiCheat/i, /BEService/i,
   /vcredist/i, /PhysX/i, /cef/i, /steam_api/i,
+]
+
+const AUTO_SCAN_SUBPATHS = [
+  'Games',
+  'Game',
+  'GOG Games',
+  'Epic Games',
+  'XboxGames',
+  'SteamLibrary/steamapps/common',
+  'SteamLibrary',
+  'Ubisoft/Ubisoft Game Launcher/games',
+]
+
+const STEAM_ROOT_CANDIDATES = [
+  ['Program Files (x86)', 'Steam'],
+  ['Program Files', 'Steam'],
+  ['Steam'],
+  ['Games', 'Steam'],
 ]
 
 function isGameExe(name) {
@@ -105,6 +124,131 @@ function calculateFolderSize(folderPath) {
   }
 }
 
+function listWindowsDriveRoots() {
+  try {
+    const script = 'Get-PSDrive -PSProvider FileSystem | ForEach-Object { $_.Root }'
+    const result = spawnSync('powershell.exe', ['-NoProfile', '-Command', script], {
+      encoding: 'utf8',
+      windowsHide: true,
+      timeout: 6000,
+    })
+
+    if (result.error) throw result.error
+    const lines = String(result.stdout || '')
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+
+    const roots = lines
+      .filter((line) => /^[a-zA-Z]:\\$/.test(line))
+      .map((line) => line[0].toUpperCase() + ':\\')
+
+    if (roots.length) {
+      return Array.from(new Set(roots))
+    }
+  } catch {}
+
+  return ['C:\\']
+}
+
+function listDriveRoots() {
+  if (process.platform === 'win32') return listWindowsDriveRoots()
+  return ['/']
+}
+
+function isDirectorySafe(dirPath) {
+  try {
+    return fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory()
+  } catch {
+    return false
+  }
+}
+
+function parseSteamLibraryVdf(vdfPath) {
+  try {
+    if (!fs.existsSync(vdfPath)) return []
+    const content = fs.readFileSync(vdfPath, 'utf8')
+    const matches = [...content.matchAll(/"path"\s+"([^"]+)"/g)]
+    const libs = matches
+      .map((m) => String(m[1] || '').replace(/\\\\/g, '\\').trim())
+      .filter(Boolean)
+    return Array.from(new Set(libs))
+  } catch {
+    return []
+  }
+}
+
+function findSteamCommonFolders(driveRoots) {
+  const steamCommonFolders = []
+
+  for (const root of driveRoots) {
+    for (const parts of STEAM_ROOT_CANDIDATES) {
+      const steamRoot = path.join(root, ...parts)
+      if (!isDirectorySafe(steamRoot)) continue
+
+      const defaultCommon = path.join(steamRoot, 'steamapps', 'common')
+      if (isDirectorySafe(defaultCommon)) {
+        steamCommonFolders.push(defaultCommon)
+      }
+
+      const libraryVdf = path.join(steamRoot, 'steamapps', 'libraryfolders.vdf')
+      const libraries = parseSteamLibraryVdf(libraryVdf)
+      for (const libPath of libraries) {
+        const commonPath = path.join(libPath, 'steamapps', 'common')
+        if (isDirectorySafe(commonPath)) {
+          steamCommonFolders.push(commonPath)
+        }
+      }
+    }
+  }
+
+  return Array.from(new Set(steamCommonFolders))
+}
+
+function findAutoScanFolders() {
+  const driveRoots = listDriveRoots()
+  const folders = []
+  const steamCommonFolders = findSteamCommonFolders(driveRoots)
+
+  for (const root of driveRoots) {
+    for (const relativePath of AUTO_SCAN_SUBPATHS) {
+      const candidate = path.join(root, ...relativePath.split('/'))
+      try {
+        if (!fs.existsSync(candidate)) continue
+        const stat = fs.statSync(candidate)
+        if (stat.isDirectory()) folders.push(candidate)
+      } catch {}
+    }
+  }
+
+  folders.push(...steamCommonFolders)
+
+  return {
+    driveRoots,
+    folders: Array.from(new Set(folders)),
+  }
+}
+
+function scanAutoGameFolders() {
+  const { driveRoots, folders } = findAutoScanFolders()
+  const dedupedByExe = new Map()
+
+  for (const folder of folders) {
+    const scanned = scanDir(folder)
+    for (const game of scanned) {
+      const key = String(game.exe || '').toLowerCase()
+      if (!key || dedupedByExe.has(key)) continue
+      dedupedByExe.set(key, game)
+    }
+  }
+
+  return {
+    games: Array.from(dedupedByExe.values()),
+    scannedFolders: folders,
+    driveRoots,
+  }
+}
+
 function scanDir(dir) {
   const games = []
   try {
@@ -135,5 +279,6 @@ function scanDir(dir) {
 
 module.exports = {
   scanDir,
+  scanAutoGameFolders,
   calculateFolderSize,
 }

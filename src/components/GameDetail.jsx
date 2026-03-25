@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import vaporApi from '../vaporApi.js'
 import { formatFileSize, sanitizeSteamAppId } from '../utils.js'
+import { Button, Text, Badge, Flex, Stat, Divider, spacing, radius, shadows, typography } from './UIKit.jsx'
 import './GameDetail.css'
 
 function fmtTime(mins) {
@@ -130,55 +131,93 @@ export default function GameDetail({
 
   return (
     <div style={{ height:'100%', overflow:'auto', position:'relative' }}>
-      {/* Hero */}
-      <div style={{ position:'relative', height:320, overflow:'hidden', background:'var(--surface)' }}>
-        {game.art?.hero ? (
+      {/* Hero section with gradient overlay */}
+      <div style={{
+        position:'relative',
+        height: '320px',
+        overflow:'hidden',
+        background: game.art?.hero 
+          ? 'transparent'
+          : 'linear-gradient(135deg, var(--surface2) 0%, var(--surface3) 50%, var(--surface2) 100%)',
+      }}>
+        {game.art?.hero && (
           <img src={game.art.hero} alt="" style={{
-            width:'100%', height:'100%', objectFit:'cover', display:'block', opacity:0.55
+            width:'100%',
+            height:'100%',
+            objectFit:'cover',
+            display:'block',
+            opacity: 0.5,
+            filter: 'brightness(0.8)',
           }} />
-        ) : (
-          <div style={{ width:'100%', height:'100%', background:'linear-gradient(135deg, var(--surface) 0%, #1a1a2e 50%, var(--surface) 100%)' }} />
         )}
         <div style={{
-          position:'absolute', inset:0,
-          background:'linear-gradient(to bottom, transparent 20%, var(--bg) 100%)'
+          position:'absolute',
+          inset:0,
+          background: 'linear-gradient(to bottom, transparent 30%, var(--bg) 100%)',
+          pointerEvents: 'none',
         }} />
 
-        {/* Back */}
-        <button onClick={onBack} style={{
-          position:'absolute', top:20, left:20, display:'flex', alignItems:'center', gap:6,
-          color:'#fff', fontSize:13, opacity:0.9,
-          background:'#00000050', padding:'8px 14px', borderRadius:8,
-          backdropFilter:'blur(8px)', border:'1px solid #ffffff20', cursor:'pointer',
-          fontFamily:'inherit', boxShadow:'0 4px 16px #00000040'
-        }} className="gd-btn">
+        {/* Back button */}
+        <Button
+          variant="ghost"
+          size="md"
+          onClick={onBack}
+          style={{
+            position:'absolute',
+            top: spacing.lg,
+            left: spacing.lg,
+            color:'#fff',
+            background: 'rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            zIndex: 10,
+          }}
+        >
           ← Back
-        </button>
+        </Button>
 
-        {/* Logo or name overlay */}
-        <div style={{ position:'absolute', bottom:28, left:28, right:28, display:'flex', alignItems:'flex-end', gap:20 }}>
+        {/* Cover & title overlay */}
+        <div style={{
+          position:'absolute',
+          bottom: spacing.xxl,
+          left: spacing.xxl,
+          right: spacing.xxl,
+          display:'flex',
+          alignItems:'flex-end',
+          gap: spacing.xl,
+        }}>
           {game.art?.grid && (
             <img src={game.art.grid} alt="" style={{
-              width:100, height:150, objectFit:'cover', borderRadius:10,
-              boxShadow:'0 12px 40px #00000080', flexShrink:0,
-              border:'2px solid var(--border2)'
+              width: 100,
+              height: 150,
+              objectFit:'cover',
+              borderRadius: radius.lg,
+              boxShadow: shadows.xl,
+              flexShrink:0,
+              border:`2px solid var(--border2)`,
             }} />
           )}
           <div style={{ flex:1 }}>
             {game.art?.logo && !logoFailed && (
-              <img 
-                src={game.art.logo} 
-                alt={game.name} 
-                style={{ 
-                  maxHeight:90, 
-                  maxWidth:380, 
+              <img
+                src={game.art.logo}
+                alt={game.name}
+                style={{
+                  maxHeight: 90,
+                  maxWidth: 380,
                   objectFit:'contain',
-                  filter: 'drop-shadow(0 4px 12px #00000080)',
-                }} 
+                  filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.5))',
+                  marginBottom: spacing.sm,
+                }}
                 onError={() => setLogoFailed(true)}
               />
             )}
-            <h1 style={{ fontSize:34, fontWeight:700, color:'#fff', textShadow:'0 4px 20px #000', letterSpacing:'-0.02em', display: game.art?.logo && !logoFailed ? 'none' : 'block' }}>
+            <h1 style={{
+              ...typography.h1,
+              color:'#fff',
+              textShadow: '0 4px 20px rgba(0,0,0,0.7)',
+              display: game.art?.logo && !logoFailed ? 'none' : 'block',
+            }}>
               {game.name}
             </h1>
           </div>
@@ -186,177 +225,205 @@ export default function GameDetail({
       </div>
 
       {/* Content */}
-      <div style={{ padding:'28px 28px 48px', maxWidth:1100 }}>
-        <div style={{ display:'grid', gridTemplateColumns:'220px 1fr', gap:24, alignItems:'flex-start' }}>
-          {/* Left - actions */}
-          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-            <button
+      <div style={{ padding: `${spacing.xxl} ${spacing.xxl} ${spacing.xxxl}`, maxWidth: '1200px' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'240px 1fr', gap: spacing.xxxl, alignItems:'flex-start' }}>
+          {/* Left sidebar - Actions */}
+          <div style={{ display:'flex', flexDirection:'column', gap: spacing.lg }}>
+            <Button
+              variant={running ? 'success' : 'primary'}
+              size="lg"
               onClick={() => onLaunch(game)}
               disabled={running}
-              style={{
-                padding:'14px 24px', borderRadius:10, fontSize:15, fontWeight:700,
-                background: running ? 'linear-gradient(135deg, #4ade80, #22c55e)' : 'linear-gradient(135deg, #7c6fff, #6c63ff)',
-                color:'#fff', border:'none', cursor:'pointer', fontFamily:'inherit',
-                boxShadow: running ? '0 6px 24px #4ade8040' : '0 6px 24px #6c63ff40',
-                letterSpacing:'0.02em'
-              }}
-              className="gd-btn"
+              style={{ width: '100%' }}
             >
               {running ? '● Running' : '▶ Play Now'}
-            </button>
+            </Button>
 
-            <button onClick={() => onOpenSettings && onOpenSettings(game)} style={{
-              padding:'10px 16px', borderRadius:8, fontSize:13,
-              background:'var(--surface2)', color:'var(--text)',
-              border:'1px solid var(--border)', cursor:'pointer', fontFamily:'inherit',
-              display:'flex', alignItems:'center', gap:8
-            }} className="gd-btn">
-              <span style={{ fontSize:15 }}>⚙</span> Game Settings
-            </button>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => onOpenSettings && onOpenSettings(game)}
+              style={{ width: '100%' }}
+            >
+              ⚙ Settings
+            </Button>
 
-            <button onClick={fetchArt} disabled={fetchingArt} style={{
-              padding:'10px 16px', borderRadius:8, fontSize:13,
-              background:'var(--surface2)', color:'var(--text)',
-              border:'1px solid var(--border)', cursor:'pointer', fontFamily:'inherit',
-              display:'flex', alignItems:'center', gap:8
-            }} className="gd-btn">
-              <span style={{ fontSize:15 }}>🎨</span> {fetchingArt ? 'Fetching...' : 'Fetch Art'}
-            </button>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={fetchArt}
+              disabled={fetchingArt}
+              style={{ width: '100%' }}
+            >
+              🎨 {fetchingArt ? 'Fetching...' : 'Fetch Art'}
+            </Button>
+
             {artError && (
-              <div style={{ fontSize:11, color:'#f87171', padding:'4px 8px' }}>{artError}</div>
+              <div style={{ fontSize:'11px', color:'var(--red)', padding: `${spacing.sm} ${spacing.md}`, background: 'color-mix(in srgb, var(--red) 10%, transparent)', borderRadius: radius.md, border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)' }}>
+                {artError}
+              </div>
             )}
 
-            <button onClick={() => onToggleFavorite(game.id)} style={{
-              padding:'10px 16px', borderRadius:8, fontSize:13,
-              background: game.favorite ? '#f59e0b18' : 'var(--surface2)',
-              color: game.favorite ? '#f59e0b' : 'var(--text)',
-              border:'1px solid ' + (game.favorite ? '#f59e0b40' : 'var(--border)'),
-              cursor:'pointer', fontFamily:'inherit',
-              display:'flex', alignItems:'center', gap:8
-            }} className="gd-btn">
-              <span style={{ fontSize:15 }}>{game.favorite ? '★' : '☆'}</span> {game.favorite ? 'Favorited' : 'Add to Favorites'}
-            </button>
+            <Button
+              variant={game.favorite ? 'primary' : 'secondary'}
+              size="md"
+              onClick={() => onToggleFavorite(game.id)}
+              style={{ width: '100%' }}
+            >
+              {game.favorite ? '★ Favorited' : '☆ Add to Favorites'}
+            </Button>
 
-            <div style={{ height:1, background:'var(--border)', margin:'8px 0' }} />
+            <Divider />
 
-            <button onClick={() => onRemove(game.id)} style={{
-              padding:'10px 16px', borderRadius:8, fontSize:13,
-              background:'transparent', color:'#f87171',
-              border:'1px solid #f8717130', cursor:'pointer', fontFamily:'inherit',
-              display:'flex', alignItems:'center', gap:8
-            }} className="gd-btn">
-              <span style={{ fontSize:15 }}>🗑</span> Remove Game
-            </button>
+            <Button
+              variant="danger"
+              size="md"
+              onClick={() => onRemove(game.id)}
+              style={{ width: '100%' }}
+            >
+              🗑 Remove
+            </Button>
           </div>
 
           {/* Right - metadata */}
-          <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-            {/* Stats Card */}
-            <div className="gd-section">
-              <div style={{ display:'flex', gap:32, flexWrap:'wrap' }}>
-                <Stat label="Playtime" value={fmtTime(game.playtime)} icon="⏱" />
-                <Stat label="Last Played" value={fmtDate(game.lastPlayed)} icon="📅" />
-                <Stat label="File Size" value={formatFileSize(game.fileSize)} icon="💾" />
+          <div style={{ display:'flex', flexDirection:'column', gap: spacing.lg }}>
+            {/* Stats */}
+            <div
+              style={{
+                background:'var(--surface2)',
+                border:'1px solid var(--border)',
+                borderRadius: radius.lg,
+                padding: spacing.lg,
+              }}
+            >
+              <div style={{ display:'flex', gap: spacing.xxxl, flexWrap:'wrap' }}>
+                <Stat label="Playtime" value={fmtTime(game.playtime)} icon={<ClockIcon />} />
+                <Stat label="Last Played" value={fmtDate(game.lastPlayed)} icon={<CalendarIcon />} />
+                <Stat label="File Size" value={formatFileSize(game.fileSize)} icon={<DriveIcon />} />
                 {game.art?.sgdbName && game.art.sgdbName !== game.name && (
-                  <Stat label="Matched As" value={game.art.sgdbName} icon="🔗" />
+                  <Stat label="Matched As" value={game.art.sgdbName} icon={<LinkIcon />} />
                 )}
               </div>
             </div>
 
             {/* Genres */}
             {game.genres?.length > 0 && (
-              <div className="gd-section">
-                <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:10, textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:600 }}>Genres</div>
-                <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+              <div
+                style={{
+                  background:'var(--surface2)',
+                  border:'1px solid var(--border)',
+                  borderRadius: radius.lg,
+                  padding: spacing.lg,
+                }}
+              >
+                <Text.Caption style={{ display: 'block', marginBottom: spacing.md }}>Genres</Text.Caption>
+                <Flex gap={spacing.sm} wrap="wrap">
                   {game.genres.map(g => (
-                    <span key={g} style={{
-                      fontSize:12, padding:'5px 12px', borderRadius:16,
-                      background:'var(--accent-dim)', border:'1px solid #6c63ff30',
-                      color:'var(--accent)'
-                    }} className="gd-tag">{g}</span>
+                    <Badge key={g} variant="accent">{g}</Badge>
                   ))}
-                </div>
+                </Flex>
               </div>
             )}
 
-            {/* Executable & Launch Options */}
-            <div className="gd-section">
-              <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:10, textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:600 }}>
-                Executable
-              </div>
+            {/* Executable */}
+            <div
+              style={{
+                background:'var(--surface2)',
+                border:'1px solid var(--border)',
+                borderRadius: radius.lg,
+                padding: spacing.lg,
+              }}
+            >
+              <Text.Caption style={{ display: 'block', marginBottom: spacing.md }}>Executable</Text.Caption>
               {editingExe ? (
-                <div style={{ display:'flex', gap:8 }}>
+                <Flex gap={spacing.md} style={{ marginBottom: spacing.md }}>
                   <input
                     value={exeVal}
                     onChange={e => setExeVal(e.target.value)}
                     onKeyDown={e => { if(e.key==='Enter') saveExe(); if(e.key==='Escape') setEditingExe(false) }}
                     autoFocus
-                    style={{ flex:1, background:'var(--surface2)', border:'1px solid var(--accent)', borderRadius:6, padding:'8px 10px', color:'var(--text)', fontSize:12, fontFamily:'var(--mono)' }}
+                    className="gd-input ui-input"
+                    style={{ flex:1 }}
                   />
-                  <button onClick={browseExe} style={{ padding:'8px 12px', borderRadius:6, background:'var(--surface2)', color:'var(--text)', border:'1px solid var(--border)', fontSize:11 }}>Browse</button>
-                  <button onClick={saveExe} className="btn-accent" style={{ padding:'8px 12px', borderRadius:6, fontSize:11 }}>Save</button>
-                </div>
+                  <Button variant="secondary" size="sm" onClick={browseExe}>Browse</Button>
+                  <Button variant="primary" size="sm" onClick={saveExe}>Save</Button>
+                </Flex>
               ) : (
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <span style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'var(--mono)', wordBreak:'break-all', flex:1 }}>
+                <Flex gap={spacing.md} style={{ marginBottom: spacing.md }}>
+                  <Text.Caption mono style={{ flex: 1, wordBreak:'break-all', color: 'var(--text-muted)' }}>
                     {game.exe || 'No executable set'}
-                  </span>
-                  <button onClick={() => { setExeVal(game.exe || ''); setEditingExe(true) }}
-                    style={{ fontSize:11, color:'var(--text-muted)', padding:'4px 8px', borderRadius:4, background:'var(--surface2)', border:'1px solid var(--border)', flexShrink:0 }}>
+                  </Text.Caption>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setExeVal(game.exe || ''); setEditingExe(true) }}
+                  >
                     Edit
-                  </button>
-                </div>
+                  </Button>
+                </Flex>
               )}
 
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, marginTop:14 }}>
-                <div style={{ fontSize:13, color:'var(--text)' }}>Run as administrator</div>
-                <button role="switch" aria-checked={!!game.runAsAdmin}
+              <Divider />
+
+              <Flex justify="space-between" align="center">
+                <Text.Body>Run as administrator</Text.Body>
+                <button
+                  role="switch"
+                  aria-checked={!!game.runAsAdmin}
                   onClick={() => onUpdate(game.id, { runAsAdmin: !game.runAsAdmin })}
                   style={{
-                    width:44, height:24, borderRadius:12, padding:2, border:'none', cursor:'pointer',
-                    background: game.runAsAdmin ? 'var(--accent)' : 'var(--surface2)',
-                    transition:'background 0.2s ease', flexShrink:0,
-                  }}>
-                  <div style={{
-                    width:20, height:20, borderRadius:'50%', background:'#fff',
-                    transition:'transform 0.2s ease',
-                    transform: game.runAsAdmin ? 'translateX(20px)' : 'translateX(0)',
-                    boxShadow:'0 1px 3px rgba(0,0,0,0.3)',
-                  }} />
+                    width: 44,
+                    height: 24,
+                    borderRadius: 12,
+                    padding: 2,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: game.runAsAdmin ? 'var(--accent)' : 'var(--surface)',
+                    transition: `background ${spacing.md}`,
+                    flexShrink: 0,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: '50%',
+                      background: '#fff',
+                      transition: `transform ${spacing.md}`,
+                      transform: game.runAsAdmin ? 'translateX(20px)' : 'translateX(0)',
+                      boxShadow: shadows.sm,
+                    }}
+                  />
                 </button>
-              </div>
+              </Flex>
             </div>
 
             {/* Collections */}
             {collections?.length > 0 && (
-              <div className="gd-section">
-                <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:10, textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:600 }}>
-                  Collections
-                </div>
-                <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+              <div
+                style={{
+                  background:'var(--surface2)',
+                  border:'1px solid var(--border)',
+                  borderRadius: radius.lg,
+                  padding: spacing.lg,
+                }}
+              >
+                <Text.Caption style={{ display: 'block', marginBottom: spacing.md }}>Collections</Text.Caption>
+                <Flex gap={spacing.sm} wrap="wrap">
                   {collections.map(c => {
                     const inCollection = (game.collections || []).includes(c.id)
                     return (
-                      <button
+                      <Button
                         key={c.id}
+                        variant={inCollection ? 'primary' : 'secondary'}
+                        size="sm"
                         onClick={() => onToggleCollection(game.id, c.id)}
-                        style={{
-                          fontSize:12,
-                          padding:'6px 14px',
-                          borderRadius:16,
-                          background: inCollection ? 'var(--accent)' : 'var(--surface)',
-                          border:'1px solid ' + (inCollection ? 'var(--accent)' : 'var(--border)'),
-                          color: inCollection ? '#fff' : 'var(--text-dim)',
-                          cursor:'pointer', fontFamily:'inherit',
-                          transition:'all 0.12s ease'
-                        }}
-                        className="gd-tag"
                       >
                         {inCollection ? '✓ ' : '+ '}{c.name}
-                      </button>
+                      </Button>
                     )
                   })}
-                </div>
+                </Flex>
               </div>
             )}
 
@@ -368,14 +435,40 @@ export default function GameDetail({
   )
 }
 
-function Stat({ label, value, icon }) {
+function ClockIcon() {
   return (
-    <div>
-      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
-        {icon && <span style={{ fontSize:12 }}>{icon}</span>}
-        <span style={{ fontSize:11, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:600 }}>{label}</span>
-      </div>
-      <div style={{ fontSize:15, fontWeight:600, color:'var(--text)' }}>{value}</div>
-    </div>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v6l3 2" />
+    </svg>
+  )
+}
+
+function CalendarIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M16 3v4M8 3v4M3 10h18" />
+    </svg>
+  )
+}
+
+function DriveIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 7h18" />
+      <path d="M5 7l2-3h10l2 3" />
+      <rect x="3" y="7" width="18" height="10" rx="2" />
+      <path d="M8 12h.01M12 12h.01" />
+    </svg>
+  )
+}
+
+function LinkIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.1 0l2.1-2.1a5 5 0 1 0-7.1-7.1L10.7 5" />
+      <path d="M14 11a5 5 0 0 0-7.1 0L4.8 13.1a5 5 0 0 0 7.1 7.1L13.3 19" />
+    </svg>
   )
 }

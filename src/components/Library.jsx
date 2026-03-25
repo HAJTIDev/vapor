@@ -1,4 +1,15 @@
 import React, { useMemo } from 'react'
+import {
+  Button,
+  Text,
+  Badge,
+  Flex,
+  spacing,
+  radius,
+  shadows,
+  transitions,
+  typography,
+} from './UIKit'
 import kot from '../img/kot.jpg'
 
 const KOT_CHANCE = 0.00002
@@ -25,6 +36,7 @@ export default function Library({
   onSelect,
   onLaunch,
   onGameContextMenu,
+  onToggleFavorite,
   onAddClick,
 }) {
   const genres = useMemo(() => {
@@ -52,39 +64,29 @@ export default function Library({
   if (totalGameCount === 0) return <Empty onAddClick={onAddClick} />
 
   return (
-    <div style={{ height:'100%', overflow:'auto', padding:'20px 24px' }}>
-      <div style={{
-        display:'flex',
-        gap:10,
-        alignItems:'center',
-        marginBottom:14,
-        flexWrap:'wrap'
-      }}>
-        <input
-          value={search}
-          onChange={(e) => setSearch?.(e.target.value)}
-          placeholder="Search library..."
-          style={{
-            flex:'1 1 220px',
-            minWidth:180,
-            background:'var(--surface2)',
-            border:'1px solid var(--border)',
-            color:'var(--text)',
-            borderRadius:8,
-            padding:'8px 10px',
-            fontSize:12,
-          }}
-        />
+    <div style={{ height:'100%', overflow:'auto', padding: spacing.xxl }}>
+      {/* Header */}
+      <div style={{ marginBottom: spacing.xxl }}>
+        <Text.H1>Your Library</Text.H1>
+        <Text.Muted>
+          {filtered.length} of {totalGameCount} games {search ? `• Searching for "${search}"` : ''}
+        </Text.Muted>
+      </div>
+
+      {/* Controls */}
+      <Flex
+        gap={spacing.lg}
+        wrap="wrap"
+        align="flex-end"
+        style={{ marginBottom: spacing.xl }}
+      >
         <select
           value={sortBy || 'recent'}
           onChange={(e) => setSortBy?.(e.target.value)}
+          className="ui-input"
           style={{
-            background:'var(--surface2)',
-            border:'1px solid var(--border)',
-            color:'var(--text)',
-            borderRadius:8,
-            padding:'8px 10px',
-            fontSize:12,
+            padding: `${spacing.md} ${spacing.lg}`,
+            fontSize: '13px',
           }}
         >
           <option value="recent">Sort: Last Played</option>
@@ -92,27 +94,36 @@ export default function Library({
           <option value="playtime">Sort: Playtime</option>
           <option value="added">Sort: Recently Added</option>
         </select>
-      </div>
+        <Button variant="primary" onClick={onAddClick}>
+          + Add Games
+        </Button>
+      </Flex>
 
       {/* Genre filters */}
       {genres.length > 1 && (
-        <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:20 }}>
+        <Flex
+          gap={spacing.sm}
+          wrap="wrap"
+          style={{ marginBottom: spacing.xl }}
+        >
           {genres.map(g => (
-            <button key={g} onClick={() => setFilterGenre(g)} style={{
-              padding:'4px 12px', borderRadius:20, fontSize:12,
-              background: filterGenre === g ? 'var(--accent)' : 'var(--surface)',
-              color: filterGenre === g ? '#fff' : 'var(--text-dim)',
-              border: '1px solid ' + (filterGenre === g ? 'var(--accent)' : 'var(--border)'),
-              transition:'all 0.12s', textTransform:'capitalize'
-            }}>{g}</button>
+            <Button
+              key={g}
+              variant={filterGenre === g ? 'primary' : 'secondary'}
+              size="sm"
+              onClick={() => setFilterGenre(g)}
+            >
+              {g}
+            </Button>
           ))}
-        </div>
+        </Flex>
       )}
 
+      {/* Game grid */}
       <div style={{
         display:'grid',
         gridTemplateColumns:'repeat(auto-fill, minmax(160px, 1fr))',
-        gap:16
+        gap: spacing.lg
       }}>
         {filtered.map(game => (
           <GameCard
@@ -122,29 +133,24 @@ export default function Library({
             onSelect={onSelect}
             onLaunch={onLaunch}
             onContextMenu={onGameContextMenu}
+            onToggleFavorite={onToggleFavorite}
           />
         ))}
       </div>
 
       {filtered.length === 0 && (
-        <div style={{ textAlign:'center', color:'var(--text-muted)', paddingTop:80, fontSize:14 }}>
-          {activeCollection === 'favorites' ? 'No favorite games yet.' : 'No games match this filter.'}
+        <div style={{ textAlign:'center', color:'var(--text-muted)', paddingTop: spacing.xxxl, fontSize:14 }}>
+          <Text.Muted style={{ display: 'block', marginBottom: spacing.lg }}>
+            {activeCollection === 'favorites' ? 'No favorite games yet.' : search ? 'No games match your search.' : 'No games match this filter.'}
+          </Text.Muted>
           {activeCollection !== 'all' && (
-            <div style={{ marginTop:10 }}>
-              <button
-                onClick={onBrowseAllGames}
-                style={{
-                  padding:'7px 14px',
-                  borderRadius:6,
-                  background:'var(--surface2)',
-                  color:'var(--text-dim)',
-                  border:'1px solid var(--border)',
-                  fontSize:12,
-                }}
-              >
-                Browse All Games
-              </button>
-            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onBrowseAllGames}
+            >
+              Browse All Games
+            </Button>
           )}
         </div>
       )}
@@ -152,7 +158,7 @@ export default function Library({
   )
 }
 
-function GameCard({ game, running, onSelect, onLaunch, onContextMenu }) {
+function GameCard({ game, running, onSelect, onLaunch, onContextMenu, onToggleFavorite }) {
   const [hov, setHov] = React.useState(false)
   const showKot = useMemo(() => Math.random() < KOT_CHANCE, [])
 
@@ -163,12 +169,14 @@ function GameCard({ game, running, onSelect, onLaunch, onContextMenu }) {
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        borderRadius:8, overflow:'hidden', cursor:'pointer',
-        border:'1px solid ' + (hov ? 'var(--border2)' : 'var(--border)'),
+        borderRadius: radius.lg,
+        overflow:'hidden',
+        cursor: 'pointer',
+        border: `1px solid ${hov ? 'var(--border2)' : 'var(--border)'}`,
         background:'var(--surface)',
-        transition:'all 0.15s', transform: hov ? 'translateY(-2px)' : 'none',
-        boxShadow: hov ? '0 8px 24px #00000060' : 'none',
-        position:'relative'
+        transition: `all ${transitions.base}`,
+        transform: hov ? 'translateY(-4px)' : 'translateY(0)',
+        boxShadow: hov ? shadows.lg : shadows.sm,
       }}
     >
       {/* Cover art */}
@@ -186,9 +194,9 @@ function GameCard({ game, running, onSelect, onLaunch, onContextMenu }) {
 
         {running && (
           <div style={{
-            position:'absolute', top:8, right:8, width:8, height:8,
+            position:'absolute', top: spacing.md, right: spacing.md, width:8, height:8,
             borderRadius:'50%', background:'var(--green)',
-            boxShadow:'0 0 6px var(--green)'
+            boxShadow: `0 0 8px var(--green), inset 0 0 4px rgba(255,255,255,0.3)`
           }} />
         )}
 
@@ -197,30 +205,49 @@ function GameCard({ game, running, onSelect, onLaunch, onContextMenu }) {
           <div style={{
             position:'absolute', inset:0,
             background:'linear-gradient(to top, #000000cc 0%, transparent 50%)',
-            display:'flex', alignItems:'flex-end', justifyContent:'center', padding:12
+            display:'flex', alignItems:'flex-end', justifyContent:'center', padding: spacing.md,
+            animation: 'fadeIn 0.15s ease',
           }}>
-            <button onClick={e => { e.stopPropagation(); onLaunch(game) }} 
-              className={running ? 'btn-green' : 'btn-accent'}
-              style={{
-                padding:'6px 18px', borderRadius:5, fontSize:12, fontWeight:600,
-                color:'#fff', transition:'all 0.1s', width:'100%'
-              }}>
-              {running ? 'Running' : 'Play'}
-            </button>
+            <Button
+              variant={running ? 'success' : 'primary'}
+              size="sm"
+              onClick={e => { e.stopPropagation(); onLaunch(game) }}
+              style={{ width: '100%' }}
+            >
+              {running ? '● Running' : '▶ Play'}
+            </Button>
           </div>
         )}
       </div>
 
-      {/* Info */}
-      <div style={{ padding:'10px 10px 8px' }}>
-        <div style={{ fontSize:12, fontWeight:500, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+      {/* Info section */}
+      <div style={{ padding: spacing.md }}>
+        <Text.Body style={{ fontWeight: 500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', marginBottom: spacing.sm }}>
           {game.name}
-        </div>
-        {game.playtime > 0 && (
-          <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2, fontFamily:'var(--mono)' }}>
-            {fmtTime(game.playtime)}
-          </div>
-        )}
+        </Text.Body>
+        <Flex justify="space-between" align="center" style={{ minHeight: '20px' }}>
+          {game.playtime > 0 ? (
+            <Text.Caption mono>{fmtTime(game.playtime)}</Text.Caption>
+          ) : <div />}
+          {!running && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleFavorite?.(game.id); }}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: spacing.xs,
+                cursor: 'pointer',
+                fontSize: '16px',
+                transition: `transform ${transitions.fast}`,
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              title={game.favorite ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              {game.favorite ? '★' : '♡'}
+            </button>
+          )}
+        </Flex>
       </div>
     </div>
   )
@@ -230,19 +257,20 @@ function Empty({ onAddClick }) {
   return (
     <div style={{
       height:'100%', display:'flex', flexDirection:'column',
-      alignItems:'center', justifyContent:'center', gap:16, color:'var(--text-muted)'
+      alignItems:'center', justifyContent:'center', gap: spacing.lg, color:'var(--text-muted)',
+      padding: spacing.xxl,
     }}>
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.3">
+      <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" opacity="0.25">
         <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
         <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
       </svg>
       <div style={{ textAlign:'center' }}>
-        <div style={{ fontSize:15, color:'var(--text)', fontWeight:500 }}>Your library is empty</div>
-        <div style={{ fontSize:13, marginTop:4 }}>Add your game folders to get started</div>
+        <Text.H3 style={{ color: 'var(--text)', marginBottom: spacing.sm }}>Your library is empty</Text.H3>
+        <Text.Body dim>Add your first game folder to get started</Text.Body>
       </div>
-      <button onClick={onAddClick} className="btn-accent" style={{
-        padding:'8px 20px', borderRadius:6, fontSize:13, fontWeight:500, marginTop:4
-      }}>Add Games</button>
+      <Button variant="primary" size="lg" onClick={onAddClick}>
+        Add Games
+      </Button>
     </div>
   )
 }

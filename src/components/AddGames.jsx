@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import vaporApi from '../vaporApi.js'
 
 export default function AddGames({ settings, existingGames, onAdd, onDone }) {
@@ -7,18 +7,68 @@ export default function AddGames({ settings, existingGames, onAdd, onDone }) {
   const [selected, setSelected]   = useState(new Set())
   const [fetchingArt, setFetchingArt] = useState(false)
   const [artProgress, setArtProgress] = useState({ done:0, total:0 })
+  const [scanSource, setScanSource] = useState('')
+  const didAutoScanRef = useRef(false)
+
+  const mergeScanResults = useCallback((found) => {
+    const existing = new Set(existingGames.map(g => String(g.exe || '').toLowerCase()))
+    const incoming = (Array.isArray(found) ? found : []).filter(item => {
+      const exeKey = String(item?.exe || '').toLowerCase()
+      return exeKey && !existing.has(exeKey)
+    })
+
+    setResults(prev => {
+      const byExe = new Map(prev.map(item => [String(item.exe || '').toLowerCase(), item]))
+      for (const item of incoming) {
+        const key = String(item.exe || '').toLowerCase()
+        if (!byExe.has(key)) byExe.set(key, item)
+      }
+      return Array.from(byExe.values())
+    })
+
+    setSelected(prev => {
+      const next = new Set(prev)
+      for (const item of incoming) {
+        next.add(item.exe)
+      }
+      return next
+    })
+  }, [existingGames])
+
+  const scanAllDrives = useCallback(async () => {
+    setScanning(true)
+    setScanSource('Scanning known game folders across all drives...')
+    try {
+      const result = await vaporApi.folder.scanAllDrives()
+      mergeScanResults(result?.games || [])
+    } finally {
+      setScanning(false)
+    }
+  }, [mergeScanResults])
 
   const pickAndScan = async () => {
     const folder = await vaporApi.dialog.folder()
     if (!folder) return
     setScanning(true)
-    const found = await vaporApi.folder.scan(folder)
-    const existing = new Set(existingGames.map(g => g.exe))
-    const fresh = found.filter(f => !existing.has(f.exe))
-    setResults(fresh)
-    setSelected(new Set(fresh.map(f => f.exe)))
-    setScanning(false)
+    setScanSource(`Scanning ${folder}`)
+    try {
+      const found = await vaporApi.folder.scan(folder)
+      mergeScanResults(found)
+    } finally {
+      setScanning(false)
+    }
   }
+
+  useEffect(() => {
+    if (!settings?.ui?.autoScanAllDrives) {
+      didAutoScanRef.current = false
+      return
+    }
+    if (!didAutoScanRef.current) {
+      didAutoScanRef.current = true
+      scanAllDrives()
+    }
+  }, [settings?.ui?.autoScanAllDrives, scanAllDrives])
 
   const toggle = (exe) => {
     setSelected(s => {
@@ -59,6 +109,14 @@ export default function AddGames({ settings, existingGames, onAdd, onDone }) {
         }}>
           {scanning ? 'Scanning...' : '📁 Choose Folder'}
         </button>
+        <button onClick={scanAllDrives} disabled={scanning} style={{
+          padding:'9px 16px', borderRadius:6, fontSize:13,
+          background:'var(--surface2)', color:'var(--text-dim)',
+          border:'1px solid var(--border)',
+          opacity: scanning ? 0.7 : 1,
+        }}>
+          Scan All Drives
+        </button>
         {results.length > 0 && (
           <button onClick={() => { setResults([]); setSelected(new Set()) }} style={{
             padding:'9px 16px', borderRadius:6, fontSize:13,
@@ -67,6 +125,12 @@ export default function AddGames({ settings, existingGames, onAdd, onDone }) {
           }}>Clear</button>
         )}
       </div>
+
+      {scanning && scanSource && (
+        <div style={{ marginBottom:14, fontSize:12, color:'var(--text-muted)' }}>
+          {scanSource}
+        </div>
+      )}
 
       {fetchingArt && (
         <div style={{ marginBottom:20, padding:16, borderRadius:8, background:'var(--surface)', border:'1px solid var(--border)' }}>

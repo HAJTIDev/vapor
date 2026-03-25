@@ -429,6 +429,12 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
           }}
         />
         <ToggleRow
+          label="Auto Scan All Drives"
+          desc="When opening Add Games, automatically scan known game folders on every drive."
+          checked={!!settings.ui?.autoScanAllDrives}
+          onChange={(checked) => updateUi({ autoScanAllDrives: checked })}
+        />
+        <ToggleRow
           label="Show Playtime In Sidebar"
           desc="Displays each game's total playtime in the left game list."
           checked={!!settings.ui?.showPlaytimeInSidebar}

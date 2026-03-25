@@ -66,6 +66,7 @@ const defaultSettings = {
     confirmRemoveGame: true,
     autoUpdate: true,
     autoStart: true,
+    autoScanAllDrives: false,
   },
 }
 
@@ -427,6 +428,7 @@ export default function App() {
               onSelect={setSelected}
               onLaunch={launchGame}
               onGameContextMenu={openGameContextMenu}
+              onToggleFavorite={toggleFavorite}
               onAddClick={() => setView('add')}
             />
           )}

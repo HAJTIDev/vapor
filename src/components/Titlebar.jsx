@@ -40,6 +40,7 @@ function WinBtn({ label, action, hoverBg }) {
       onClick={() => vaporApi.win[action]()}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
+      className="ui-btn"
       style={{
         width:46, height:38, display:'flex', alignItems:'center', justifyContent:'center',
         fontSize:14, color: hov ? '#fff' : 'var(--text-muted)',

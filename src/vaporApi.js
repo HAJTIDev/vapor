@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS = {
     confirmRemoveGame: true,
     autoUpdate: true,
     autoStart: true,
+    autoScanAllDrives: false,
   },
 }
 
@@ -44,6 +45,7 @@ const browserFallback = {
   },
   folder: {
     scan: async () => [],
+    scanAllDrives: async () => ({ games: [], scannedFolders: [], driveRoots: [] }),
     getSize: async () => 0,
   },
   games: {

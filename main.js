@@ -6,7 +6,7 @@ const { autoUpdater } = require('electron-updater')
 const DiscordRPC = require('discord-rpc')
 
 const { loadJSON, saveJSON } = require('./main/storage')
-const { scanDir, calculateFolderSize } = require('./main/scanner')
+const { scanDir, scanAutoGameFolders, calculateFolderSize } = require('./main/scanner')
 const { createSgdbService } = require('./main/sgdb')
 const { createDownloader } = require('./main/downloader')
 
@@ -73,6 +73,7 @@ const defaultSettings = {
     confirmRemoveGame: true,
     autoUpdate: true,
     autoStart: true,
+    autoScanAllDrives: false,
     discordRpc: true,
   },
 }
@@ -319,6 +320,7 @@ ipcMain.handle('dialog:file', async (_, options = {}) => {
 })
 
 ipcMain.handle('folder:scan', async (_, folder) => scanDir(folder))
+ipcMain.handle('folder:scan-all-drives', async () => scanAutoGameFolders())
 ipcMain.handle('folder:getSize', async (_, folderPath) => calculateFolderSize(folderPath))
 
 ipcMain.handle('games:load', () => {
