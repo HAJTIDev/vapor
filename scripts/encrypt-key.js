@@ -51,6 +51,38 @@ const ENCRYPTION_KEY = String(
   'vapor-default-key-change-me'
 ).trim();
 
+function encryptJsonPayload(payload, encryptionKey) {
+  const keyHash = crypto.createHash('sha256').update(encryptionKey).digest();
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-cbc', keyHash, iv);
+  let encrypted = cipher.update(JSON.stringify(payload), 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return {
+    iv: iv.toString('hex'),
+    data: encrypted,
+  };
+}
+
+function encryptTextPayload(text, encryptionKey) {
+  const keyHash = crypto.createHash('sha256').update(encryptionKey).digest();
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-cbc', keyHash, iv);
+  let encrypted = cipher.update(String(text || ''), 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return {
+    iv: iv.toString('hex'),
+    data: encrypted,
+  };
+}
+
+const ENV_EXCLUDED_KEYS = new Set(['SGDB_API_KEY', 'SGDB_KEY', 'VAPOR_ENCRYPTION_KEY']);
+const encryptedEnvPayload = Object.fromEntries(
+  Object.entries(fileEnv).filter(([key]) => !ENV_EXCLUDED_KEYS.has(key))
+);
+const encryptedEnvPath = path.join(buildDir, 'env.enc.json');
+fs.writeFileSync(encryptedEnvPath, JSON.stringify(encryptJsonPayload(encryptedEnvPayload, ENCRYPTION_KEY)));
+console.log(`Encrypted env payload written to ${encryptedEnvPath}`);
+
 if (!API_KEY || API_KEY === 'none' || API_KEY === '""' || API_KEY === "''" || API_KEY === '') {
   const keyFile = path.join(buildDir, 'sgdb.enc.json');
   if (fs.existsSync(keyFile)) {
@@ -60,17 +92,7 @@ if (!API_KEY || API_KEY === 'none' || API_KEY === '""' || API_KEY === "''" || AP
   process.exit(0);
 }
 
-const keyHash = crypto.createHash('sha256').update(ENCRYPTION_KEY).digest();
-const iv = crypto.randomBytes(16);
-
-const cipher = crypto.createCipheriv('aes-256-cbc', keyHash, iv);
-let encrypted = cipher.update(API_KEY, 'utf8', 'hex');
-encrypted += cipher.final('hex');
-
-const result = {
-  iv: iv.toString('hex'),
-  data: encrypted
-};
+const result = encryptTextPayload(API_KEY, ENCRYPTION_KEY);
 
 const outputPath = path.join(buildDir, 'sgdb.enc.json');
 fs.writeFileSync(outputPath, JSON.stringify(result));

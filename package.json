@@ -1,6 +1,6 @@
 {
   "name": "vapor",
-  "version": "1.4.11",
+  "version": "1.4.16",
   "description": "A minimal DRM-free game launcher",
   "main": "main.js",
   "scripts": {
@@ -38,13 +38,19 @@
       "dist/**/*",
       "main.js",
       "main/**/*",
-      "preload.js",
-      ".env"
+      "preload.js"
     ],
     "extraResources": [
       {
         "from": "build/icon.png",
         "to": "icon.png"
+      },
+      {
+        "from": "build/env.enc.json",
+        "to": "env.enc.json",
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "build/sgdb.enc.json",
