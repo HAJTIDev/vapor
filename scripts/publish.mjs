@@ -3,10 +3,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const repo = 'HAJTIDev/vapor';
-const distDir = path.resolve('release');
 const args = new Set(process.argv.slice(2));
 const isLinuxPublish = args.has('--linux');
 const shouldBumpVersion = args.has('--no-bump') ? false : !isLinuxPublish;
+const runStamp = Date.now();
+const distDir = isLinuxPublish
+  ? path.resolve('release')
+  : path.resolve('release', `publish-${runStamp}`);
 
 function runCommand(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -173,9 +176,9 @@ function uploadAssetWithRetry(filePath, maxAttempts = 3) {
 
 runCommand('gh', ['auth', 'status'], {env: getAuthenticatedGhEnv()});
 if (isLinuxPublish) {
-  runCommand('npm', ['run', 'build', '--', '--linux', 'tar.gz']);
+  runCommand('npm', ['run', 'build', '--', '--linux', 'tar.gz', `--config.directories.output=${distDir}`]);
 } else {
-  runCommand('npm', ['run', 'build']);
+  runCommand('npm', ['run', 'build', '--', `--config.directories.output=${distDir}`]);
 }
 
 const artifacts = isLinuxPublish

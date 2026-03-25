@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, shell } = require('electron')
 const path = require('path')
 const fs = require('fs')
+const crypto = require('crypto')
 const { spawn } = require('child_process')
 const { autoUpdater } = require('electron-updater')
 const DiscordRPC = require('discord-rpc')
@@ -10,13 +11,12 @@ const { scanDir, scanAutoGameFolders, calculateFolderSize } = require('./main/sc
 const { createSgdbService } = require('./main/sgdb')
 const { createDownloader } = require('./main/downloader')
 
-function loadLocalEnv() {
-  const envPath = path.join(__dirname, '.env')
-  if (!fs.existsSync(envPath)) return
-
-  try {
-    const content = fs.readFileSync(envPath, 'utf8').replace(/^\uFEFF/, '')
-    content.split(/\r?\n/).forEach((line) => {
+function parseEnvContent(content) {
+  const env = {}
+  String(content || '')
+    .replace(/^\uFEFF/, '')
+    .split(/\r?\n/)
+    .forEach((line) => {
       const trimmed = line.trim()
       if (!trimmed || trimmed.startsWith('#')) return
 
@@ -31,17 +31,63 @@ function loadLocalEnv() {
       ) {
         value = value.slice(1, -1)
       }
-
-      if (process.env[key] == null || process.env[key] === '') {
-        process.env[key] = value
-      }
+      env[key] = value
     })
+  return env
+}
+
+function applyEnvObject(envObject) {
+  Object.entries(envObject || {}).forEach(([key, value]) => {
+    if (process.env[key] == null || process.env[key] === '') {
+      process.env[key] = String(value)
+    }
+  })
+}
+
+function decryptJsonPayload(encrypted, encryptionKey) {
+  const parsed = JSON.parse(String(encrypted || '{}'))
+  const keyHash = crypto.createHash('sha256').update(String(encryptionKey || '')).digest()
+  const decipher = crypto.createDecipheriv('aes-256-cbc', keyHash, Buffer.from(parsed.iv, 'hex'))
+  let decrypted = decipher.update(String(parsed.data || ''), 'hex', 'utf8')
+  decrypted += decipher.final('utf8')
+  return JSON.parse(decrypted)
+}
+
+function loadLocalEnv() {
+  const envPath = path.join(__dirname, '.env')
+  if (!fs.existsSync(envPath)) return
+
+  try {
+    const content = fs.readFileSync(envPath, 'utf8')
+    applyEnvObject(parseEnvContent(content))
   } catch (err) {
     console.error('[env] Failed to read .env:', err)
   }
 }
 
-loadLocalEnv()
+function loadEncryptedPackagedEnv() {
+  const encryptedEnvPath = path.join(process.resourcesPath, 'env.enc.json')
+  if (!fs.existsSync(encryptedEnvPath)) return
+
+  const encryptionKey = process.env.VAPOR_ENCRYPTION_KEY || 'vapor-default-key-change-me'
+  try {
+    const encrypted = fs.readFileSync(encryptedEnvPath, 'utf8')
+    const envObject = decryptJsonPayload(encrypted, encryptionKey)
+    applyEnvObject(envObject)
+  } catch (err) {
+    console.error('[env] Failed to load encrypted env payload:', err)
+  }
+}
+
+function loadRuntimeEnv() {
+  if (app.isPackaged) {
+    loadEncryptedPackagedEnv()
+    return
+  }
+  loadLocalEnv()
+}
+
+loadRuntimeEnv()
 
 const isDev = !app.isPackaged
 let mainWindow
