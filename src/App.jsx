@@ -126,6 +126,7 @@ export default function App() {
   const [contextMenu, setContextMenu] = useState({ open: false, x: 0, y: 0, gameId: null })
   const [settingsPopup, setSettingsPopup] = useState({ open: false, game: null })
   const [showBoot, setShowBoot]     = useState(true)
+  const [updateToast, setUpdateToast] = useState(null)
 
   // Load
   useEffect(() => {
@@ -227,6 +228,15 @@ export default function App() {
       window.removeEventListener('resize', close)
       window.removeEventListener('keydown', onKeyDown)
     }
+  }, [])
+
+  useEffect(() => {
+    const handleUpdateStatus = (data) => {
+      if (data?.status !== 'available') return
+      setUpdateToast({ version: data.version || null })
+    }
+    vaporApi.on('update:status', handleUpdateStatus)
+    return () => vaporApi.off('update:status', handleUpdateStatus)
   }, [])
 
   const saveGames = useCallback((updated) => {
@@ -625,6 +635,88 @@ export default function App() {
               onToggleFavorite={toggleFavorite}
               onToggleCollection={toggleCollection}
             />
+          </div>
+        </div>
+      )}
+
+      {updateToast && (
+        <div style={{
+          position: 'fixed',
+          top: 56,
+          right: 16,
+          width: 340,
+          maxWidth: 'calc(100vw - 24px)',
+          background: 'color-mix(in srgb, var(--surface) 92%, black 8%)',
+          border: '1px solid var(--border2)',
+          borderLeft: '3px solid var(--accent)',
+          borderRadius: 10,
+          boxShadow: '0 16px 36px #00000066',
+          zIndex: 2100,
+          padding: 12,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Update available</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                {updateToast.version ? `Version ${updateToast.version} is ready to download.` : 'A new version is ready to download.'}
+              </div>
+            </div>
+            <button
+              onClick={() => setUpdateToast(null)}
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 6,
+                border: '1px solid var(--border)',
+                background: 'var(--surface2)',
+                color: 'var(--text-muted)',
+                fontSize: 12,
+                lineHeight: '20px',
+                textAlign: 'center',
+                flexShrink: 0,
+              }}
+              title="Dismiss"
+            >
+              x
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => {
+                vaporApi.update.download()
+                setUpdateToast(null)
+              }}
+              style={{
+                padding: '7px 12px',
+                borderRadius: 7,
+                fontSize: 12,
+                background: 'var(--accent)',
+                color: '#fff',
+                border: 'none',
+              }}
+            >
+              Download
+            </button>
+            <button
+              onClick={() => {
+                setView('settings')
+                setSelected(null)
+                setUpdateToast(null)
+              }}
+              style={{
+                padding: '7px 12px',
+                borderRadius: 7,
+                fontSize: 12,
+                background: 'var(--surface2)',
+                color: 'var(--text)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              Open Updates
+            </button>
           </div>
         </div>
       )}
