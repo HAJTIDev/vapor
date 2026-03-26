@@ -99,6 +99,9 @@ let currentGameArt = null
 let discordRpcClient = null
 let discordRpcReady = false
 let discordRpcConnecting = false
+let runningGamesMonitorTimer = null
+let runningGamesMonitorBusy = false
+let lastDetectedRunningGameIds = new Set()
 
 const DISCORD_CLIENT_ID = String(process.env.DISCORD_CLIENT_ID || '1485273656555864236').trim()
 const DISCORD_ACTIVITY_STATE = 'Launched from Vapor'
@@ -169,6 +172,7 @@ if (!gotTheLock && !isDev) {
     initDiscordRpc()
     configureAutoStart()
     createWindow()
+    startRunningGamesMonitor()
     createTray()
     setupAutoUpdater()
     const settings = loadJSON(settingsFile, defaultSettings)
@@ -185,6 +189,7 @@ if (!gotTheLock && !isDev) {
 
   app.on('before-quit', () => {
     app.isQuitting = true
+    stopRunningGamesMonitor()
     clearDiscordActivity()
     destroyDiscordRpc()
     downloader.cleanup()
@@ -290,6 +295,107 @@ function sendToRenderer(channel, ...args) {
   } catch {
     return false
   }
+}
+
+function normalizeExePath(exePath) {
+  if (!exePath) return ''
+  return path.normalize(String(exePath)).toLowerCase()
+}
+
+function loadTrackedGamesWithExecutables() {
+  try {
+    const games = loadJSON(gamesFile, [])
+    if (!Array.isArray(games)) return []
+    return games
+      .filter((game) => game && game.id != null && game.exe)
+      .map((game) => ({ id: String(game.id), exe: normalizeExePath(game.exe) }))
+      .filter((game) => !!game.exe)
+  } catch {
+    return []
+  }
+}
+
+function listRunningExecutablePathsWindows() {
+  return new Promise((resolve) => {
+    const command = "$ErrorActionPreference='SilentlyContinue'; Get-Process | ForEach-Object { $_.Path } | Where-Object { $_ }"
+    const checker = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command], {
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+
+    let output = ''
+    checker.stdout.on('data', (chunk) => {
+      output += String(chunk || '')
+    })
+
+    checker.once('error', () => resolve(new Set()))
+    checker.once('close', () => {
+      const lines = String(output || '')
+        .split(/\r?\n/)
+        .map((line) => normalizeExePath(line.trim()))
+        .filter(Boolean)
+
+      resolve(new Set(lines))
+    })
+  })
+}
+
+async function detectRunningGameIds() {
+  const trackedGames = loadTrackedGamesWithExecutables()
+  if (!trackedGames.length) return new Set()
+  if (process.platform !== 'win32') return new Set()
+
+  const runningExePaths = await listRunningExecutablePathsWindows()
+  const runningIds = new Set()
+
+  for (const game of trackedGames) {
+    if (runningExePaths.has(game.exe)) {
+      runningIds.add(game.id)
+    }
+  }
+
+  return runningIds
+}
+
+async function syncRunningGamesToRenderer() {
+  if (runningGamesMonitorBusy) return
+  runningGamesMonitorBusy = true
+
+  try {
+    const detectedRunning = await detectRunningGameIds()
+
+    for (const id of detectedRunning) {
+      if (!lastDetectedRunningGameIds.has(id)) {
+        sendToRenderer('game:running-started', { id })
+      }
+    }
+
+    for (const id of lastDetectedRunningGameIds) {
+      if (!detectedRunning.has(id)) {
+        sendToRenderer('game:running-stopped', { id })
+      }
+    }
+
+    lastDetectedRunningGameIds = detectedRunning
+  } catch {
+    // Keep monitor best-effort to avoid interrupting the app on process query failures.
+  } finally {
+    runningGamesMonitorBusy = false
+  }
+}
+
+function startRunningGamesMonitor() {
+  if (runningGamesMonitorTimer) return
+  syncRunningGamesToRenderer()
+  runningGamesMonitorTimer = setInterval(syncRunningGamesToRenderer, 5000)
+}
+
+function stopRunningGamesMonitor() {
+  if (!runningGamesMonitorTimer) return
+  clearInterval(runningGamesMonitorTimer)
+  runningGamesMonitorTimer = null
+  runningGamesMonitorBusy = false
+  lastDetectedRunningGameIds = new Set()
 }
 
 function setupAutoUpdater() {

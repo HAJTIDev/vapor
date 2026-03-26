@@ -195,6 +195,30 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    const handleRunningStarted = ({ id }) => {
+      if (!id) return
+      setRunning(r => ({ ...r, [id]: true }))
+    }
+
+    const handleRunningStopped = ({ id }) => {
+      if (!id) return
+      setRunning(r => {
+        const n = { ...r }
+        delete n[id]
+        return n
+      })
+    }
+
+    vaporApi.on('game:running-started', handleRunningStarted)
+    vaporApi.on('game:running-stopped', handleRunningStopped)
+
+    return () => {
+      vaporApi.off('game:running-started', handleRunningStarted)
+      vaporApi.off('game:running-stopped', handleRunningStopped)
+    }
+  }, [])
+
+  useEffect(() => {
     const valid = new Set(settings.collections.map(c => c.id))
     if (activeCollection !== 'all' && activeCollection !== 'favorites' && !valid.has(activeCollection)) {
       setActiveCollection('all')
