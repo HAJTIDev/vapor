@@ -100,7 +100,7 @@ let discordRpcClient = null
 let discordRpcReady = false
 let discordRpcConnecting = false
 
-const DISCORD_CLIENT_ID = String(process.env.DISCORD_CLIENT_ID || '').trim()
+const DISCORD_CLIENT_ID = String(process.env.DISCORD_CLIENT_ID || '1485273656555864236').trim()
 const DISCORD_ACTIVITY_STATE = 'Launched from Vapor'
 const ENCRYPTION_KEY = process.env.VAPOR_ENCRYPTION_KEY || 'vapor-default-key-change-me'
 
@@ -403,7 +403,22 @@ ipcMain.handle('settings:load', () => {
 
 ipcMain.handle('settings:save', (_, settings) => {
   try {
+    const previous = loadJSON(settingsFile, defaultSettings)
     saveJSON(settingsFile, settings)
+
+    const wasDiscordEnabled = previous?.ui?.discordRpc !== false
+    const isDiscordEnabled = settings?.ui?.discordRpc !== false
+
+    if (!isDiscordEnabled) {
+      clearDiscordActivity()
+      destroyDiscordRpc()
+    } else if (!wasDiscordEnabled || !discordRpcClient || !discordRpcReady) {
+      initDiscordRpc()
+      if (currentGameId) {
+        updateDiscordActivity(currentGameName)
+      }
+    }
+
     return true
   } catch (err) {
     console.error('[settings:save] Error:', err)
