@@ -126,6 +126,37 @@ function createSgdbService({ ENCRYPTION_KEY, encryptedKeyFile, sgdbKeyFile, allo
     }
   }
 
+  function normalizeSearchName(value) {
+    return String(value || '')
+      .replace(/[\r\n\t]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
+
+  function splitCamelPascalWords(value) {
+    return String(value || '')
+      .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+  }
+
+  function buildSearchCandidates(name) {
+    const base = normalizeSearchName(name)
+    if (!base) return []
+
+    const candidates = [base]
+    const withSeparatorsNormalized = normalizeSearchName(base.replace(/[._-]+/g, ' '))
+    const withWordSplits = normalizeSearchName(splitCamelPascalWords(withSeparatorsNormalized))
+
+    if (withSeparatorsNormalized && !candidates.includes(withSeparatorsNormalized)) {
+      candidates.push(withSeparatorsNormalized)
+    }
+    if (withWordSplits && !candidates.includes(withWordSplits)) {
+      candidates.push(withWordSplits)
+    }
+
+    return candidates
+  }
+
   async function sgdbSearch(name) {
     const key = loadSgdbKey()
     if (!key) {
@@ -134,12 +165,16 @@ function createSgdbService({ ENCRYPTION_KEY, encryptedKeyFile, sgdbKeyFile, allo
     }
 
     try {
-      console.log('[sgdbSearch] Searching for:', name)
-      const data = await sgdbFetch(`/search/autocomplete/${encodeURIComponent(name)}`)
-      if (!data?.data?.length) return null
-      const game = data.data[0]
-      console.log('[sgdbSearch] Found:', game.name, 'ID:', game.id)
-      return { id: game.id, name: game.name }
+      const searchCandidates = buildSearchCandidates(name)
+      for (const candidate of searchCandidates) {
+        console.log('[sgdbSearch] Searching for:', candidate)
+        const data = await sgdbFetch(`/search/autocomplete/${encodeURIComponent(candidate)}`)
+        if (!data?.data?.length) continue
+        const game = data.data[0]
+        console.log('[sgdbSearch] Found:', game.name, 'ID:', game.id)
+        return { id: game.id, name: game.name }
+      }
+      return null
     } catch (err) {
       console.error('[sgdbSearch] Error:', err)
       return null

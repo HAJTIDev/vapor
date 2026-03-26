@@ -41,6 +41,16 @@ function normalizeName(s) {
     .trim()
 }
 
+function prettifyFolderGameName(rawName) {
+  return String(rawName || '')
+    .replace(/\s*[\(\[]\d{4}[\)\]]/g, '')
+    .replace(/[_\-.]+/g, ' ')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function nameTokens(s) {
   return normalizeName(s)
     .split(' ')
@@ -256,11 +266,7 @@ function scanDir(dir) {
     for (const e of entries) {
       if (!e.isDirectory()) continue
       const gameFolder = path.join(dir, e.name)
-      const gameName = e.name
-        .replace(/\s*[\(\[]\d{4}[\)\]]/g, '')
-        .replace(/_/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
+      const gameName = prettifyFolderGameName(e.name)
       const exes = collectExes(gameFolder)
       const best = pickBestExe(exes, gameName, gameFolder)
       if (best) {
