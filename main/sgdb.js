@@ -7,6 +7,12 @@ const SGDB_BASE = 'https://www.steamgriddb.com/api/v2'
 function createSgdbService({ ENCRYPTION_KEY, encryptedKeyFile, sgdbKeyFile }) {
   let sgdbKeyCache = null
 
+  function normalizeSgdbKey(raw) {
+    const trimmed = String(raw || '').trim()
+    if (!trimmed) return ''
+    return trimmed.replace(/^Bearer\s+/i, '').trim()
+  }
+
   function decryptApiKey(encrypted) {
     try {
       const { iv, data } = JSON.parse(encrypted)
@@ -24,40 +30,38 @@ function createSgdbService({ ENCRYPTION_KEY, encryptedKeyFile, sgdbKeyFile }) {
 
   function loadSgdbKey() {
     if (sgdbKeyCache !== null) return sgdbKeyCache
-    const envKey = process.env.SGDB_API_KEY || process.env.SGDB_KEY
-    if (envKey) {
-      sgdbKeyCache = envKey
-      return sgdbKeyCache
-    }
 
     try {
       if (fs.existsSync(sgdbKeyFile)) {
-        sgdbKeyCache = fs.readFileSync(sgdbKeyFile, 'utf8').trim()
+        sgdbKeyCache = normalizeSgdbKey(fs.readFileSync(sgdbKeyFile, 'utf8'))
       } else if (fs.existsSync(encryptedKeyFile)) {
         const encrypted = fs.readFileSync(encryptedKeyFile, 'utf8')
-        sgdbKeyCache = decryptApiKey(encrypted) || ''
+        sgdbKeyCache = normalizeSgdbKey(decryptApiKey(encrypted)) || ''
       } else {
-        sgdbKeyCache = ''
+        const envKey = normalizeSgdbKey(process.env.SGDB_API_KEY || process.env.SGDB_KEY)
+        sgdbKeyCache = envKey || ''
       }
     } catch {
-      sgdbKeyCache = ''
+      const envKey = normalizeSgdbKey(process.env.SGDB_API_KEY || process.env.SGDB_KEY)
+      sgdbKeyCache = envKey || ''
     }
     return sgdbKeyCache
   }
 
   function saveSgdbKey(key) {
     try {
-      if (!key) {
+      const normalizedKey = normalizeSgdbKey(key)
+      if (!normalizedKey) {
         if (fs.existsSync(sgdbKeyFile)) fs.unlinkSync(sgdbKeyFile)
         sgdbKeyCache = ''
         resetSgdbModule()
         console.log('[saveSgdbKey] Key cleared')
         return true
       }
-      sgdbKeyCache = key
-      fs.writeFileSync(sgdbKeyFile, key)
+      sgdbKeyCache = normalizedKey
+      fs.writeFileSync(sgdbKeyFile, normalizedKey)
       resetSgdbModule()
-      console.log('[saveSgdbKey] Key saved, length:', key.length)
+      console.log('[saveSgdbKey] Key saved, length:', normalizedKey.length)
       return true
     } catch (err) {
       console.error('[saveSgdbKey] Error:', err)
