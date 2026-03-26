@@ -1,6 +1,6 @@
 {
   "name": "vapor",
-  "version": "1.4.20",
+  "version": "1.4.21",
   "description": "A minimal DRM-free game launcher",
   "main": "main.js",
   "scripts": {

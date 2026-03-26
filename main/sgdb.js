@@ -4,7 +4,7 @@ const { net } = require('electron')
 
 const SGDB_BASE = 'https://www.steamgriddb.com/api/v2'
 
-function createSgdbService({ ENCRYPTION_KEY, encryptedKeyFile, sgdbKeyFile }) {
+function createSgdbService({ ENCRYPTION_KEY, encryptedKeyFile, sgdbKeyFile, allowRuntimeKeyOverride = true }) {
   let sgdbKeyCache = null
 
   function normalizeSgdbKey(raw) {
@@ -32,7 +32,7 @@ function createSgdbService({ ENCRYPTION_KEY, encryptedKeyFile, sgdbKeyFile }) {
     if (sgdbKeyCache !== null) return sgdbKeyCache
 
     try {
-      if (fs.existsSync(sgdbKeyFile)) {
+      if (allowRuntimeKeyOverride && fs.existsSync(sgdbKeyFile)) {
         sgdbKeyCache = normalizeSgdbKey(fs.readFileSync(sgdbKeyFile, 'utf8'))
       } else if (fs.existsSync(encryptedKeyFile)) {
         const encrypted = fs.readFileSync(encryptedKeyFile, 'utf8')
@@ -49,6 +49,9 @@ function createSgdbService({ ENCRYPTION_KEY, encryptedKeyFile, sgdbKeyFile }) {
   }
 
   function saveSgdbKey(key) {
+    if (!allowRuntimeKeyOverride) {
+      return false
+    }
     try {
       const normalizedKey = normalizeSgdbKey(key)
       if (!normalizedKey) {

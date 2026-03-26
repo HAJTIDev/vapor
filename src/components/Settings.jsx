@@ -11,10 +11,6 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
   const [refreshingArt, setRefreshingArt] = useState(false)
   const [artRefreshProgress, setArtRefreshProgress] = useState(null)
   const [downloadLimitKbps, setDownloadLimitKbps] = useState(Math.max(0, Math.round(Number(settings?.downloadSpeedLimitKbps) || 0)))
-  const [sgdbKey, setSgdbKey] = useState('')
-  const [sgdbKeyLoaded, setSgdbKeyLoaded] = useState(false)
-  const [sgdbSaving, setSgdbSaving] = useState(false)
-  const [sgdbSaveMessage, setSgdbSaveMessage] = useState('')
 
   const sliderMaxKbps = 4096
   const sliderStepKbps = 64
@@ -31,48 +27,6 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
   useEffect(() => {
     setDownloadLimitKbps(Math.max(0, Math.round(Number(settings?.downloadSpeedLimitKbps) || 0)))
   }, [settings?.downloadSpeedLimitKbps])
-
-  useEffect(() => {
-    let mounted = true
-    vaporApi.settings.getSgdbKey().then((key) => {
-      if (!mounted) return
-      setSgdbKey(String(key || ''))
-      setSgdbKeyLoaded(true)
-    }).catch(() => {
-      if (!mounted) return
-      setSgdbKey('')
-      setSgdbKeyLoaded(true)
-    })
-
-    return () => {
-      mounted = false
-    }
-  }, [])
-
-  const saveSgdbKey = async () => {
-    if (sgdbSaving) return
-    setSgdbSaving(true)
-    setSgdbSaveMessage('')
-
-    const ok = await vaporApi.settings.setSgdbKey(sgdbKey)
-    setSgdbSaving(false)
-    setSgdbSaveMessage(ok ? 'SteamGridDB key saved.' : 'Failed to save SteamGridDB key.')
-  }
-
-  const clearSgdbKey = async () => {
-    if (sgdbSaving) return
-    setSgdbSaving(true)
-    setSgdbSaveMessage('')
-
-    const ok = await vaporApi.settings.setSgdbKey('')
-    setSgdbSaving(false)
-    if (ok) {
-      setSgdbKey('')
-      setSgdbSaveMessage('SteamGridDB key cleared.')
-      return
-    }
-    setSgdbSaveMessage('Failed to clear SteamGridDB key.')
-  }
 
   const checkForUpdates = async () => {
     setCheckingUpdate(true)
@@ -330,65 +284,8 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
           Vapor uses <b>SteamGridDB</b> to fetch cover art, hero banners, logos and icons.
           Art is fetched automatically when you add games.
         </Info>
-        <div style={{ marginTop:16 }}>
-          <div style={{ fontSize:12, color:'var(--text-dim)', marginBottom:6 }}>SteamGridDB API Key</div>
-          <input
-            type="password"
-            value={sgdbKey}
-            onChange={(e) => setSgdbKey(e.target.value)}
-            placeholder="Paste your SteamGridDB key"
-            disabled={!sgdbKeyLoaded || sgdbSaving}
-            style={{
-              width:'100%',
-              background:'var(--surface2)',
-              border:'1px solid var(--border)',
-              borderRadius:6,
-              padding:'8px 10px',
-              color:'var(--text)',
-              fontSize:13,
-              fontFamily:'var(--mono)',
-            }}
-          />
-          <div style={{ display:'flex', gap:8, marginTop:8 }}>
-            <button
-              onClick={saveSgdbKey}
-              disabled={!sgdbKeyLoaded || sgdbSaving}
-              style={{
-                padding:'7px 12px',
-                borderRadius:6,
-                fontSize:12,
-                background:'var(--accent)',
-                color:'#fff',
-                border:'none',
-                opacity: (!sgdbKeyLoaded || sgdbSaving) ? 0.7 : 1,
-              }}
-            >
-              {sgdbSaving ? 'Saving...' : 'Save Key'}
-            </button>
-            <button
-              onClick={clearSgdbKey}
-              disabled={!sgdbKeyLoaded || sgdbSaving}
-              style={{
-                padding:'7px 12px',
-                borderRadius:6,
-                fontSize:12,
-                background:'var(--surface2)',
-                color:'var(--text-dim)',
-                border:'1px solid var(--border)',
-                opacity: (!sgdbKeyLoaded || sgdbSaving) ? 0.7 : 1,
-              }}
-            >
-              Clear Key
-            </button>
-          </div>
-          {sgdbSaveMessage ? (
-            <div style={{ marginTop:8, fontSize:12, color:'var(--text-muted)' }}>
-              {sgdbSaveMessage}
-            </div>
-          ) : null}
-          <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>
-            Use your personal SteamGridDB API key. If you pasted a value starting with "Bearer ", Vapor will clean it automatically.
-          </div>
+        <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:12 }}>
+          SteamGridDB API key is bundled during build from your encrypted config.
         </div>
         <div style={{ marginTop:16 }}>
           <button

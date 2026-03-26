@@ -138,6 +138,7 @@ const sgdb = createSgdbService({
   ENCRYPTION_KEY,
   encryptedKeyFile: ENCRYPTED_KEY_FILE,
   sgdbKeyFile,
+  allowRuntimeKeyOverride: !app.isPackaged,
 })
 
 const downloader = createDownloader({
