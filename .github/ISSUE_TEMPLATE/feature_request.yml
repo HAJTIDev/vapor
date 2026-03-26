@@ -1,0 +1,34 @@
+name: Feature request
+description: Suggest an idea or improvement for Vapor
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing your idea.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      placeholder: It is hard to find games quickly in large libraries...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      placeholder: Add a fuzzy search bar in the library header...
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      placeholder: I tried using collections, but...
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Mockups, references, screenshots, or details.
