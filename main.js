@@ -53,6 +53,26 @@ function decryptJsonPayload(encrypted, encryptionKey) {
   return JSON.parse(decrypted)
 }
 
+function resolveRuntimeEncryptionKey() {
+  const envKey = String(process.env.VAPOR_ENCRYPTION_KEY || '').trim()
+  if (envKey) return envKey
+
+  const candidateFiles = app.isPackaged
+    ? [path.join(process.resourcesPath, 'runtime-key.json')]
+    : [path.join(__dirname, 'build', 'runtime-key.json')]
+
+  for (const candidate of candidateFiles) {
+    try {
+      if (!fs.existsSync(candidate)) continue
+      const parsed = JSON.parse(fs.readFileSync(candidate, 'utf8'))
+      const fileKey = String(parsed?.encryptionKey || '').trim()
+      if (fileKey) return fileKey
+    } catch {}
+  }
+
+  return 'vapor-default-key-change-me'
+}
+
 function loadLocalEnv() {
   const envPath = path.join(__dirname, '.env')
   if (!fs.existsSync(envPath)) return
@@ -69,7 +89,7 @@ function loadEncryptedPackagedEnv() {
   const encryptedEnvPath = path.join(process.resourcesPath, 'env.enc.json')
   if (!fs.existsSync(encryptedEnvPath)) return
 
-  const encryptionKey = process.env.VAPOR_ENCRYPTION_KEY || 'vapor-default-key-change-me'
+  const encryptionKey = resolveRuntimeEncryptionKey()
   try {
     const encrypted = fs.readFileSync(encryptedEnvPath, 'utf8')
     const envObject = decryptJsonPayload(encrypted, encryptionKey)
@@ -105,7 +125,7 @@ let lastDetectedRunningGameIds = new Set()
 
 const DISCORD_CLIENT_ID = String(process.env.DISCORD_CLIENT_ID || '1485273656555864236').trim()
 const DISCORD_ACTIVITY_STATE = 'Launched from Vapor'
-const ENCRYPTION_KEY = process.env.VAPOR_ENCRYPTION_KEY || 'vapor-default-key-change-me'
+const ENCRYPTION_KEY = resolveRuntimeEncryptionKey()
 
 const ENCRYPTED_KEY_FILE = isDev
   ? path.join(__dirname, 'build', 'sgdb.enc.json')

@@ -59,7 +59,7 @@ export default function GameDetail({
     try {
       const art = await vaporApi.art.fetch(game.name)
       if (art?.error) {
-        setArtError(art.error === 'no-api-key' ? 'No API key configured' : 
+        setArtError(art.error === 'no-api-key' ? 'No SteamGridDB key bundled. Set SGDB_API_KEY before build and rebuild.' : 
                     art.error === 'not-found' ? 'Game not found on SteamGridDB' : 
                     art.error)
       } else if (art && (art.grid || art.hero || art.logo)) {

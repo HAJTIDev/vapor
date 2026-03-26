@@ -33,14 +33,24 @@ function createSgdbService({ ENCRYPTION_KEY, encryptedKeyFile, sgdbKeyFile, allo
 
     try {
       if (allowRuntimeKeyOverride && fs.existsSync(sgdbKeyFile)) {
-        sgdbKeyCache = normalizeSgdbKey(fs.readFileSync(sgdbKeyFile, 'utf8'))
-      } else if (fs.existsSync(encryptedKeyFile)) {
-        const encrypted = fs.readFileSync(encryptedKeyFile, 'utf8')
-        sgdbKeyCache = normalizeSgdbKey(decryptApiKey(encrypted)) || ''
-      } else {
-        const envKey = normalizeSgdbKey(process.env.SGDB_API_KEY || process.env.SGDB_KEY)
-        sgdbKeyCache = envKey || ''
+        const localKey = normalizeSgdbKey(fs.readFileSync(sgdbKeyFile, 'utf8'))
+        if (localKey) {
+          sgdbKeyCache = localKey
+          return sgdbKeyCache
+        }
       }
+
+      if (fs.existsSync(encryptedKeyFile)) {
+        const encrypted = fs.readFileSync(encryptedKeyFile, 'utf8')
+        const encryptedKey = normalizeSgdbKey(decryptApiKey(encrypted))
+        if (encryptedKey) {
+          sgdbKeyCache = encryptedKey
+          return sgdbKeyCache
+        }
+      }
+
+      const envKey = normalizeSgdbKey(process.env.SGDB_API_KEY || process.env.SGDB_KEY)
+      sgdbKeyCache = envKey || ''
     } catch {
       const envKey = normalizeSgdbKey(process.env.SGDB_API_KEY || process.env.SGDB_KEY)
       sgdbKeyCache = envKey || ''

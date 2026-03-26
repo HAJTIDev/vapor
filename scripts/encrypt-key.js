@@ -83,6 +83,10 @@ const encryptedEnvPath = path.join(buildDir, 'env.enc.json');
 fs.writeFileSync(encryptedEnvPath, JSON.stringify(encryptJsonPayload(encryptedEnvPayload, ENCRYPTION_KEY)));
 console.log(`Encrypted env payload written to ${encryptedEnvPath}`);
 
+const runtimeKeyPath = path.join(buildDir, 'runtime-key.json');
+fs.writeFileSync(runtimeKeyPath, JSON.stringify({ encryptionKey: ENCRYPTION_KEY }));
+console.log(`Runtime encryption key written to ${runtimeKeyPath}`);
+
 if (!API_KEY || API_KEY === 'none' || API_KEY === '""' || API_KEY === "''" || API_KEY === '') {
   const keyFile = path.join(buildDir, 'sgdb.enc.json');
   if (fs.existsSync(keyFile)) {

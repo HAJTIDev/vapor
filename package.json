@@ -1,6 +1,6 @@
 {
   "name": "vapor",
-  "version": "1.4.21",
+  "version": "1.4.23",
   "description": "A minimal DRM-free game launcher",
   "main": "main.js",
   "scripts": {
@@ -55,6 +55,13 @@
       {
         "from": "build/sgdb.enc.json",
         "to": "sgdb.enc.json",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "build/runtime-key.json",
+        "to": "runtime-key.json",
         "filter": [
           "**/*"
         ]
