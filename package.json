@@ -1,6 +1,6 @@
 {
   "name": "vapor",
-  "version": "1.4.23",
+  "version": "1.5.1",
   "description": "A minimal DRM-free game launcher",
   "main": "main.js",
   "scripts": {
@@ -15,18 +15,18 @@
   "dependencies": {
     "discord-rpc": "^4.0.1",
     "electron-updater": "^6.8.3",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "webtorrent": "^2.8.5"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.0.1",
-    "concurrently": "^8.2.0",
-    "electron": "^41.0.3",
+    "concurrently": "^9.2.1",
+    "electron": "^41.1.0",
     "electron-builder": "^26.8.1",
-    "vite": "^8.0.1",
-    "vitest": "^4.1.0",
-    "wait-on": "^7.2.0"
+    "vite": "^8.0.3",
+    "vitest": "^4.1.2",
+    "wait-on": "^9.0.4"
   },
   "build": {
     "appId": "com.vapor.launcher",

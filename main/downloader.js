@@ -13,6 +13,7 @@ function createDownloader({
   let torrentClient = null
   let webTorrentCtor = null
   let downloadPulse = null
+  let statePersistPulse = null
   const torrentDownloads = new Map()
   const pendingTorrentSources = new Set()
 
@@ -106,6 +107,11 @@ function createDownloader({
           emitTorrentUpdate(torrent)
         }
       }, 1000)
+    }
+    if (!statePersistPulse) {
+      statePersistPulse = setInterval(() => {
+        persistDownloadsState()
+      }, 5000)
     }
     return torrentClient
   }
@@ -559,9 +565,15 @@ function createDownloader({
   }
 
   function cleanup() {
+    persistDownloadsState()
+
     if (downloadPulse) {
       clearInterval(downloadPulse)
       downloadPulse = null
+    }
+    if (statePersistPulse) {
+      clearInterval(statePersistPulse)
+      statePersistPulse = null
     }
     if (torrentClient) {
       torrentClient.destroy(() => {})
