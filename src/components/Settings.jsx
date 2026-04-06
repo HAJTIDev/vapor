@@ -3,6 +3,49 @@ import vaporApi from '../vaporApi'
 import { themes, getThemeNames } from '../themes'
 import { formatFileSize } from '../utils'
 
+const themeShowcase = {
+  dark: {
+    tagline: 'Neon dusk',
+    colors: ['#09090e', '#18181f', '#6c63ff', '#8b5cf6', '#f0f0f5'],
+  },
+  light: {
+    tagline: 'Clean daylight',
+    colors: ['#ffffff', '#efefef', '#7c3aed', '#6366f1', '#0a0a0a'],
+  },
+  winxp: {
+    tagline: 'Classic Luna',
+    colors: ['#3a6ea5', '#ece9d8', '#0a58ca', '#2b8df2', '#1a1a1a'],
+  },
+  vista: {
+    tagline: 'Glossy Aero',
+    colors: ['#0f2a45', '#eff5fb', '#4aa0e6', '#8ad3ff', '#0f2437'],
+  },
+  winui3: {
+    tagline: 'Mica modern',
+    colors: ['#202226', '#32353a', '#4cc2ff', '#2899f5', '#f3f3f3'],
+  },
+  cyberpunk: {
+    tagline: 'Neon overdrive',
+    colors: ['#000508', '#1a1f35', '#ff00ff', '#00ffff', '#00ff00'],
+  },
+  forest: {
+    tagline: 'Evergreen',
+    colors: ['#1a2e1a', '#3d5a3d', '#66bb6a', '#81c784', '#e8f5e9'],
+  },
+  nord: {
+    tagline: 'Arctic slate',
+    colors: ['#2e3440', '#434c5e', '#81a1c1', '#88c0d0', '#eceff4'],
+  },
+  solarized: {
+    tagline: 'Terminal calm',
+    colors: ['#002b36', '#073642', '#268bd2', '#2aa198', '#93a1a1'],
+  },
+  amoled: {
+    tagline: 'Pure black',
+    colors: ['#000000', '#1a1a1a', '#bb86fc', '#9d4edd', '#e0e0e0'],
+  },
+}
+
 export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
   const [saved, setSaved] = useState(false)
   const [newCollection, setNewCollection] = useState('')
@@ -14,6 +57,18 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
 
   const sliderMaxKbps = 4096
   const sliderStepKbps = 64
+  const currentTheme = settings.theme || 'dark'
+  const availableThemes = useMemo(
+    () => getThemeNames().map((id) => ({
+      id,
+      name: themes[id]?.name || id,
+      showcase: themeShowcase[id] || {
+        tagline: 'Custom style',
+        colors: ['#1e1e1e', '#2a2a2a', '#4f46e5', '#22c55e', '#e5e7eb'],
+      },
+    })),
+    []
+  )
 
   useEffect(() => {
     const handleUpdateStatus = (data) => {
@@ -358,27 +413,65 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
       <Section title="Settings">
         <div style={{ marginBottom:16 }}>
           <div style={{ fontSize:12, color:'var(--text-dim)', marginBottom:6 }}>Theme</div>
-          <select
-            value={settings.theme || 'dark'}
-            onChange={(e) => onSave({ ...settings, theme: e.target.value })}
-            style={{
-              background:'var(--surface2)',
-              color:'var(--text)',
-              border:'1px solid var(--border)',
-              borderRadius:6,
-              padding:'8px 10px',
-              fontSize:12,
-              cursor:'pointer',
-            }}
-          >
-            {getThemeNames().map(themeName => (
-              <option key={themeName} value={themeName}>
-                {themes[themeName]?.name || themeName}
-              </option>
-            ))}
-          </select>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(210px, 1fr))', gap:10 }}>
+            {availableThemes.map((theme) => {
+              const selected = currentTheme === theme.id
+              return (
+                <button
+                  key={theme.id}
+                  onClick={() => onSave({ ...settings, theme: theme.id })}
+                  style={{
+                    display:'flex',
+                    flexDirection:'column',
+                    gap:8,
+                    textAlign:'left',
+                    background:'var(--surface2)',
+                    border: selected ? '1px solid var(--accent)' : '1px solid var(--border)',
+                    borderRadius:10,
+                    padding:'10px',
+                    boxShadow: selected ? '0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent)' : 'none',
+                    transition:'border-color 0.14s ease, box-shadow 0.14s ease, transform 0.14s ease',
+                  }}
+                >
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
+                    <div style={{ fontSize:13, color:'var(--text)', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {theme.name}
+                    </div>
+                    {selected && (
+                      <span style={{ fontSize:10, color:'#fff', background:'var(--accent)', borderRadius:999, padding:'2px 7px', fontWeight:600 }}>
+                        Active
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{
+                    background: theme.showcase.colors[0],
+                    border:'1px solid var(--border)',
+                    borderRadius:8,
+                    overflow:'hidden',
+                  }}>
+                    <div style={{ height:8, background: `linear-gradient(90deg, ${theme.showcase.colors[2]} 0%, ${theme.showcase.colors[3]} 100%)` }} />
+                    <div style={{ padding:8, display:'grid', gap:6 }}>
+                      <div style={{ display:'flex', gap:5 }}>
+                        {theme.showcase.colors.map((color) => (
+                          <span key={`${theme.id}-${color}`} style={{ width:14, height:14, borderRadius:4, background:color, border:'1px solid #00000020' }} />
+                        ))}
+                      </div>
+                      <div style={{ height:6, borderRadius:999, background: theme.showcase.colors[1], border:'1px solid #00000020' }} />
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+                        <div style={{ height:18, borderRadius:6, background: `linear-gradient(135deg, ${theme.showcase.colors[2]} 0%, ${theme.showcase.colors[3]} 100%)` }} />
+                        <div style={{ height:18, borderRadius:6, background: theme.showcase.colors[1], border:'1px solid #00000020' }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize:11, color:'var(--text-muted)' }}>{theme.showcase.tagline}</div>
+                </button>
+              )
+            })}
+          </div>
           <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>
-            Choose your preferred color theme.
+            Pick a visual style for the full app chrome. Changes apply instantly.
           </div>
         </div>
         <div style={{ marginBottom:16 }}>
