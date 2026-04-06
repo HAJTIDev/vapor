@@ -1,0 +1,73 @@
+:root[data-theme='solarized'] {
+  --bg: #002b36;
+  --surface: #073642;
+  --surface2: #586e75;
+  --surface3: #657b83;
+  --border: #839496;
+  --border2: #93a1a1;
+  --text: #93a1a1;
+  --text-dim: #839496;
+  --text-muted: #657b83;
+  --accent: #268bd2;
+  --accent2: #2aa198;
+  --accent-dim: #268bd222;
+  --green: #859900;
+  --green2: #6c71c4;
+  --red: #dc322f;
+  --red2: #cb4b16;
+  --accent-gradient: linear-gradient(135deg, #268bd2 0%, #2aa198 100%);
+  --green-gradient: linear-gradient(135deg, #859900 0%, #6c71c4 100%);
+  --red-gradient: linear-gradient(135deg, #dc322f 0%, #cb4b16 100%);
+}
+
+:root[data-theme='solarized'] body::before {
+  background:
+    radial-gradient(940px 520px at 88% -110px, #268bd230, transparent 66%),
+    radial-gradient(700px 420px at 8% 12%, #2aa1982b, transparent 70%),
+    linear-gradient(180deg, #073642 0%, #002b36 100%);
+  opacity: 1;
+}
+
+:root[data-theme='solarized'] .app-shell {
+  border: 1px solid #93a1a145;
+  box-shadow: 0 14px 34px #001a2266;
+}
+
+:root[data-theme='solarized'] .titlebar {
+  background: linear-gradient(180deg, #0b3c4a 0%, #073642 100%) !important;
+  border-bottom: 1px solid #93a1a162 !important;
+}
+
+:root[data-theme='solarized'] .sidebar,
+:root[data-theme='solarized'] .app-main,
+:root[data-theme='solarized'] .library-view {
+  background: linear-gradient(180deg, #0b3a47 0%, #073642 100%) !important;
+}
+
+:root[data-theme='solarized'] .context-menu {
+  background: #0b3a47 !important;
+  border: 1px solid #93a1a172 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 16px 34px #00182166 !important;
+}
+
+:root[data-theme='solarized'] .nav-item,
+:root[data-theme='solarized'] .collection-item,
+:root[data-theme='solarized'] .game-row,
+:root[data-theme='solarized'] .library-grid .game-card,
+:root[data-theme='solarized'] .ui-input {
+  border: 1px solid #93a1a16b !important;
+  border-radius: 8px !important;
+  background: #13424ea6 !important;
+}
+
+:root[data-theme='solarized'] .nav-item.is-active,
+:root[data-theme='solarized'] .collection-item.is-active,
+:root[data-theme='solarized'] .game-row.is-active {
+  background: linear-gradient(135deg, #268bd247 0%, #2aa1983b 100%) !important;
+  border-color: #2aa198aa !important;
+}
+
+:root[data-theme='solarized'] .library-grid .game-card:hover {
+  box-shadow: 0 10px 24px #0018214f;
+}

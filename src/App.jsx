@@ -416,9 +416,9 @@ export default function App() {
   return (
     <>
       {showBoot && <BootAnimation onComplete={() => setShowBoot(false)} />}
-      <div style={{ display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden' }}>
+      <div className="app-shell" style={{ display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden' }}>
       <Titlebar />
-      <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
+      <div className="app-body" style={{ display:'flex', flex:1, overflow:'hidden' }}>
         <Sidebar
           view={view} setView={setView}
           gameCount={games.length}
@@ -441,7 +441,7 @@ export default function App() {
           compactSidebar={settings.ui.compactSidebar}
           onDeselect={() => setSelected(null)}
         />
-        <main style={{ flex:1, overflow:'hidden', position:'relative' }}>
+        <main className="app-main" style={{ flex:1, overflow:'hidden', position:'relative' }}>
           {view === 'library' && !selectedGame && (
             <Library
               games={visibleGames}
@@ -497,6 +497,7 @@ export default function App() {
 
       {menuGame && contextMenu.open && (
         <div
+          className="context-menu"
           onClick={(e) => e.stopPropagation()}
           style={{
             position:'fixed',

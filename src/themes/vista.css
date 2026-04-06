@@ -1,0 +1,203 @@
+:root[data-theme='vista'] {
+  --bg: #0f2a45;
+  --surface: #eff5fbcc;
+  --surface2: #f7fbffdd;
+  --surface3: #dbe8f5cc;
+  --border: #88a7c266;
+  --border2: #5d88afaa;
+  --text: #0f2437;
+  --text-dim: #29465f;
+  --text-muted: #4d6b85;
+  --accent: #2f8de0;
+  --accent2: #8ad3ff;
+  --accent-dim: #2f8de026;
+  --green: #2fa772;
+  --green2: #5ad3a0;
+  --red: #d05a5a;
+  --red2: #ea8a8a;
+  --accent-gradient: linear-gradient(180deg, #a9dbff 0%, #4aa0e6 45%, #2f79be 100%);
+  --green-gradient: linear-gradient(180deg, #8de5bd 0%, #3fb783 50%, #2f8b65 100%);
+  --red-gradient: linear-gradient(180deg, #f3b1b1 0%, #df7979 50%, #c45555 100%);
+  --font: Segoe UI, Tahoma, Verdana, sans-serif;
+  --mono: Consolas, Courier New, monospace;
+}
+
+:root[data-theme='vista'] body::before {
+  background:
+    radial-gradient(1200px 520px at 8% -80px, #bde8ff88 0%, transparent 55%),
+    radial-gradient(860px 420px at 92% 6%, #9dd0ff66 0%, transparent 62%),
+    linear-gradient(180deg, #356ea8 0%, #1d436c 55%, #10263f 100%);
+  opacity: 1;
+}
+
+:root[data-theme='vista'] .app-shell {
+  border: 1px solid #91b9db88;
+  box-shadow:
+    inset 0 1px 0 #ffffffaa,
+    inset 0 -1px 0 #6b8ba944,
+    0 8px 30px #02101f66;
+}
+
+:root[data-theme='vista'] .titlebar {
+  height: 34px !important;
+  border-bottom: 1px solid #5f87a8 !important;
+  background: linear-gradient(180deg, #b8deffcc 0%, #84bde9cc 42%, #5d93becc 100%) !important;
+  backdrop-filter: blur(6px) saturate(125%);
+}
+
+:root[data-theme='vista'] .titlebar-brand span {
+  color: #0f3555 !important;
+  letter-spacing: 0.05em !important;
+  text-shadow: 0 1px 0 #ffffffbb;
+}
+
+:root[data-theme='vista'] .titlebar-controls {
+  gap: 4px;
+  padding-right: 8px;
+}
+
+:root[data-theme='vista'] .titlebar-btn {
+  width: 28px !important;
+  height: 22px !important;
+  margin-top: 4px;
+  border-radius: 5px !important;
+  border: 1px solid #5d88af !important;
+  background: linear-gradient(180deg, #f5fbff 0%, #c8e5fb 45%, #92c2e7 100%) !important;
+  box-shadow: inset 0 1px 0 #ffffff, 0 1px 0 #ffffff66 !important;
+  color: #1f4466 !important;
+}
+
+:root[data-theme='vista'] .titlebar-btn:hover {
+  background: linear-gradient(180deg, #ffffff 0%, #d7ecff 45%, #9dcdf0 100%) !important;
+}
+
+:root[data-theme='vista'] .titlebar-btn:active {
+  box-shadow: inset 0 2px 4px #2d5f8b55 !important;
+  background: linear-gradient(180deg, #8dbbe0 0%, #bcdcf6 100%) !important;
+}
+
+:root[data-theme='vista'] .titlebar-btn-close {
+  border-color: #a04f4f !important;
+  background: linear-gradient(180deg, #ffcece 0%, #ec8b8b 45%, #ca5f5f 100%) !important;
+  color: #5e1f1f !important;
+}
+
+:root[data-theme='vista'] .sidebar,
+:root[data-theme='vista'] .app-main,
+:root[data-theme='vista'] .library-view,
+:root[data-theme='vista'] .context-menu {
+  background: linear-gradient(180deg, #f8fbffea 0%, #edf5fdea 100%) !important;
+  border-radius: 6px !important;
+  border: 1px solid #5d88af !important;
+  background: linear-gradient(180deg, #f7fcff 0%, #cbe5fb 48%, #98c5e7 100%) !important;
+  border-right: 1px solid #8fb2cf !important;
+  box-shadow: inset -1px 0 0 #ffffffc2 !important;
+}
+
+:root[data-theme='vista'] .context-menu {
+  border: 1px solid #7ea5c5 !important;
+  border-radius: 8px !important;
+  background: linear-gradient(180deg, #ffffff 0%, #d9eeff 52%, #a8d3f2 100%) !important;
+  backdrop-filter: blur(8px);
+}
+
+:root[data-theme='vista'] .nav-item,
+:root[data-theme='vista'] .collection-item,
+:root[data-theme='vista'] .game-row,
+:root[data-theme='vista'] .library-grid .game-card,
+:root[data-theme='vista'] .ui-input {
+  border: 1px solid #98b8d166 !important;
+  border-radius: 8px !important;
+  box-shadow: inset 0 1px 0 #ffffffcc;
+}
+
+:root[data-theme='vista'] .nav-item:hover,
+:root[data-theme='vista'] .collection-item:hover,
+:root[data-theme='vista'] .game-row:hover {
+  background: linear-gradient(180deg, #ffffff 0%, #eaf4ff 100%) !important;
+  border-color: #6ea0c8 !important;
+}
+
+:root[data-theme='vista'] .nav-item.is-active,
+:root[data-theme='vista'] .collection-item.is-active,
+:root[data-theme='vista'] .game-row.is-active {
+  background: linear-gradient(180deg, #bde6ff 0%, #7bc0f0 45%, #4a97cd 100%) !important;
+  border-color: #447aa5 !important;
+  color: #0f3555 !important;
+}
+
+:root[data-theme='vista'] .library-grid .game-card {
+  background: linear-gradient(180deg, #ffffffcc 0%, #f1f8ffcc 100%) !important;
+}
+
+:root[data-theme='vista'] .library-grid .game-card:hover {
+  border-color: #5f93bc !important;
+  box-shadow: inset 0 1px 0 #ffffff, 0 6px 20px #7fa8c844 !important;
+}
+
+:root[data-theme='vista'] .ui-btn,
+:root[data-theme='vista'] .btn-accent,
+:root[data-theme='vista'] .btn-green,
+:root[data-theme='vista'] .btn-red,
+:root[data-theme='vista'] button:not(.nav-item):not(.collection-item):not(.game-row) {
+  border-radius: 6px !important;
+  border: 1px solid #5d88af !important;
+  background: linear-gradient(180deg, #f7fcff 0%, #cbe5fb 48%, #98c5e7 100%) !important;
+  color: #143a59 !important;
+  box-shadow: inset 0 1px 0 #ffffff, 0 1px 0 #ffffff66;
+  transform: none !important;
+  filter: none !important;
+}
+
+:root[data-theme='vista'] .ui-btn:hover,
+:root[data-theme='vista'] .btn-accent:hover,
+:root[data-theme='vista'] .btn-green:hover,
+:root[data-theme='vista'] .btn-red:hover,
+:root[data-theme='vista'] button:not(.nav-item):not(.collection-item):not(.game-row):hover {
+  background: linear-gradient(180deg, #ffffff 0%, #d9eeff 52%, #a8d3f2 100%) !important;
+}
+
+:root[data-theme='vista'] .ui-btn:active,
+:root[data-theme='vista'] .btn-accent:active,
+:root[data-theme='vista'] .btn-green:active,
+:root[data-theme='vista'] .btn-red:active,
+:root[data-theme='vista'] button:not(.nav-item):not(.collection-item):not(.game-row):active {
+  background: linear-gradient(180deg, #8fb9dc 0%, #c9e3f8 100%) !important;
+  box-shadow: inset 0 2px 4px #2d5f8b55 !important;
+}
+
+:root[data-theme='vista'] input,
+:root[data-theme='vista'] select,
+:root[data-theme='vista'] textarea {
+  border-radius: 6px !important;
+  border: 1px solid #7ea5c5 !important;
+  background: linear-gradient(180deg, #ffffff 0%, #f4f9ff 100%) !important;
+  color: #102a40 !important;
+  box-shadow: inset 0 1px 1px #b0cde455;
+}
+
+:root[data-theme='vista'] input:focus,
+:root[data-theme='vista'] select:focus,
+:root[data-theme='vista'] textarea:focus {
+  border-color: #3f89c0 !important;
+  box-shadow: inset 0 1px 1px #b0cde455, 0 0 0 2px #7fc1f044 !important;
+}
+
+:root[data-theme='vista'] ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+:root[data-theme='vista'] ::-webkit-scrollbar-track {
+  background: #dbe9f6;
+}
+
+:root[data-theme='vista'] ::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  border: 1px solid #6d95b8;
+  background: linear-gradient(180deg, #d8ecff 0%, #9ac4e7 100%);
+}
+
+:root[data-theme='vista'] ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #e6f4ff 0%, #aad3f2 100%);
+}

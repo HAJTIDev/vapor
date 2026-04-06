@@ -1,0 +1,218 @@
+:root[data-theme='winxp'] {
+  --bg: #3a6ea5;
+  --surface: #ece9d8;
+  --surface2: #f6f2e4;
+  --surface3: #d4d0c8;
+  --border: #7f9db9;
+  --border2: #0a246a;
+  --text: #1a1a1a;
+  --text-dim: #2f4f6f;
+  --text-muted: #5f7487;
+  --accent: #0a58ca;
+  --accent2: #2b8df2;
+  --accent-dim: #0a58ca22;
+  --green: #3a9d3f;
+  --green2: #2f7d33;
+  --red: #d9534f;
+  --red2: #c12f2a;
+  --accent-gradient: linear-gradient(180deg, #3aa3ff 0%, #0a58ca 100%);
+  --green-gradient: linear-gradient(180deg, #59b35f 0%, #2f7d33 100%);
+  --red-gradient: linear-gradient(180deg, #e5736f 0%, #c12f2a 100%);
+  --font: Tahoma, Verdana, Segoe UI, sans-serif;
+  --mono: Consolas, Courier New, monospace;
+}
+
+:root[data-theme='winxp'] body::before {
+  background: none;
+  opacity: 0;
+}
+
+:root[data-theme='winxp'] body {
+  background:
+    linear-gradient(180deg, #5b8dc7 0%, #3a6ea5 40%, #2f5f95 100%);
+}
+
+:root[data-theme='winxp'] .app-shell {
+  border: 1px solid #2b4f82;
+  box-shadow: inset 1px 1px 0 #9dbce3, inset -1px -1px 0 #1f3f6a;
+}
+
+:root[data-theme='winxp'] .titlebar {
+  height: 30px !important;
+  padding-left: 8px !important;
+  border-bottom: 1px solid #0a246a !important;
+  background: linear-gradient(180deg, #0a78d7 0%, #0a58ca 48%, #0849a8 100%) !important;
+}
+
+:root[data-theme='winxp'] .titlebar-brand span {
+  color: #ffffff !important;
+  font-family: Tahoma, Verdana, Segoe UI, sans-serif !important;
+  letter-spacing: 0.04em !important;
+  font-size: 12px !important;
+  text-shadow: 0 1px 0 #083d83;
+}
+
+:root[data-theme='winxp'] .titlebar-controls {
+  gap: 2px;
+  padding-right: 4px;
+}
+
+:root[data-theme='winxp'] .titlebar-btn {
+  width: 24px !important;
+  height: 20px !important;
+  margin-top: 4px;
+  border-radius: 2px !important;
+  border: 1px solid #0a246a !important;
+  background: linear-gradient(180deg, #ffffff 0%, #d8e7f9 55%, #b8d2f1 100%) !important;
+  color: #0b2f6d !important;
+  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #7f9db9 !important;
+  font-size: 11px !important;
+}
+
+:root[data-theme='winxp'] .titlebar-btn:active {
+  box-shadow: inset 1px 1px 0 #7f9db9, inset -1px -1px 0 #ffffff !important;
+}
+
+:root[data-theme='winxp'] .titlebar-btn-close {
+  background: linear-gradient(180deg, #ffb08b 0%, #e56d43 55%, #d34c22 100%) !important;
+  color: #ffffff !important;
+  border-color: #8a1f00 !important;
+}
+
+:root[data-theme='winxp'] .sidebar,
+:root[data-theme='winxp'] .app-main {
+  background: #ece9d8 !important;
+}
+
+:root[data-theme='winxp'] .sidebar {
+  border-right: 1px solid #7f9db9 !important;
+  box-shadow: inset -1px 0 0 #ffffff !important;
+}
+
+:root[data-theme='winxp'] .sidebar-top,
+:root[data-theme='winxp'] .sidebar-nav,
+:root[data-theme='winxp'] .sidebar-collections,
+:root[data-theme='winxp'] .sidebar-games,
+:root[data-theme='winxp'] .library-view,
+:root[data-theme='winxp'] .context-menu {
+  background: #ece9d8 !important;
+}
+
+:root[data-theme='winxp'] .context-menu {
+  border: 1px solid #7f9db9 !important;
+  border-radius: 0 !important;
+  box-shadow: 2px 2px 0 #9a9a9a !important;
+}
+
+:root[data-theme='winxp'] .nav-item,
+:root[data-theme='winxp'] .collection-item,
+:root[data-theme='winxp'] .game-row {
+  border-radius: 2px !important;
+}
+
+:root[data-theme='winxp'] .nav-item.is-active,
+:root[data-theme='winxp'] .collection-item.is-active,
+:root[data-theme='winxp'] .game-row.is-active {
+  background: linear-gradient(180deg, #3aa3ff 0%, #0a58ca 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #0a246a !important;
+}
+
+:root[data-theme='winxp'] .library-grid .game-card {
+  border-radius: 2px !important;
+  border: 1px solid #7f9db9 !important;
+  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #c5c0b3 !important;
+  transform: none !important;
+  background: #f6f2e4 !important;
+}
+
+:root[data-theme='winxp'] .library-grid .game-card:hover {
+  border-color: #0a58ca !important;
+  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #9cb6d9 !important;
+}
+
+:root[data-theme='winxp'] .ui-btn,
+:root[data-theme='winxp'] button:not(.nav-item):not(.collection-item):not(.game-row),
+:root[data-theme='winxp'] .btn-accent,
+:root[data-theme='winxp'] .btn-green,
+:root[data-theme='winxp'] .btn-red {
+  border-radius: 2px !important;
+  border: 1px solid #0a246a !important;
+  background: linear-gradient(180deg, #ffffff 0%, #ece9d8 52%, #d4d0c8 100%) !important;
+  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #7f9db9;
+  color: #0d2341 !important;
+  filter: none !important;
+  transform: none !important;
+  text-shadow: none !important;
+}
+
+:root[data-theme='winxp'] .ui-btn:hover,
+:root[data-theme='winxp'] button:not(.nav-item):not(.collection-item):not(.game-row):hover,
+:root[data-theme='winxp'] .btn-accent:hover,
+:root[data-theme='winxp'] .btn-green:hover,
+:root[data-theme='winxp'] .btn-red:hover {
+  background: linear-gradient(180deg, #ffffff 0%, #f2efe3 55%, #dbd7cd 100%) !important;
+}
+
+:root[data-theme='winxp'] .ui-btn:active,
+:root[data-theme='winxp'] button:not(.nav-item):not(.collection-item):not(.game-row):active,
+:root[data-theme='winxp'] .btn-accent:active,
+:root[data-theme='winxp'] .btn-green:active,
+:root[data-theme='winxp'] .btn-red:active {
+  background: linear-gradient(180deg, #d4d0c8 0%, #ece9d8 100%) !important;
+  box-shadow: inset 1px 1px 0 #7f9db9, inset -1px -1px 0 #ffffff;
+}
+
+:root[data-theme='winxp'] .ui-btn:disabled,
+:root[data-theme='winxp'] button:not(.nav-item):not(.collection-item):not(.game-row):disabled {
+  color: #7d7d7d !important;
+  border-color: #a0a0a0 !important;
+  background: #e9e9e9 !important;
+}
+
+:root[data-theme='winxp'] .ui-input,
+:root[data-theme='winxp'] input,
+:root[data-theme='winxp'] select,
+:root[data-theme='winxp'] textarea {
+  border-radius: 2px !important;
+  border: 1px solid #7f9db9 !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  box-shadow: inset 1px 1px 0 #d4d0c8;
+}
+
+:root[data-theme='winxp'] .ui-input:focus,
+:root[data-theme='winxp'] input:focus,
+:root[data-theme='winxp'] select:focus,
+:root[data-theme='winxp'] textarea:focus {
+  border-color: #0a246a !important;
+  box-shadow: inset 1px 1px 0 #d4d0c8, 0 0 0 1px #0a246a !important;
+}
+
+:root[data-theme='winxp'] .ui-input:focus-visible,
+:root[data-theme='winxp'] input:focus-visible,
+:root[data-theme='winxp'] select:focus-visible,
+:root[data-theme='winxp'] button:not(.nav-item):not(.collection-item):not(.game-row):focus-visible {
+  outline: 1px dotted #0a246a !important;
+  outline-offset: -2px;
+}
+
+:root[data-theme='winxp'] ::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+:root[data-theme='winxp'] ::-webkit-scrollbar-track {
+  background: #ece9d8;
+  border: 1px solid #c0c0c0;
+}
+
+:root[data-theme='winxp'] ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #f8f8f8 0%, #dfdfdf 100%);
+  border: 1px solid #7f9db9;
+  border-radius: 0;
+}
+
+:root[data-theme='winxp'] ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #ffffff 0%, #e8e8e8 100%);
+}

@@ -1,0 +1,87 @@
+:root[data-theme='light'] {
+  --bg: #ffffff;
+  --surface: #f5f5f7;
+  --surface2: #efefef;
+  --surface3: #e4e4e9;
+  --border: #00000012;
+  --border2: #00000024;
+  --text: #0a0a0a;
+  --text-dim: #4a4a5a;
+  --text-muted: #8a8a9a;
+  --accent: #7c3aed;
+  --accent2: #6366f1;
+  --accent-dim: #7c3aed22;
+  --green: #22c55e;
+  --green2: #16a34a;
+  --red: #ef4444;
+  --red2: #dc2626;
+  --accent-gradient: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+  --green-gradient: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  --red-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+:root[data-theme='light'] body::before {
+  background:
+    radial-gradient(980px 540px at 86% -120px, #7c3aed22, transparent 68%),
+    radial-gradient(760px 420px at 0% 16%, #6366f118, transparent 70%),
+    linear-gradient(180deg, #ffffff 0%, #f1f3f8 100%);
+  opacity: 1;
+}
+
+:root[data-theme='light'] .app-shell {
+  border: 1px solid #00000014;
+  box-shadow: 0 14px 34px #00000018;
+}
+
+:root[data-theme='light'] .titlebar {
+  background: linear-gradient(180deg, #fafbff 0%, #f1f3fa 100%) !important;
+  border-bottom: 1px solid #00000012 !important;
+}
+
+:root[data-theme='light'] .titlebar-btn {
+  color: #4b5563 !important;
+  border-radius: 6px !important;
+}
+
+:root[data-theme='light'] .titlebar-btn:hover {
+  background: #0000000f !important;
+}
+
+:root[data-theme='light'] .sidebar,
+:root[data-theme='light'] .app-main,
+:root[data-theme='light'] .library-view {
+  background: linear-gradient(180deg, #f6f7fb 0%, #eff1f7 100%) !important;
+}
+
+:root[data-theme='light'] .sidebar {
+  border-right: 1px solid #00000012 !important;
+}
+
+:root[data-theme='light'] .context-menu {
+  background: #ffffff !important;
+  border: 1px solid #00000018 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 14px 30px #0000001f !important;
+}
+
+:root[data-theme='light'] .nav-item,
+:root[data-theme='light'] .collection-item,
+:root[data-theme='light'] .game-row,
+:root[data-theme='light'] .library-grid .game-card,
+:root[data-theme='light'] .ui-input {
+  border-radius: 10px !important;
+  border: 1px solid #00000015 !important;
+  background: #ffffffb5 !important;
+}
+
+:root[data-theme='light'] .nav-item.is-active,
+:root[data-theme='light'] .collection-item.is-active,
+:root[data-theme='light'] .game-row.is-active {
+  background: linear-gradient(135deg, #7c3aed1a 0%, #6366f118 100%) !important;
+  border-color: #7c3aed70 !important;
+  color: #1f2937 !important;
+}
+
+:root[data-theme='light'] .library-grid .game-card:hover {
+  box-shadow: 0 12px 24px #00000017;
+}

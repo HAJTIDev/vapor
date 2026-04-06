@@ -64,7 +64,7 @@ export default function Library({
   if (totalGameCount === 0) return <Empty onAddClick={onAddClick} />
 
   return (
-    <div style={{ height:'100%', overflow:'auto', padding: spacing.xxl }}>
+    <div className="library-view" style={{ height:'100%', overflow:'auto', padding: spacing.xxl }}>
       {/* Header */}
       <div style={{ marginBottom: spacing.xxl }}>
         <Text.H1>Your Library</Text.H1>
@@ -120,7 +120,7 @@ export default function Library({
       )}
 
       {/* Game grid */}
-      <div style={{
+      <div className="library-grid" style={{
         display:'grid',
         gridTemplateColumns:'repeat(auto-fill, minmax(160px, 1fr))',
         gap: spacing.lg
@@ -164,6 +164,7 @@ function GameCard({ game, running, onSelect, onLaunch, onContextMenu, onToggleFa
 
   return (
     <div
+      className="game-card"
       onClick={() => onSelect(game)}
       onContextMenu={(e) => onContextMenu(e, game)}
       onMouseEnter={() => setHov(true)}

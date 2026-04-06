@@ -1,27 +1,19 @@
+@import './themes/dark.css';
+@import './themes/light.css';
+@import './themes/winxp.css';
+@import './themes/vista.css';
+@import './themes/winui3.css';
+@import './themes/cyberpunk.css';
+@import './themes/forest.css';
+@import './themes/nord.css';
+@import './themes/solarized.css';
+@import './themes/amoled.css';
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:         #09090e;
-  --surface:    #111118;
-  --surface2:   #18181f;
-  --surface3:   #20202a;
-  --border:     #ffffff0d;
-  --border2:    #ffffff18;
-  --text:       #f0f0f5;
-  --text-dim:   #707088;
-  --text-muted: #40404d;
-  --accent:     #6c63ff;
-  --accent2:    #8b5cf6;
-  --accent-dim: #6c63ff22;
-  --green:      #4ade80;
-  --green2:     #22c55e;
-  --red:        #f87171;
-  --red2:       #ef4444;
   --font:       'Outfit', sans-serif;
   --mono:       'DM Mono', monospace;
-  --accent-gradient: linear-gradient(135deg, #7c5cff 0%, #a06aff 100%);
-  --green-gradient: linear-gradient(135deg, #5eea90 0%, #2dd46a 100%);
-  --red-gradient: linear-gradient(135deg, #ff7878 0%, #f25454 100%);
 }
 
 html, body, #root { height: 100%; overflow: hidden; }

@@ -1,0 +1,73 @@
+:root[data-theme='forest'] {
+  --bg: #1a2e1a;
+  --surface: #2d4a2d;
+  --surface2: #3d5a3d;
+  --surface3: #476947;
+  --border: #ffffff10;
+  --border2: #ffffff18;
+  --text: #e8f5e9;
+  --text-dim: #a5d6a7;
+  --text-muted: #81c784;
+  --accent: #66bb6a;
+  --accent2: #81c784;
+  --accent-dim: #66bb6a22;
+  --green: #4caf50;
+  --green2: #2e7d32;
+  --red: #e57373;
+  --red2: #ef5350;
+  --accent-gradient: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
+  --green-gradient: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+  --red-gradient: linear-gradient(135deg, #e57373 0%, #ef5350 100%);
+}
+
+:root[data-theme='forest'] body::before {
+  background:
+    radial-gradient(960px 520px at 90% -100px, #81c78426, transparent 68%),
+    radial-gradient(740px 420px at 10% 12%, #66bb6a24, transparent 70%),
+    linear-gradient(180deg, #2d4a2d 0%, #1a2e1a 100%);
+  opacity: 1;
+}
+
+:root[data-theme='forest'] .app-shell {
+  border: 1px solid #d8eed618;
+  box-shadow: 0 14px 34px #0d1d0d66;
+}
+
+:root[data-theme='forest'] .titlebar {
+  background: linear-gradient(180deg, #3d5a3d 0%, #2d4a2d 100%) !important;
+  border-bottom: 1px solid #d8eed621 !important;
+}
+
+:root[data-theme='forest'] .sidebar,
+:root[data-theme='forest'] .app-main,
+:root[data-theme='forest'] .library-view {
+  background: linear-gradient(180deg, #345334 0%, #2a442a 100%) !important;
+}
+
+:root[data-theme='forest'] .context-menu {
+  background: #3a583a !important;
+  border: 1px solid #d8eed624 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 14px 30px #0f210f66 !important;
+}
+
+:root[data-theme='forest'] .nav-item,
+:root[data-theme='forest'] .collection-item,
+:root[data-theme='forest'] .game-row,
+:root[data-theme='forest'] .library-grid .game-card,
+:root[data-theme='forest'] .ui-input {
+  border: 1px solid #d8eed620 !important;
+  border-radius: 10px !important;
+  background: #3e5d3ea3 !important;
+}
+
+:root[data-theme='forest'] .nav-item.is-active,
+:root[data-theme='forest'] .collection-item.is-active,
+:root[data-theme='forest'] .game-row.is-active {
+  background: linear-gradient(135deg, #66bb6a42 0%, #81c78434 100%) !important;
+  border-color: #81c7848a !important;
+}
+
+:root[data-theme='forest'] .library-grid .game-card:hover {
+  box-shadow: 0 10px 24px #1329134d;
+}

@@ -1,0 +1,73 @@
+:root[data-theme='nord'] {
+  --bg: #2e3440;
+  --surface: #3b4252;
+  --surface2: #434c5e;
+  --surface3: #4c566a;
+  --border: #eceff4a0;
+  --border2: #eceff418;
+  --text: #eceff4;
+  --text-dim: #d8dee9;
+  --text-muted: #81a1c1;
+  --accent: #81a1c1;
+  --accent2: #88c0d0;
+  --accent-dim: #81a1c122;
+  --green: #a3be8c;
+  --green2: #8fbcbb;
+  --red: #bf616a;
+  --red2: #d08770;
+  --accent-gradient: linear-gradient(135deg, #81a1c1 0%, #88c0d0 100%);
+  --green-gradient: linear-gradient(135deg, #a3be8c 0%, #8fbcbb 100%);
+  --red-gradient: linear-gradient(135deg, #bf616a 0%, #d08770 100%);
+}
+
+:root[data-theme='nord'] body::before {
+  background:
+    radial-gradient(900px 460px at 92% -100px, #88c0d024, transparent 70%),
+    radial-gradient(760px 420px at 8% 14%, #81a1c122, transparent 72%),
+    linear-gradient(180deg, #3b4252 0%, #2e3440 100%);
+  opacity: 1;
+}
+
+:root[data-theme='nord'] .app-shell {
+  border: 1px solid #eceff426;
+  box-shadow: 0 16px 40px #1c233180;
+}
+
+:root[data-theme='nord'] .titlebar {
+  background: linear-gradient(180deg, #4c566a 0%, #434c5e 100%) !important;
+  border-bottom: 1px solid #eceff430 !important;
+}
+
+:root[data-theme='nord'] .sidebar,
+:root[data-theme='nord'] .app-main,
+:root[data-theme='nord'] .library-view {
+  background: linear-gradient(180deg, #434c5e 0%, #3b4252 100%) !important;
+}
+
+:root[data-theme='nord'] .context-menu {
+  background: #434c5e !important;
+  border: 1px solid #eceff43d !important;
+  border-radius: 8px !important;
+  box-shadow: 0 18px 36px #1b223066 !important;
+}
+
+:root[data-theme='nord'] .nav-item,
+:root[data-theme='nord'] .collection-item,
+:root[data-theme='nord'] .game-row,
+:root[data-theme='nord'] .library-grid .game-card,
+:root[data-theme='nord'] .ui-input {
+  border: 1px solid #eceff42c !important;
+  border-radius: 8px !important;
+  background: #4c566a9a !important;
+}
+
+:root[data-theme='nord'] .nav-item.is-active,
+:root[data-theme='nord'] .collection-item.is-active,
+:root[data-theme='nord'] .game-row.is-active {
+  background: linear-gradient(135deg, #81a1c144 0%, #88c0d03a 100%) !important;
+  border-color: #88c0d0a6 !important;
+}
+
+:root[data-theme='nord'] .library-grid .game-card:hover {
+  box-shadow: 0 10px 24px #1b22304a;
+}

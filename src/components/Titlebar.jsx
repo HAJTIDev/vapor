@@ -4,13 +4,13 @@ import logo from '../img/image.png'
 
 export default function Titlebar() {
   return (
-    <div style={{
+    <div className="titlebar" style={{
       height: 38, display:'flex', alignItems:'center', justifyContent:'space-between',
       background:'var(--bg)', borderBottom:'1px solid var(--border)',
       WebkitAppRegion:'drag', flexShrink:0, paddingLeft:16, paddingRight:0,
       position:'relative', zIndex:100
     }}>
-      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+      <div className="titlebar-brand" style={{ display:'flex', alignItems:'center', gap:8 }}>
         <img
           src={logo}
           alt="Vapor"
@@ -20,7 +20,7 @@ export default function Titlebar() {
           VAPOR
         </span>
       </div>
-      <div style={{ display:'flex', WebkitAppRegion:'no-drag' }}>
+      <div className="titlebar-controls" style={{ display:'flex', WebkitAppRegion:'no-drag' }}>
         {[
           { label:'−', action:'minimize', hoverBg:'var(--surface2)' },
           { label:'□', action:'maximize', hoverBg:'var(--surface2)' },
@@ -40,7 +40,7 @@ function WinBtn({ label, action, hoverBg }) {
       onClick={() => vaporApi.win[action]()}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
-      className="ui-btn"
+      className={`ui-btn titlebar-btn titlebar-btn-${action}`}
       style={{
         width:46, height:38, display:'flex', alignItems:'center', justifyContent:'center',
         fontSize:14, color: hov ? '#fff' : 'var(--text-muted)',

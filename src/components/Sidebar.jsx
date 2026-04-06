@@ -30,7 +30,7 @@ export default function Sidebar({
   const activeCollectionLabel = collections.find(c => c.id === activeCollection)?.name || 'Games'
 
   return (
-    <aside style={{
+    <aside className="sidebar" style={{
       width: compactSidebar ? 250 : 290,
       flexShrink: 0,
       background: 'var(--bg)',
@@ -40,7 +40,7 @@ export default function Sidebar({
       overflow: 'hidden',
       boxShadow: 'inset -1px 0 0 #ffffff08',
     }}>
-      <div style={{ padding:'12px 12px 6px' }}>
+      <div className="sidebar-top" style={{ padding:'12px 12px 6px' }}>
         <div style={{
           display:'flex',
           alignItems:'center',
@@ -101,7 +101,7 @@ export default function Sidebar({
         </div>
       </div>
 
-      <nav style={{ padding:'4px 8px 8px', display:'flex', flexDirection:'column', gap:4 }}>
+      <nav className="sidebar-nav" style={{ padding:'4px 8px 8px', display:'flex', flexDirection:'column', gap:4 }}>
         <NavItem active={view==='library'} onClick={() => go('library')} icon={<GridIcon />} label="Library" badge={gameCount} />
         <NavItem active={view==='add'}     onClick={() => go('add')}     icon={<PlusIcon />} label="Add Games" />
         <NavItem active={view==='downloads'} onClick={() => go('downloads')} icon={<DownloadIcon />} label="Downloads" />
@@ -109,7 +109,7 @@ export default function Sidebar({
       </nav>
 
       <SectionLabel>Collections</SectionLabel>
-      <div style={{
+      <div className="sidebar-collections" style={{
         padding:'0 8px 8px',
         display:'flex',
         flexDirection:'column',
@@ -127,7 +127,7 @@ export default function Sidebar({
       </div>
 
       <SectionLabel>{activeCollection === 'all' ? 'All Games' : activeCollectionLabel}</SectionLabel>
-      <div style={{
+      <div className="sidebar-games" style={{
         flex:1,
         overflow:'auto',
         padding:'0 8px 10px',
@@ -179,6 +179,7 @@ function CollectionItem({ active, label, count, onClick }) {
   const [hov, setHov] = React.useState(false)
   return (
     <button
+      className={`collection-item ${active ? 'is-active' : ''}`}
       onClick={onClick}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
@@ -206,6 +207,7 @@ function GameRow({ game, active, running, showPlaytime, compact, onClick, onLaun
   const [hov, setHov] = React.useState(false)
   return (
     <div
+      className={`game-row ${active ? 'is-active' : ''}`}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       onClick={onClick}
@@ -287,6 +289,7 @@ function NavItem({ active, onClick, icon, label, badge }) {
   const [hov, setHov] = React.useState(false)
   return (
     <button
+      className={`nav-item ${active ? 'is-active' : ''}`}
       onClick={onClick}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}

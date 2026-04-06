@@ -1,0 +1,73 @@
+:root[data-theme='amoled'] {
+  --bg: #000000;
+  --surface: #0d0d0d;
+  --surface2: #1a1a1a;
+  --surface3: #242424;
+  --border: #ffffff08;
+  --border2: #ffffff12;
+  --text: #e0e0e0;
+  --text-dim: #808080;
+  --text-muted: #505050;
+  --accent: #bb86fc;
+  --accent2: #9d4edd;
+  --accent-dim: #bb86fc22;
+  --green: #69f0ae;
+  --green2: #00bfa5;
+  --red: #ff6b6b;
+  --red2: #ff5252;
+  --accent-gradient: linear-gradient(135deg, #bb86fc 0%, #9d4edd 100%);
+  --green-gradient: linear-gradient(135deg, #69f0ae 0%, #00bfa5 100%);
+  --red-gradient: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+}
+
+:root[data-theme='amoled'] body::before {
+  background:
+    radial-gradient(900px 480px at 90% -100px, #bb86fc20, transparent 70%),
+    radial-gradient(700px 400px at 8% 12%, #9d4edd18, transparent 72%),
+    linear-gradient(180deg, #0a0a0a 0%, #000000 100%);
+  opacity: 1;
+}
+
+:root[data-theme='amoled'] .app-shell {
+  border: 1px solid #ffffff10;
+  box-shadow: inset 0 1px 0 #ffffff08, 0 18px 42px #0000007a;
+}
+
+:root[data-theme='amoled'] .titlebar {
+  background: linear-gradient(180deg, #121212 0%, #090909 100%) !important;
+  border-bottom: 1px solid #ffffff12 !important;
+}
+
+:root[data-theme='amoled'] .sidebar,
+:root[data-theme='amoled'] .app-main,
+:root[data-theme='amoled'] .library-view {
+  background: linear-gradient(180deg, #0f0f0f 0%, #000000 100%) !important;
+}
+
+:root[data-theme='amoled'] .context-menu {
+  background: #0f0f0f !important;
+  border: 1px solid #ffffff1a !important;
+  border-radius: 10px !important;
+  box-shadow: 0 18px 36px #0000008a !important;
+}
+
+:root[data-theme='amoled'] .nav-item,
+:root[data-theme='amoled'] .collection-item,
+:root[data-theme='amoled'] .game-row,
+:root[data-theme='amoled'] .library-grid .game-card,
+:root[data-theme='amoled'] .ui-input {
+  border: 1px solid #ffffff14 !important;
+  border-radius: 10px !important;
+  background: #141414cc !important;
+}
+
+:root[data-theme='amoled'] .nav-item.is-active,
+:root[data-theme='amoled'] .collection-item.is-active,
+:root[data-theme='amoled'] .game-row.is-active {
+  background: linear-gradient(135deg, #bb86fc36 0%, #9d4edd2d 100%) !important;
+  border-color: #bb86fc8f !important;
+}
+
+:root[data-theme='amoled'] .library-grid .game-card:hover {
+  box-shadow: 0 10px 24px #00000091;
+}

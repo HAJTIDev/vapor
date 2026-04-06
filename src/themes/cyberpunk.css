@@ -1,0 +1,78 @@
+:root[data-theme='cyberpunk'] {
+  --bg: #000508;
+  --surface: #0a0e1a;
+  --surface2: #1a1f35;
+  --surface3: #262d4a;
+  --border: #00ffff15;
+  --border2: #00ffff2a;
+  --text: #00ffff;
+  --text-dim: #00cc99;
+  --text-muted: #0099ff;
+  --accent: #ff00ff;
+  --accent2: #ff44ff;
+  --accent-dim: #ff00ff22;
+  --green: #00ff00;
+  --green2: #00ffaa;
+  --red: #ff0055;
+  --red2: #ff3366;
+  --accent-gradient: linear-gradient(135deg, #ff00ff 0%, #ff44ff 100%);
+  --green-gradient: linear-gradient(135deg, #00ff00 0%, #00ffaa 100%);
+  --red-gradient: linear-gradient(135deg, #ff0055 0%, #ff3366 100%);
+}
+
+:root[data-theme='cyberpunk'] body::before {
+  background:
+    radial-gradient(1000px 520px at 88% -120px, #ff00ff2c, transparent 66%),
+    radial-gradient(740px 420px at 6% 14%, #00ffff2b, transparent 72%),
+    linear-gradient(180deg, #0a0e1a 0%, #000508 100%);
+  opacity: 1;
+}
+
+:root[data-theme='cyberpunk'] .app-shell {
+  border: 1px solid #00ffff44;
+  box-shadow: inset 0 0 0 1px #ff00ff2b, 0 0 42px #00ffff33;
+}
+
+:root[data-theme='cyberpunk'] .titlebar {
+  background: linear-gradient(180deg, #180a24 0%, #0a0e1a 100%) !important;
+  border-bottom: 1px solid #00ffff4f !important;
+}
+
+:root[data-theme='cyberpunk'] .titlebar-btn:hover {
+  background: #ff00ff2b !important;
+}
+
+:root[data-theme='cyberpunk'] .sidebar,
+:root[data-theme='cyberpunk'] .app-main,
+:root[data-theme='cyberpunk'] .library-view {
+  background: linear-gradient(180deg, #111728 0%, #0a0e1a 100%) !important;
+}
+
+:root[data-theme='cyberpunk'] .context-menu {
+  background: #111728 !important;
+  border: 1px solid #00ffff55 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 0 26px #00ffff33 !important;
+}
+
+:root[data-theme='cyberpunk'] .nav-item,
+:root[data-theme='cyberpunk'] .collection-item,
+:root[data-theme='cyberpunk'] .game-row,
+:root[data-theme='cyberpunk'] .library-grid .game-card,
+:root[data-theme='cyberpunk'] .ui-input {
+  border: 1px solid #00ffff3e !important;
+  border-radius: 6px !important;
+  background: #111728cc !important;
+}
+
+:root[data-theme='cyberpunk'] .nav-item.is-active,
+:root[data-theme='cyberpunk'] .collection-item.is-active,
+:root[data-theme='cyberpunk'] .game-row.is-active {
+  background: linear-gradient(135deg, #ff00ff3f 0%, #00ffff2e 100%) !important;
+  border-color: #ff44ff9e !important;
+  box-shadow: inset 0 0 14px #ff00ff24;
+}
+
+:root[data-theme='cyberpunk'] .library-grid .game-card:hover {
+  box-shadow: 0 0 26px #00ffff2e;
+}
