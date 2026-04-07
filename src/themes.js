@@ -5,11 +5,11 @@
 
 export const themes = {
   dark: { name: 'Dark (Default)' },
-  darkexp: { name: 'Dark eXP' },
-  darkaero: { name: 'Dark Aero' },
   light: { name: 'Light' },
   winxp: { name: 'eXP' },
+  darkexp: { name: 'Dark eXP' },
   vista: { name: 'Aero' },
+  darkaero: { name: 'Dark Aero' },
   cyberpunk: { name: 'Cyberpunk' },
   forest: { name: 'Forest' },
   nord: { name: 'Nord' },

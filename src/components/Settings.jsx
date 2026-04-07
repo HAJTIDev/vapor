@@ -4,9 +4,45 @@ import { themes, getThemeNames } from '../themes'
 import { formatFileSize } from '../utils'
 
 const themeShowcase = {
-  dark: {
+    dark: {
     tagline: 'Neon dusk',
-    colors: ['#09090e', '#18181f', '#6c63ff', '#8b5cf6', '#f0f0f5'],
+    colors: ['#0F0F16', '#18181f', '#927BFC', '#6C63FF', '#f0f0f5'],
+  },
+  light: {
+    tagline: 'Clean daylight',
+    colors: ['#F3F5F9', '#efefef', '#7c3aed', '#E7E6F8', '#0a0a0a'],
+  },
+  winxp: {
+    tagline: 'Classic Luna',
+    colors: ['#ECE9D8', '#ece9d8', '#2988EC', '#2b8df2', '#1a1a1a'],
+  },
+  vista: {
+    tagline: 'Glossy Aero',
+    colors: ['#CAE4FA', '#E6F3FE', '#4aa0e6', '#8ad3ff', '#0f2437'],
+  },
+  winui3: {
+    tagline: 'Mica modern',
+    colors: ['#202226', '#32353a', '#4cc2ff', '#2899f5', '#f3f3f3'],
+  },
+  cyberpunk: {
+    tagline: 'Neon overdrive',
+    colors: ['#0D1220', '#1a1f35', '#ff00ff', '#00ffff', '#00CC99'],
+  },
+  forest: {
+    tagline: 'Evergreen',
+    colors: ['#2D492D', '#3d5a3d', '#406941', '#81c784', '#e8f5e9'],
+  },
+  nord: {
+    tagline: 'Arctic slate',
+    colors: ['#3E4657', '#434c5e', '#81a1c1', '#88c0d0', '#eceff4'],
+  },
+  solarized: {
+    tagline: 'Terminal calm',
+    colors: ['#002b36', '#073642', '#268bd2', '#2aa198', '#93a1a1'],
+  },
+  amoled: {
+    tagline: 'Pure black',
+    colors: ['#050505', '#1a1a1a', '#bb86fc', '#281B35', '#e0e0e0'],
   },
   darkexp: {
     tagline: 'Luna midnight',
@@ -15,43 +51,7 @@ const themeShowcase = {
   darkaero: {
     tagline: 'Smoked glass',
     colors: ['#091a2a', '#0f273d', '#4c9ee0', '#79c2ff', '#d6e8f8'],
-  },
-  light: {
-    tagline: 'Clean daylight',
-    colors: ['#ffffff', '#efefef', '#7c3aed', '#6366f1', '#0a0a0a'],
-  },
-  winxp: {
-    tagline: 'Classic Luna',
-    colors: ['#3a6ea5', '#ece9d8', '#0a58ca', '#2b8df2', '#1a1a1a'],
-  },
-  vista: {
-    tagline: 'Glossy Aero',
-    colors: ['#0f2a45', '#eff5fb', '#4aa0e6', '#8ad3ff', '#0f2437'],
-  },
-  winui3: {
-    tagline: 'Mica modern',
-    colors: ['#202226', '#32353a', '#4cc2ff', '#2899f5', '#f3f3f3'],
-  },
-  cyberpunk: {
-    tagline: 'Neon overdrive',
-    colors: ['#000508', '#1a1f35', '#ff00ff', '#00ffff', '#00ff00'],
-  },
-  forest: {
-    tagline: 'Evergreen',
-    colors: ['#1a2e1a', '#3d5a3d', '#66bb6a', '#81c784', '#e8f5e9'],
-  },
-  nord: {
-    tagline: 'Arctic slate',
-    colors: ['#2e3440', '#434c5e', '#81a1c1', '#88c0d0', '#eceff4'],
-  },
-  solarized: {
-    tagline: 'Terminal calm',
-    colors: ['#002b36', '#073642', '#268bd2', '#2aa198', '#93a1a1'],
-  },
-  amoled: {
-    tagline: 'Pure black',
-    colors: ['#000000', '#1a1a1a', '#bb86fc', '#9d4edd', '#e0e0e0'],
-  },
+  }
 }
 
 export default function Settings({ settings, onSave, games, onRefreshAllArt, customThemes = [], onRefreshCustomThemes, onOpenCustomThemesFolder }) {
