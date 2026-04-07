@@ -151,8 +151,72 @@ const userDataPath = app.getPath('userData')
 const gamesFile = path.join(userDataPath, 'games.json')
 const settingsFile = path.join(userDataPath, 'settings.json')
 const sgdbKeyFile = path.join(userDataPath, 'sgdb.key')
+const customThemesDir = path.join(userDataPath, 'themes')
 const downloadsDir = path.join(app.getPath('home'), 'Vapor Games')
 const downloadsStateFile = path.join(userDataPath, 'downloads.json')
+
+function ensureCustomThemesDir() {
+  try {
+    fs.mkdirSync(customThemesDir, { recursive: true })
+
+    const readmePath = path.join(customThemesDir, 'README.txt')
+    if (!fs.existsSync(readmePath)) {
+      fs.writeFileSync(
+        readmePath,
+        [
+          'Vapor Custom Themes',
+          '',
+          'Drop .css files into this folder.',
+          'They appear in Settings > Themes under Custom Themes.',
+          '',
+          'Example selectors:',
+          '  :root { --accent: #ff6a00; }',
+          '  body { background: #101010 !important; }',
+          "  :root[data-theme='custom:my-theme.css'] { --bg: #050505; }",
+        ].join('\n'),
+        'utf8'
+      )
+    }
+  } catch (err) {
+    console.error('[themes] Failed to initialize custom themes directory:', err)
+  }
+}
+
+function themeIdFromFileName(fileName) {
+  return `custom:${String(fileName || '').toLowerCase()}`
+}
+
+function listCustomThemes() {
+  ensureCustomThemesDir()
+
+  try {
+    const entries = fs.readdirSync(customThemesDir, { withFileTypes: true })
+    const themes = entries
+      .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith('.css'))
+      .map((entry) => {
+        const fullPath = path.join(customThemesDir, entry.name)
+        let css = ''
+        try {
+          css = fs.readFileSync(fullPath, 'utf8')
+        } catch {
+          css = ''
+        }
+
+        return {
+          id: themeIdFromFileName(entry.name),
+          fileName: entry.name,
+          name: path.basename(entry.name, path.extname(entry.name)),
+          css,
+        }
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
+
+    return { ok: true, folder: customThemesDir, themes }
+  } catch (err) {
+    console.error('[themes] Failed to list custom themes:', err)
+    return { ok: false, folder: customThemesDir, themes: [], error: err.message }
+  }
+}
 
 const sgdb = createSgdbService({
   ENCRYPTION_KEY,
@@ -190,6 +254,7 @@ if (!gotTheLock && !isDev) {
 
   app.whenReady().then(() => {
     console.log('[init] app.whenReady fired')
+    ensureCustomThemesDir()
     initDiscordRpc()
     configureAutoStart()
     createWindow()
@@ -559,6 +624,19 @@ ipcMain.handle('settings:setSgdbKey', (_, key) => sgdb.saveSgdbKey(key))
 ipcMain.handle('settings:setAutoStart', (_, enabled) => {
   if (process.platform !== 'win32' || !app.isPackaged) return
   app.setLoginItemSettings({ openAtLogin: enabled, path: process.execPath })
+})
+
+ipcMain.handle('themes:list-custom', () => listCustomThemes())
+
+ipcMain.handle('themes:open-custom-folder', async () => {
+  ensureCustomThemesDir()
+  try {
+    const openError = await shell.openPath(customThemesDir)
+    if (openError) return { ok: false, error: openError, folder: customThemesDir }
+    return { ok: true, folder: customThemesDir }
+  } catch (err) {
+    return { ok: false, error: err.message, folder: customThemesDir }
+  }
 })
 
 ipcMain.handle('art:fetch', async (_, name) => {

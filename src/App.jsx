@@ -8,7 +8,7 @@ import Settings from './components/Settings.jsx'
 import AddGames from './components/AddGames.jsx'
 import Downloader from './components/Downloader.jsx'
 import vaporApi from './vaporApi.js'
-import { applyTheme } from './themes.js'
+import { applyTheme, applyCustomThemeCss } from './themes.js'
 import titleLogo from './img/title.png'
 
 function BootAnimation({ onComplete }) {
@@ -113,9 +113,16 @@ function sortGames(list, mode) {
   return sorted.sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0))
 }
 
+function resolveCustomThemeCss(themeId, themeList) {
+  if (!String(themeId || '').startsWith('custom:')) return ''
+  const match = (themeList || []).find((theme) => theme?.id === themeId)
+  return match?.css || ''
+}
+
 export default function App() {
   const [games, setGames]           = useState([])
   const [settings, setSettings]     = useState(defaultSettings)
+  const [customThemes, setCustomThemes] = useState([])
   const [view, setView]             = useState('library') // 'library' | 'settings' | 'add' | 'downloads'
   const [selected, setSelected]     = useState(null)
   const [running, setRunning]       = useState({}) // id -> true
@@ -127,6 +134,16 @@ export default function App() {
   const [settingsPopup, setSettingsPopup] = useState({ open: false, game: null })
   const [showBoot, setShowBoot]     = useState(true)
   const [updateToast, setUpdateToast] = useState(null)
+
+  const refreshCustomThemes = useCallback(async (themeIdToApply = settings.theme) => {
+    const result = await vaporApi.themes.listCustom()
+    const nextThemes = result?.ok && Array.isArray(result.themes) ? result.themes : []
+    setCustomThemes(nextThemes)
+
+    applyCustomThemeCss(resolveCustomThemeCss(themeIdToApply, nextThemes))
+
+    return result
+  }, [settings.theme])
 
   // Load
   useEffect(() => {
@@ -161,6 +178,7 @@ export default function App() {
     vaporApi.settings.load().then(s => {
       const normalized = normalizeSettings(s)
       setSettings(normalized)
+      refreshCustomThemes(normalized.theme)
       applyTheme(normalized.theme)
     })
   }, [])
@@ -275,8 +293,9 @@ export default function App() {
     const normalized = normalizeSettings(s)
     setSettings(normalized)
     applyTheme(normalized.theme)
+    applyCustomThemeCss(resolveCustomThemeCss(normalized.theme, customThemes))
     vaporApi.settings.save(normalized)
-  }, [])
+  }, [customThemes])
 
   const launchGame = useCallback(async (game) => {
     setRunning(r => ({ ...r, [game.id]: true }))
@@ -481,7 +500,15 @@ export default function App() {
             />
           )}
           {view === 'settings' && (
-            <Settings settings={settings} onSave={saveSettings} games={games} onRefreshAllArt={refreshAllArt} />
+            <Settings
+              settings={settings}
+              onSave={saveSettings}
+              games={games}
+              onRefreshAllArt={refreshAllArt}
+              customThemes={customThemes}
+              onRefreshCustomThemes={refreshCustomThemes}
+              onOpenCustomThemesFolder={() => vaporApi.themes.openCustomFolder()}
+            />
           )}
           {view === 'add' && (
             <AddGames

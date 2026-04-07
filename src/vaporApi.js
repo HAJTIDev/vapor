@@ -69,6 +69,10 @@ const browserFallback = {
     setSgdbKey: async () => false,
     setAutoStart: async () => false,
   },
+  themes: {
+    listCustom: async () => ({ ok: true, folder: null, themes: [] }),
+    openCustomFolder: async () => ({ ok: false, error: 'Opening theme folders requires Electron runtime.' }),
+  },
   art: {
     fetch: async () => null,
   },

@@ -1,0 +1,128 @@
+:root[data-theme='darkaero'] {
+  --bg: #091a2a;
+  --surface: #0c2235cc;
+  --surface2: #10304add;
+  --surface3: #173a57cc;
+  --border: #86aed230;
+  --border2: #9bc4e866;
+  --text: #d6e8f8;
+  --text-dim: #9bb8d3;
+  --text-muted: #7694b0;
+  --accent: #4c9ee0;
+  --accent2: #79c2ff;
+  --accent-dim: #4c9ee033;
+  --green: #48b894;
+  --green2: #2e9275;
+  --red: #d86f7f;
+  --red2: #b74b5b;
+  --accent-gradient: linear-gradient(180deg, #8ccfff 0%, #4c9ee0 48%, #2f7bbf 100%);
+  --green-gradient: linear-gradient(180deg, #7ddfc0 0%, #48b894 52%, #2e9275 100%);
+  --red-gradient: linear-gradient(180deg, #e6a0aa 0%, #d86f7f 52%, #b74b5b 100%);
+  --font: Segoe UI, Tahoma, Verdana, sans-serif;
+  --mono: Consolas, Courier New, monospace;
+}
+
+:root[data-theme='darkaero'] body::before {
+  background:
+    radial-gradient(1200px 520px at 8% -80px, #80bde052 0%, transparent 58%),
+    radial-gradient(860px 420px at 92% 6%, #5da9de42 0%, transparent 64%),
+    linear-gradient(180deg, #153754 0%, #0f2a43 55%, #091a2a 100%);
+  opacity: 1;
+}
+
+:root[data-theme='darkaero'] .app-shell {
+  border: 1px solid #8eb7db5e;
+  box-shadow: inset 0 1px 0 #d9ecff40, inset 0 -1px 0 #0c18255c, 0 8px 30px #010a1459;
+}
+
+:root[data-theme='darkaero'] .titlebar {
+  height: 34px !important;
+  border-bottom: 1px solid #4f7ea77d !important;
+  background: linear-gradient(180deg, #85b4d8ba 0%, #5f91baad 42%, #3d6489a8 100%) !important;
+  backdrop-filter: blur(6px) saturate(120%);
+}
+
+:root[data-theme='darkaero'] .titlebar-brand span {
+  color: #ebf5ff !important;
+  letter-spacing: 0.05em !important;
+  text-shadow: 0 1px 0 #0a1f33;
+}
+
+:root[data-theme='darkaero'] .titlebar-btn {
+  border: 1px solid #4f7ea7 !important;
+  border-radius: 5px !important;
+  background: linear-gradient(180deg, #4f7ea8 0%, #3a6487 45%, #2a4f70 100%) !important;
+  color: #ebf5ff !important;
+}
+
+:root[data-theme='darkaero'] .titlebar-btn-close {
+  border-color: #98404a !important;
+  background: linear-gradient(180deg, #b66773 0%, #944957 45%, #7a3340 100%) !important;
+}
+
+:root[data-theme='darkaero'] .sidebar,
+:root[data-theme='darkaero'] .app-main,
+:root[data-theme='darkaero'] .library-view,
+:root[data-theme='darkaero'] .context-menu {
+  background: linear-gradient(180deg, #163651cc 0%, #0f273ddd 100%) !important;
+  border-radius: 6px !important;
+  border: 1px solid #648eb362 !important;
+}
+
+:root[data-theme='darkaero'] .context-menu {
+  border-radius: 8px !important;
+  background: linear-gradient(180deg, #1a3e5edb 0%, #12324eda 100%) !important;
+  backdrop-filter: blur(8px);
+}
+
+:root[data-theme='darkaero'] .nav-item,
+:root[data-theme='darkaero'] .collection-item,
+:root[data-theme='darkaero'] .game-row,
+:root[data-theme='darkaero'] .library-grid .game-card,
+:root[data-theme='darkaero'] .ui-input {
+  border: 1px solid #8cb3d55c !important;
+  border-radius: 8px !important;
+  box-shadow: inset 0 1px 0 #ffffff22;
+}
+
+:root[data-theme='darkaero'] .nav-item:hover,
+:root[data-theme='darkaero'] .collection-item:hover,
+:root[data-theme='darkaero'] .game-row:hover {
+  background: linear-gradient(180deg, #214b6f 0%, #173852 100%) !important;
+  border-color: #78a7d0 !important;
+}
+
+:root[data-theme='darkaero'] .nav-item.is-active,
+:root[data-theme='darkaero'] .collection-item.is-active,
+:root[data-theme='darkaero'] .game-row.is-active {
+  background: linear-gradient(180deg, #8ccfff 0%, #5ea9e8 45%, #3d83bf 100%) !important;
+  border-color: #2f6899 !important;
+  color: #072037 !important;
+}
+
+:root[data-theme='darkaero'] .library-grid .game-card {
+  background: linear-gradient(180deg, #1a3d5dc2 0%, #13304ac4 100%) !important;
+}
+
+:root[data-theme='darkaero'] .ui-btn,
+:root[data-theme='darkaero'] .btn-accent,
+:root[data-theme='darkaero'] .btn-green,
+:root[data-theme='darkaero'] .btn-red,
+:root[data-theme='darkaero'] button:not(.nav-item):not(.collection-item):not(.game-row) {
+  border-radius: 6px !important;
+  border: 1px solid #4f7ea7 !important;
+  background: linear-gradient(180deg, #3f7098 0%, #2b5577 48%, #1f415f 100%) !important;
+  color: #ecf6ff !important;
+  box-shadow: inset 0 1px 0 #ffffff2b, 0 1px 0 #ffffff21;
+  transform: none !important;
+  filter: none !important;
+}
+
+:root[data-theme='darkaero'] input,
+:root[data-theme='darkaero'] select,
+:root[data-theme='darkaero'] textarea {
+  border-radius: 6px !important;
+  border: 1px solid #6695bc !important;
+  background: linear-gradient(180deg, #122d45 0%, #10283e 100%) !important;
+  color: #ecf6ff !important;
+}

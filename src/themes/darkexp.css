@@ -1,0 +1,115 @@
+:root[data-theme='darkexp'] {
+  --bg: #081426;
+  --surface: #0d1b30;
+  --surface2: #12233c;
+  --surface3: #172c49;
+  --border: #8ab6e126;
+  --border2: #9fc8ef4a;
+  --text: #d8e4f6;
+  --text-dim: #93abc8;
+  --text-muted: #6e86a4;
+  --accent: #2f7dd6;
+  --accent2: #5aa2ee;
+  --accent-dim: #2f7dd633;
+  --green: #47bd83;
+  --green2: #2f9f6f;
+  --red: #d86a73;
+  --red2: #bc4f59;
+  --accent-gradient: linear-gradient(180deg, #5aa2ee 0%, #2f7dd6 100%);
+  --green-gradient: linear-gradient(180deg, #63d39d 0%, #2f9f6f 100%);
+  --red-gradient: linear-gradient(180deg, #e18a92 0%, #bc4f59 100%);
+  --font: Tahoma, Verdana, Segoe UI, sans-serif;
+  --mono: Consolas, Courier New, monospace;
+}
+
+:root[data-theme='darkexp'] body::before {
+  background:
+    radial-gradient(900px 460px at 12% -120px, #2f7dd64a 0%, transparent 68%),
+    radial-gradient(760px 420px at 92% 6%, #5aa2ee33 0%, transparent 70%),
+    linear-gradient(180deg, #10253f 0%, #081426 100%);
+  opacity: 1;
+}
+
+:root[data-theme='darkexp'] .app-shell {
+  border: 1px solid #7fb1df52;
+  box-shadow: inset 1px 1px 0 #c6dcf524, inset -1px -1px 0 #040a1440;
+}
+
+:root[data-theme='darkexp'] .titlebar {
+  height: 30px !important;
+  border-bottom: 1px solid #0a2f5e !important;
+  background: linear-gradient(180deg, #1d4f88 0%, #153f70 52%, #0f2f59 100%) !important;
+}
+
+:root[data-theme='darkexp'] .titlebar-brand span {
+  color: #edf5ff !important;
+  font-family: Tahoma, Verdana, Segoe UI, sans-serif !important;
+  text-shadow: 0 1px 0 #091b33;
+}
+
+:root[data-theme='darkexp'] .titlebar-btn {
+  border-radius: 2px !important;
+  border: 1px solid #0a2f5e !important;
+  background: linear-gradient(180deg, #2a5f98 0%, #1c4d82 100%) !important;
+  color: #e8f2ff !important;
+}
+
+:root[data-theme='darkexp'] .titlebar-btn-close {
+  border-color: #7d2830 !important;
+  background: linear-gradient(180deg, #b4565e 0%, #8f353e 100%) !important;
+}
+
+:root[data-theme='darkexp'] .sidebar,
+:root[data-theme='darkexp'] .app-main,
+:root[data-theme='darkexp'] .library-view,
+:root[data-theme='darkexp'] .context-menu {
+  background: linear-gradient(180deg, #11233a 0%, #0b1a2d 100%) !important;
+}
+
+:root[data-theme='darkexp'] .sidebar {
+  border-right: 1px solid #275284 !important;
+}
+
+:root[data-theme='darkexp'] .nav-item,
+:root[data-theme='darkexp'] .collection-item,
+:root[data-theme='darkexp'] .game-row {
+  border-radius: 2px !important;
+}
+
+:root[data-theme='darkexp'] .nav-item.is-active,
+:root[data-theme='darkexp'] .collection-item.is-active,
+:root[data-theme='darkexp'] .game-row.is-active {
+  background: linear-gradient(180deg, #5aa2ee 0%, #2f7dd6 100%) !important;
+  border: 1px solid #0a2f5e !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme='darkexp'] .library-grid .game-card {
+  border-radius: 2px !important;
+  border: 1px solid #2c5f95 !important;
+  background: #10233b !important;
+}
+
+:root[data-theme='darkexp'] .ui-btn,
+:root[data-theme='darkexp'] button:not(.nav-item):not(.collection-item):not(.game-row),
+:root[data-theme='darkexp'] .btn-accent,
+:root[data-theme='darkexp'] .btn-green,
+:root[data-theme='darkexp'] .btn-red {
+  border-radius: 2px !important;
+  border: 1px solid #2c5f95 !important;
+  background: linear-gradient(180deg, #214f84 0%, #163a64 100%) !important;
+  color: #edf5ff !important;
+  box-shadow: inset 1px 1px 0 #5a89b824, inset -1px -1px 0 #08142680;
+  filter: none !important;
+  transform: none !important;
+}
+
+:root[data-theme='darkexp'] .ui-input,
+:root[data-theme='darkexp'] input,
+:root[data-theme='darkexp'] select,
+:root[data-theme='darkexp'] textarea {
+  border-radius: 2px !important;
+  border: 1px solid #3f73aa !important;
+  background: #0b1a2d !important;
+  color: #edf5ff !important;
+}

@@ -8,6 +8,14 @@ const themeShowcase = {
     tagline: 'Neon dusk',
     colors: ['#09090e', '#18181f', '#6c63ff', '#8b5cf6', '#f0f0f5'],
   },
+  darkexp: {
+    tagline: 'Luna midnight',
+    colors: ['#081426', '#142844', '#2f7dd6', '#5aa2ee', '#d8e4f6'],
+  },
+  darkaero: {
+    tagline: 'Smoked glass',
+    colors: ['#091a2a', '#0f273d', '#4c9ee0', '#79c2ff', '#d6e8f8'],
+  },
   light: {
     tagline: 'Clean daylight',
     colors: ['#ffffff', '#efefef', '#7c3aed', '#6366f1', '#0a0a0a'],
@@ -46,19 +54,23 @@ const themeShowcase = {
   },
 }
 
-export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
+export default function Settings({ settings, onSave, games, onRefreshAllArt, customThemes = [], onRefreshCustomThemes, onOpenCustomThemesFolder }) {
   const [saved, setSaved] = useState(false)
   const [newCollection, setNewCollection] = useState('')
   const [updateStatus, setUpdateStatus] = useState(null)
   const [checkingUpdate, setCheckingUpdate] = useState(false)
   const [refreshingArt, setRefreshingArt] = useState(false)
   const [artRefreshProgress, setArtRefreshProgress] = useState(null)
+  const [settingsTab, setSettingsTab] = useState('general')
+  const [themesFolderPath, setThemesFolderPath] = useState('')
+  const [refreshingThemes, setRefreshingThemes] = useState(false)
   const [downloadLimitKbps, setDownloadLimitKbps] = useState(Math.max(0, Math.round(Number(settings?.downloadSpeedLimitKbps) || 0)))
 
   const sliderMaxKbps = 4096
   const sliderStepKbps = 64
   const currentTheme = settings.theme || 'dark'
-  const availableThemes = useMemo(
+
+  const builtInThemes = useMemo(
     () => getThemeNames().map((id) => ({
       id,
       name: themes[id]?.name || id,
@@ -69,6 +81,37 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
     })),
     []
   )
+
+  const availableThemes = useMemo(
+    () => [
+      ...builtInThemes,
+      ...(customThemes || []).map((themeFile) => ({
+        id: themeFile.id,
+        name: themeFile.name,
+        showcase: {
+          tagline: 'AppData CSS file',
+          colors: ['#111827', '#1f2937', '#3b82f6', '#22d3ee', '#e5e7eb'],
+        },
+      })),
+    ],
+    [builtInThemes, customThemes]
+  )
+
+  useEffect(() => {
+    let alive = true
+    const loadThemes = async () => {
+      if (typeof onRefreshCustomThemes !== 'function') return
+      setRefreshingThemes(true)
+      const result = await onRefreshCustomThemes()
+      if (!alive) return
+      setThemesFolderPath(result?.folder || '')
+      setRefreshingThemes(false)
+    }
+    loadThemes()
+    return () => {
+      alive = false
+    }
+  }, [])
 
   useEffect(() => {
     const handleUpdateStatus = (data) => {
@@ -209,7 +252,41 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
   return (
     <div style={{ height:'100%', overflow:'auto', padding:'28px 28px' }}>
       <h2 style={{ fontSize:18, fontWeight:600, marginBottom:4 }}>Settings</h2>
-      <p style={{ color:'var(--text-muted)', fontSize:13, marginBottom:28 }}>Configure Vapor</p>
+      <p style={{ color:'var(--text-muted)', fontSize:13, marginBottom:14 }}>Configure Vapor</p>
+
+      <div style={{ display:'flex', gap:8, marginBottom:20 }}>
+        <button
+          onClick={() => setSettingsTab('general')}
+          style={{
+            padding:'7px 12px',
+            borderRadius:999,
+            fontSize:12,
+            border: settingsTab === 'general' ? '1px solid var(--accent)' : '1px solid var(--border)',
+            background: settingsTab === 'general' ? 'color-mix(in srgb, var(--accent) 20%, var(--surface2))' : 'var(--surface2)',
+            color:'var(--text)',
+            fontWeight: settingsTab === 'general' ? 600 : 500,
+          }}
+        >
+          General
+        </button>
+        <button
+          onClick={() => setSettingsTab('themes')}
+          style={{
+            padding:'7px 12px',
+            borderRadius:999,
+            fontSize:12,
+            border: settingsTab === 'themes' ? '1px solid var(--accent)' : '1px solid var(--border)',
+            background: settingsTab === 'themes' ? 'color-mix(in srgb, var(--accent) 20%, var(--surface2))' : 'var(--surface2)',
+            color:'var(--text)',
+            fontWeight: settingsTab === 'themes' ? 600 : 500,
+          }}
+        >
+          Themes
+        </button>
+      </div>
+
+      {settingsTab === 'general' && (
+        <>
 
       <Section title="Updates">
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
@@ -412,69 +489,6 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
 
       <Section title="Settings">
         <div style={{ marginBottom:16 }}>
-          <div style={{ fontSize:12, color:'var(--text-dim)', marginBottom:6 }}>Theme</div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(210px, 1fr))', gap:10 }}>
-            {availableThemes.map((theme) => {
-              const selected = currentTheme === theme.id
-              return (
-                <button
-                  key={theme.id}
-                  onClick={() => onSave({ ...settings, theme: theme.id })}
-                  style={{
-                    display:'flex',
-                    flexDirection:'column',
-                    gap:8,
-                    textAlign:'left',
-                    background:'var(--surface2)',
-                    border: selected ? '1px solid var(--accent)' : '1px solid var(--border)',
-                    borderRadius:10,
-                    padding:'10px',
-                    boxShadow: selected ? '0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent)' : 'none',
-                    transition:'border-color 0.14s ease, box-shadow 0.14s ease, transform 0.14s ease',
-                  }}
-                >
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
-                    <div style={{ fontSize:13, color:'var(--text)', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                      {theme.name}
-                    </div>
-                    {selected && (
-                      <span style={{ fontSize:10, color:'#fff', background:'var(--accent)', borderRadius:999, padding:'2px 7px', fontWeight:600 }}>
-                        Active
-                      </span>
-                    )}
-                  </div>
-
-                  <div style={{
-                    background: theme.showcase.colors[0],
-                    border:'1px solid var(--border)',
-                    borderRadius:8,
-                    overflow:'hidden',
-                  }}>
-                    <div style={{ height:8, background: `linear-gradient(90deg, ${theme.showcase.colors[2]} 0%, ${theme.showcase.colors[3]} 100%)` }} />
-                    <div style={{ padding:8, display:'grid', gap:6 }}>
-                      <div style={{ display:'flex', gap:5 }}>
-                        {theme.showcase.colors.map((color) => (
-                          <span key={`${theme.id}-${color}`} style={{ width:14, height:14, borderRadius:4, background:color, border:'1px solid #00000020' }} />
-                        ))}
-                      </div>
-                      <div style={{ height:6, borderRadius:999, background: theme.showcase.colors[1], border:'1px solid #00000020' }} />
-                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
-                        <div style={{ height:18, borderRadius:6, background: `linear-gradient(135deg, ${theme.showcase.colors[2]} 0%, ${theme.showcase.colors[3]} 100%)` }} />
-                        <div style={{ height:18, borderRadius:6, background: theme.showcase.colors[1], border:'1px solid #00000020' }} />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ fontSize:11, color:'var(--text-muted)' }}>{theme.showcase.tagline}</div>
-                </button>
-              )
-            })}
-          </div>
-          <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>
-            Pick a visual style for the full app chrome. Changes apply instantly.
-          </div>
-        </div>
-        <div style={{ marginBottom:16 }}>
           <div style={{ fontSize:12, color:'var(--text-dim)', marginBottom:6 }}>Download Directory</div>
           <div style={{ display:'flex', gap:8 }}>
             <input
@@ -634,6 +648,118 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt }) {
           </select>
         </div>
       </Section>
+
+      </>
+      )}
+
+      {settingsTab === 'themes' && (
+        <Section title="Themes">
+          <div style={{ marginBottom:14 }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap' }}>
+              <div>
+                <div style={{ fontSize:13, color:'var(--text)', fontWeight:600 }}>Custom Theme Folder</div>
+                <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>
+                  Add .css files in your AppData themes folder, then refresh.
+                </div>
+              </div>
+              <div style={{ display:'flex', gap:8 }}>
+                <button
+                  onClick={async () => {
+                    setRefreshingThemes(true)
+                    const result = await onRefreshCustomThemes?.()
+                    setThemesFolderPath(result?.folder || themesFolderPath)
+                    setRefreshingThemes(false)
+                  }}
+                  style={{
+                    padding:'7px 12px', borderRadius:6, fontSize:12,
+                    background:'var(--surface2)', color:'var(--text)', border:'1px solid var(--border)',
+                  }}
+                >
+                  {refreshingThemes ? 'Refreshing...' : 'Refresh'}
+                </button>
+                <button
+                  onClick={async () => {
+                    const result = await onOpenCustomThemesFolder?.()
+                    if (result?.folder) setThemesFolderPath(result.folder)
+                  }}
+                  style={{
+                    padding:'7px 12px', borderRadius:6, fontSize:12,
+                    background:'var(--accent)', color:'#fff', border:'none',
+                  }}
+                >
+                  Open Folder
+                </button>
+              </div>
+            </div>
+            {themesFolderPath && (
+              <div style={{ marginTop:8, fontSize:11, color:'var(--text-muted)', fontFamily:'var(--mono)' }}>
+                {themesFolderPath}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(210px, 1fr))', gap:10 }}>
+            {availableThemes.map((theme) => {
+              const selected = currentTheme === theme.id
+              return (
+                <button
+                  key={theme.id}
+                  onClick={() => onSave({ ...settings, theme: theme.id })}
+                  style={{
+                    display:'flex',
+                    flexDirection:'column',
+                    gap:8,
+                    textAlign:'left',
+                    background:'var(--surface2)',
+                    border: selected ? '1px solid var(--accent)' : '1px solid var(--border)',
+                    borderRadius:10,
+                    padding:'10px',
+                    boxShadow: selected ? '0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent)' : 'none',
+                    transition:'border-color 0.14s ease, box-shadow 0.14s ease, transform 0.14s ease',
+                  }}
+                >
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
+                    <div style={{ fontSize:13, color:'var(--text)', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {theme.name}
+                    </div>
+                    {selected && (
+                      <span style={{ fontSize:10, color:'#fff', background:'var(--accent)', borderRadius:999, padding:'2px 7px', fontWeight:600 }}>
+                        Active
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{
+                    background: theme.showcase.colors[0],
+                    border:'1px solid var(--border)',
+                    borderRadius:8,
+                    overflow:'hidden',
+                  }}>
+                    <div style={{ height:8, background: `linear-gradient(90deg, ${theme.showcase.colors[2]} 0%, ${theme.showcase.colors[3]} 100%)` }} />
+                    <div style={{ padding:8, display:'grid', gap:6 }}>
+                      <div style={{ display:'flex', gap:5 }}>
+                        {theme.showcase.colors.map((color) => (
+                          <span key={`${theme.id}-${color}`} style={{ width:14, height:14, borderRadius:4, background:color, border:'1px solid #00000020' }} />
+                        ))}
+                      </div>
+                      <div style={{ height:6, borderRadius:999, background: theme.showcase.colors[1], border:'1px solid #00000020' }} />
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+                        <div style={{ height:18, borderRadius:6, background: `linear-gradient(135deg, ${theme.showcase.colors[2]} 0%, ${theme.showcase.colors[3]} 100%)` }} />
+                        <div style={{ height:18, borderRadius:6, background: theme.showcase.colors[1], border:'1px solid #00000020' }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize:11, color:'var(--text-muted)' }}>{theme.showcase.tagline}</div>
+                </button>
+              )
+            })}
+          </div>
+          <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:8 }}>
+            Built-in and custom themes apply instantly when selected.
+          </div>
+        </Section>
+      )}
     </div>
   )
 }

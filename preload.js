@@ -26,6 +26,10 @@ contextBridge.exposeInMainWorld('vapor', {
     setSgdbKey: (k) => ipcRenderer.invoke('settings:setSgdbKey', k),
     setAutoStart: (e) => ipcRenderer.invoke('settings:setAutoStart', e),
   },
+  themes: {
+    listCustom: () => ipcRenderer.invoke('themes:list-custom'),
+    openCustomFolder: () => ipcRenderer.invoke('themes:open-custom-folder'),
+  },
   art: {
     fetch: (name) => ipcRenderer.invoke('art:fetch', name),
   },
