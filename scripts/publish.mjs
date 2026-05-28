@@ -10,6 +10,7 @@ const runStamp = Date.now();
 const distDir = isLinuxPublish
   ? path.resolve('release')
   : path.resolve('release', `publish-${runStamp}`);
+const linuxArtifactExtensions = ['.tar.gz', '.rpm'];
 
 function runCommand(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -110,7 +111,15 @@ function fileMustExist(filePath) {
 }
 
 function listLinuxArtifacts() {
-  return [path.join(distDir, `vapor-${version}.tar.gz`)];
+  if (!fs.existsSync(distDir)) {
+    return [];
+  }
+
+  return fs
+    .readdirSync(distDir)
+    .filter(fileName => linuxArtifactExtensions.some(extension => fileName.endsWith(extension)))
+    .map(fileName => path.join(distDir, fileName))
+    .sort();
 }
 
 function getReleaseAssetNames() {
@@ -176,7 +185,7 @@ function uploadAssetWithRetry(filePath, maxAttempts = 3) {
 
 runCommand('gh', ['auth', 'status'], {env: getAuthenticatedGhEnv()});
 if (isLinuxPublish) {
-  runCommand('npm', ['run', 'build', '--', '--linux', 'tar.gz', `--config.directories.output=${distDir}`]);
+  runCommand('npm', ['run', 'build', '--', '--linux', `--config.directories.output=${distDir}`]);
 } else {
   runCommand('npm', ['run', 'build', '--', `--config.directories.output=${distDir}`]);
 }
