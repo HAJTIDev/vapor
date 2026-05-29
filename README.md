@@ -36,6 +36,9 @@ npm run dev
 # Build Windows installer
 npm run build
 
+# Build and publish Linux tar.gz, Debian, and Fedora packages
+npm run publish:linux
+
 # Build and publish to GitHub (requires gh auth)
 npm run publish
 ```
