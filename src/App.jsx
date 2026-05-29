@@ -349,6 +349,15 @@ export default function App() {
     })
   }, [settings.ui.confirmRemoveGame])
 
+  const wipeGames = useCallback(() => {
+    const yes = window.confirm('Remove all games from Vapor? This only clears the app library. Game files on disk will stay untouched.')
+    if (!yes) return
+
+    setSelected(null)
+    setGames([])
+    vaporApi.games.save([])
+  }, [])
+
   const toggleFavorite = useCallback((id) => {
     setGames(prev => {
       const updated = prev.map(g => g.id === id ? { ...g, favorite: !g.favorite } : g)
@@ -504,6 +513,7 @@ export default function App() {
               settings={settings}
               onSave={saveSettings}
               games={games}
+              onWipeGames={wipeGames}
               onRefreshAllArt={refreshAllArt}
               customThemes={customThemes}
               onRefreshCustomThemes={refreshCustomThemes}

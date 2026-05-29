@@ -4,7 +4,7 @@ import { themes, getThemeNames } from '../themes'
 import { formatFileSize } from '../utils'
 
 const themeShowcase = {
-    dark: {
+  dark: {
     tagline: 'Neon dusk',
     colors: ['#0F0F16', '#18181f', '#927BFC', '#6C63FF', '#f0f0f5'],
   },
@@ -54,7 +54,7 @@ const themeShowcase = {
   }
 }
 
-export default function Settings({ settings, onSave, games, onRefreshAllArt, customThemes = [], onRefreshCustomThemes, onOpenCustomThemesFolder }) {
+export default function Settings({ settings, onSave, games, onWipeGames, onRefreshAllArt, customThemes = [], onRefreshCustomThemes, onOpenCustomThemesFolder }) {
   const [saved, setSaved] = useState(false)
   const [newCollection, setNewCollection] = useState('')
   const [updateStatus, setUpdateStatus] = useState(null)
@@ -355,7 +355,7 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt, cus
             File sizes are calculated when games are added or scanned.
           </div>
         </div>
-
+        
         {storageByDrive.length > 0 && (
           <div style={{ marginTop:16 }}>
             <div style={{ fontSize:11, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:600, marginBottom:10 }}>
@@ -646,6 +646,23 @@ export default function Settings({ settings, onSave, games, onRefreshAllArt, cus
             <option value="name">Name</option>
             <option value="playtime">Playtime</option>
           </select>
+        </div>
+        <div className='wipeGames' style={{ marginTop: 14 }}>
+            <button
+              onClick={() => onWipeGames?.()}
+              disabled={(games || []).length === 0}
+              style={{
+                  padding:'7px 12px',
+                  borderRadius:6,
+                  fontSize:12,
+                  background:'var(--surface2)',
+                  color:'var(--text)',
+                  border:'1px solid var(--border)',
+                  opacity:(games || []).length === 0 ? 0.6 : 1,
+                  cursor:(games || []).length === 0 ? 'default' : 'pointer',
+                }}>
+              Wipe games
+            </button>
         </div>
       </Section>
 
