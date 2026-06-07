@@ -122,6 +122,16 @@ function listLinuxArtifacts() {
     .sort();
 }
 
+function listRecentLinuxArtifacts(sinceMs) {
+  return listLinuxArtifacts().filter((filePath) => {
+    try {
+      return fs.statSync(filePath).mtimeMs >= sinceMs;
+    } catch {
+      return false;
+    }
+  });
+}
+
 function getReleaseAssetNames() {
   const result = runCommandWithResult('gh', ['release', 'view', tag, '--repo', repo, '--json', 'assets'], {
     env: getAuthenticatedGhEnv(),
@@ -184,6 +194,7 @@ function uploadAssetWithRetry(filePath, maxAttempts = 3) {
 }
 
 runCommand('gh', ['auth', 'status'], {env: getAuthenticatedGhEnv()});
+const buildStartMs = Date.now();
 if (isLinuxPublish) {
   runCommand('npm', ['run', 'build', '--', '--linux', `--config.directories.output=${distDir}`]);
 } else {
@@ -191,7 +202,7 @@ if (isLinuxPublish) {
 }
 
 const artifacts = isLinuxPublish
-  ? listLinuxArtifacts()
+  ? listRecentLinuxArtifacts(buildStartMs - 1000)
   : [
       path.join(distDir, `Vapor-${version}-setup.exe`),
       path.join(distDir, `Vapor-${version}-setup.exe.blockmap`),
