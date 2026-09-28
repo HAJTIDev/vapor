@@ -44,6 +44,11 @@ function getGhEnv() {
 }
 
 function getGhToken() {
+  // CI: use env var directly (GITHUB_TOKEN / GH_TOKEN)
+  const envToken = (process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '').trim();
+  if (envToken) return envToken;
+
+  // Local: read from gh CLI stored credentials
   try {
     const token = execFileSync('gh', ['auth', 'token'], {
       encoding: 'utf8',
