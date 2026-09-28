@@ -38,6 +38,8 @@ const browserFallback = {
     minimize: async () => {},
     maximize: async () => {},
     close: async () => {},
+    isMaximized: async () => false,
+    setBackgroundMaterial: async () => ({ ok: true }),
     openExternal: async (url) => { if (typeof window !== 'undefined' && url) window.open(url, '_blank') },
   },
   dialog: {

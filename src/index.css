@@ -132,6 +132,41 @@ button:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
+.sidebar-search-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.sidebar-search-box:hover {
+  border-color: var(--border2);
+}
+
+.sidebar-search-box:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 75%, #ffffff 25%);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.sidebar-search-box input,
+.sidebar-search-box input.sidebar-search-input,
+.sidebar-search-input,
+.sidebar-search-input:focus,
+.sidebar-search-input:focus-visible,
+.sidebar-search-input:hover,
+.sidebar-search-input:active {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-width: 0 !important;
+  border-bottom: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
 .ui-btn {
   transition: transform 0.15s ease, filter 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }

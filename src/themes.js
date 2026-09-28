@@ -18,11 +18,34 @@ export const themes = {
   winui3: { name: 'WinUI 3' },
 }
 
+import vaporApi from './vaporApi.js'
+
 const CUSTOM_THEME_PREFIX = 'custom:'
 const CUSTOM_THEME_STYLE_ID = 'vapor-custom-theme-style'
+const DEFAULT_WINUI_MATERIAL = 'acrylic'
 
 function isCustomThemeId(themeName) {
   return typeof themeName === 'string' && themeName.startsWith(CUSTOM_THEME_PREFIX)
+}
+
+export function getWinUi3Material() {
+  if (typeof localStorage === 'undefined') return DEFAULT_WINUI_MATERIAL
+  const stored = localStorage.getItem('vapor.winui3.material')
+  return ['acrylic', 'mica', 'tabbed'].includes(stored) ? stored : DEFAULT_WINUI_MATERIAL
+}
+
+export function setWinUi3Material(material) {
+  const valid = ['acrylic', 'mica', 'tabbed']
+  const target = valid.includes(material) ? material : DEFAULT_WINUI_MATERIAL
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('vapor.winui3.material', target)
+  }
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-winui-material', target)
+  }
+  if (getCurrentTheme() === 'winui3') {
+    vaporApi.win?.setBackgroundMaterial?.(target)
+  }
 }
 
 export function applyTheme(themeName) {
@@ -30,10 +53,22 @@ export function applyTheme(themeName) {
 
   if (typeof document !== 'undefined') {
     document.documentElement.setAttribute('data-theme', resolvedTheme)
+    if (resolvedTheme === 'winui3') {
+      document.documentElement.setAttribute('data-winui-material', getWinUi3Material())
+    }
   }
 
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem('vapor.theme', resolvedTheme)
+  }
+
+  // Synchronize Windows 11 backdrop material
+  if (vaporApi.win?.setBackgroundMaterial) {
+    if (resolvedTheme === 'winui3') {
+      vaporApi.win.setBackgroundMaterial(getWinUi3Material())
+    } else {
+      vaporApi.win.setBackgroundMaterial('none')
+    }
   }
 }
 

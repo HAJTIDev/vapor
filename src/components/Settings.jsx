@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import vaporApi from '../vaporApi'
-import { themes, getThemeNames } from '../themes'
+import { themes, getThemeNames, getWinUi3Material, setWinUi3Material } from '../themes'
 import { formatFileSize } from '../utils'
 
 const themeShowcase = {
@@ -21,8 +21,8 @@ const themeShowcase = {
     colors: ['#CAE4FA', '#E6F3FE', '#4aa0e6', '#8ad3ff', '#0f2437'],
   },
   winui3: {
-    tagline: 'Mica modern',
-    colors: ['#202226', '#32353a', '#4cc2ff', '#2899f5', '#f3f3f3'],
+    tagline: 'Fluent Acrylic / Mica',
+    colors: ['rgba(32, 34, 38, 0.7)', 'rgba(255, 255, 255, 0.08)', '#4cc2ff', '#0078d4', '#ffffff'],
   },
   cyberpunk: {
     tagline: 'Neon overdrive',
@@ -65,6 +65,12 @@ export default function Settings({ settings, onSave, games, onWipeGames, onRefre
   const [themesFolderPath, setThemesFolderPath] = useState('')
   const [refreshingThemes, setRefreshingThemes] = useState(false)
   const [downloadLimitKbps, setDownloadLimitKbps] = useState(Math.max(0, Math.round(Number(settings?.downloadSpeedLimitKbps) || 0)))
+  const [winuiMaterial, setWinuiMaterial] = useState(getWinUi3Material())
+
+  const handleWinuiMaterialChange = (mat) => {
+    setWinuiMaterial(mat)
+    setWinUi3Material(mat)
+  }
 
   const sliderMaxKbps = 4096
   const sliderStepKbps = 64
@@ -726,6 +732,82 @@ export default function Settings({ settings, onSave, games, onWipeGames, onRefre
               </div>
             )}
           </div>
+
+          {currentTheme === 'winui3' && (
+            <div style={{
+              background: 'color-mix(in srgb, var(--accent) 12%, var(--surface2))',
+              border: '1px solid color-mix(in srgb, var(--accent) 30%, var(--border))',
+              borderRadius: 10,
+              padding: '14px 16px',
+              marginBottom: 16,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 18 }}>🪟</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+                      WinUI 3 Backdrop Material
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                      Native Windows 11 DWM transparency and backdrop blur effects
+                    </div>
+                  </div>
+                </div>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '3px 10px',
+                  borderRadius: 999,
+                  background: 'color-mix(in srgb, var(--green) 18%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--green) 35%, transparent)',
+                  fontSize: 11,
+                  color: 'var(--green)',
+                  fontWeight: 600,
+                }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+                  Windows 11 DWM Active
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                {[
+                  { id: 'acrylic', label: 'Acrylic', desc: 'Frosted glass blur (Recommended)' },
+                  { id: 'mica', label: 'Mica', desc: 'Desktop wallpaper tint' },
+                  { id: 'tabbed', label: 'Mica Alt', desc: 'Deep layered surface' },
+                ].map((mat) => {
+                  const isActive = winuiMaterial === mat.id
+                  return (
+                    <button
+                      key={mat.id}
+                      onClick={() => handleWinuiMaterialChange(mat.id)}
+                      style={{
+                        flex: '1 1 140px',
+                        padding: '10px 14px',
+                        borderRadius: 8,
+                        border: isActive ? '1px solid var(--accent)' : '1px solid var(--border)',
+                        background: isActive ? 'color-mix(in srgb, var(--accent) 20%, var(--surface))' : 'var(--surface)',
+                        color: 'var(--text)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start',
+                        gap: 2,
+                        cursor: 'pointer',
+                        boxShadow: isActive ? '0 0 0 1px var(--accent)' : 'none',
+                        transition: 'all 0.12s ease',
+                      }}
+                    >
+                      <span style={{ fontSize: 12, fontWeight: 600 }}>{mat.label}</span>
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{mat.desc}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(210px, 1fr))', gap:10 }}>
             {availableThemes.map((theme) => {

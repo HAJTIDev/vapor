@@ -1,221 +1,488 @@
+/* ==========================================================================
+   WinUI 3 (Fluent Design System 2 / Windows 11) Theme for Vapor
+   Features:
+   - Native Windows 11 DWM backdrop transparency (Acrylic / Mica / Mica Alt)
+   - Atmospheric frosted glass fallback for web/unsupported environments
+   - Windows 11 native caption buttons and integrated titlebar
+   - WinUI 3 NavigationView with iconic vertical accent pill indicator
+   - WinUI 3 Cards with elevation, inner highlight, and frosted glass
+   - Fluent TextBox with bottom accent underline focus animation
+   - Fluent Buttons with physical keycap depth and micro-interactions
+   - Fluent MenuFlyout and ContentDialog styling
+   - Windows 11 slim rounded scrollbars
+   ========================================================================== */
+
 :root[data-theme='winui3'] {
-  --bg: #202226;
-  --surface: #2b2d31cc;
-  --surface2: #32353acc;
-  --surface3: #3a3d43cc;
-  --border: #ffffff1b;
-  --border2: #ffffff33;
-  --text: #f3f3f3;
-  --text-dim: #d0d0d0;
-  --text-muted: #adadad;
+  --bg: transparent;
+  --bg-fallback: #1c1d22;
+  --surface: rgba(255, 255, 255, 0.04);
+  --surface2: rgba(255, 255, 255, 0.065);
+  --surface3: rgba(255, 255, 255, 0.09);
+  --surface-elevated: rgba(38, 40, 46, 0.82);
+  --border: rgba(255, 255, 255, 0.08);
+  --border2: rgba(255, 255, 255, 0.14);
+  --border-glow: rgba(76, 194, 255, 0.4);
+
+  --text: #ffffff;
+  --text-dim: #d1d5db;
+  --text-muted: #8c93a0;
+
   --accent: #4cc2ff;
-  --accent2: #2899f5;
-  --accent-dim: #4cc2ff24;
-  --green: #55d17e;
+  --accent2: #0078d4;
+  --accent-dim: rgba(76, 194, 255, 0.16);
+  --accent-glow: rgba(76, 194, 255, 0.32);
+
+  --green: #6ccb5f;
   --green2: #38b964;
-  --red: #ff7b86;
-  --red2: #e95a68;
-  --accent-gradient: linear-gradient(180deg, #5fd0ff 0%, #2899f5 100%);
-  --green-gradient: linear-gradient(180deg, #5fdc89 0%, #38b964 100%);
-  --red-gradient: linear-gradient(180deg, #ff8d97 0%, #e95a68 100%);
-  --font: Segoe UI Variable Text, Segoe UI, Inter, sans-serif;
-  --mono: Cascadia Code, Consolas, monospace;
+  --red: #ff7380;
+  --red2: #e81123;
+
+  --accent-gradient: linear-gradient(180deg, #5ed1ff 0%, #0078d4 100%);
+  --green-gradient: linear-gradient(180deg, #7ad86f 0%, #38b964 100%);
+  --red-gradient: linear-gradient(180deg, #ff828e 0%, #e81123 100%);
+
+  --font: 'Segoe UI Variable Text', 'Segoe UI Variable Display', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  --mono: 'Cascadia Code', 'Cascadia Mono', Consolas, monospace;
+
+  --card-bg: rgba(255, 255, 255, 0.04);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-border-hover: rgba(255, 255, 255, 0.2);
+  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --card-shadow-hover: 0 12px 28px rgba(0, 0, 0, 0.35), 0 0 16px rgba(76, 194, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
+/* ==========================================================================
+   Window, Body & Translucency
+   ========================================================================== */
+
+:root[data-theme='winui3'],
+:root[data-theme='winui3'] body,
+:root[data-theme='winui3'] #root {
+  background: transparent !important;
+  color: var(--text);
+  font-family: var(--font);
+}
+
+/* Atmospheric frosted backdrop (Acrylic / Mica) */
 :root[data-theme='winui3'] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
   background:
-    radial-gradient(1200px 760px at -18% -26%, #7bc7ff24 0%, transparent 64%),
-    radial-gradient(980px 620px at 112% -14%, #9d9dff18 0%, transparent 66%),
-    linear-gradient(180deg, #26282d 0%, #1f2125 100%);
+    radial-gradient(1400px 750px at -10% -15%, rgba(76, 194, 255, 0.08) 0%, transparent 60%),
+    radial-gradient(1100px 600px at 110% -10%, rgba(0, 120, 212, 0.07) 0%, transparent 65%),
+    linear-gradient(180deg, rgba(28, 29, 34, 0.62) 0%, rgba(18, 19, 23, 0.78) 100%);
+  backdrop-filter: blur(40px) saturate(125%);
   opacity: 1;
+  z-index: -1;
+  transition: background 0.3s ease, backdrop-filter 0.3s ease;
 }
 
-:root[data-theme='winui3'] .app-shell {
-  border: 1px solid #ffffff20;
-  box-shadow:
-    inset 0 1px 0 #ffffff12,
-    0 24px 56px #0000005c;
+/* Material variant: Mica (clean subtle desktop wallpaper blur) */
+:root[data-theme='winui3'][data-winui-material='mica'] body::before {
+  background:
+    radial-gradient(1200px 700px at 0% 0%, rgba(76, 194, 255, 0.05) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(30, 31, 36, 0.45) 0%, rgba(22, 23, 27, 0.6) 100%);
+  backdrop-filter: blur(24px) saturate(115%);
 }
+
+/* Material variant: Tabbed / Mica Alt (deeper layered material) */
+:root[data-theme='winui3'][data-winui-material='tabbed'] body::before {
+  background:
+    radial-gradient(1200px 700px at 100% 0%, rgba(0, 120, 212, 0.07) 0%, transparent 65%),
+    linear-gradient(180deg, rgba(34, 35, 41, 0.55) 0%, rgba(24, 25, 30, 0.72) 100%);
+  backdrop-filter: blur(32px) saturate(120%);
+}
+
+/* App Shell with subtle 1px border */
+:root[data-theme='winui3'] .app-shell {
+  background: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* ==========================================================================
+   Titlebar (Windows 11 Native Fluent Titlebar)
+   ========================================================================== */
 
 :root[data-theme='winui3'] .titlebar {
-  height: 34px !important;
-  border-bottom: 1px solid #ffffff1f !important;
-  background: linear-gradient(180deg, #2f3238d9 0%, #2a2d33d9 100%) !important;
-  backdrop-filter: blur(20px) saturate(110%);
+  height: 38px !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  backdrop-filter: blur(24px) saturate(110%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  padding-left: 14px !important;
+  padding-right: 0 !important;
 }
 
 :root[data-theme='winui3'] .titlebar-brand span {
-  font-family: Segoe UI Variable Text, Segoe UI, sans-serif !important;
+  font-family: var(--font) !important;
   font-size: 12px !important;
   font-weight: 600 !important;
-  letter-spacing: 0.01em !important;
+  letter-spacing: 0.03em !important;
   color: #f3f3f3 !important;
 }
 
 :root[data-theme='winui3'] .titlebar-controls {
-  gap: 2px;
-  padding-right: 4px;
+  gap: 0 !important;
+  padding-right: 0 !important;
+  margin: 0 !important;
+  height: 100% !important;
 }
 
 :root[data-theme='winui3'] .titlebar-btn {
-  width: 38px !important;
-  height: 32px !important;
-  margin-top: 1px;
-  border: 1px solid transparent !important;
-  border-radius: 4px !important;
+  width: 46px !important;
+  height: 100% !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
   background: transparent !important;
-  color: #dbdbdb !important;
+  color: rgba(255, 255, 255, 0.8) !important;
   box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background 0.1s ease, color 0.1s ease !important;
 }
 
 :root[data-theme='winui3'] .titlebar-btn:hover {
-  background: #ffffff14 !important;
-}
-
-:root[data-theme='winui3'] .titlebar-btn:active {
-  background: #ffffff20 !important;
-}
-
-:root[data-theme='winui3'] .titlebar-btn-close:hover {
-  background: #e811237a !important;
+  background: rgba(255, 255, 255, 0.09) !important;
   color: #ffffff !important;
 }
 
-:root[data-theme='winui3'] .sidebar,
-:root[data-theme='winui3'] .app-main,
-:root[data-theme='winui3'] .library-view,
-:root[data-theme='winui3'] .context-menu {
-  background: linear-gradient(180deg, #2f3238bf 0%, #2a2d33bf 100%) !important;
-  backdrop-filter: blur(22px) saturate(110%);
+:root[data-theme='winui3'] .titlebar-btn:active {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(255, 255, 255, 0.6) !important;
 }
+
+:root[data-theme='winui3'] .titlebar-btn-close:hover {
+  background: #c42b1c !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme='winui3'] .titlebar-btn-close:active {
+  background: #b82214 !important;
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   Sidebar (WinUI 3 NavigationView)
+   ========================================================================== */
 
 :root[data-theme='winui3'] .sidebar {
-  border-right: 1px solid #ffffff1f !important;
-  box-shadow: inset -1px 0 0 #ffffff0d !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  backdrop-filter: blur(28px) saturate(120%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
+  box-shadow: none !important;
 }
 
-:root[data-theme='winui3'] .context-menu {
-  border: 1px solid #ffffff26 !important;
-  border-radius: 8px !important;
-  box-shadow: 0 18px 42px #00000063 !important;
+:root[data-theme='winui3'] .sidebar .nav-item,
+:root[data-theme='winui3'] .sidebar .collection-item,
+:root[data-theme='winui3'] .sidebar .game-row {
+  position: relative !important;
+  border-radius: 6px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease !important;
+  padding: 7px 12px !important;
+  color: rgba(255, 255, 255, 0.82) !important;
+  font-family: var(--font) !important;
+  font-size: 13px !important;
 }
 
-:root[data-theme='winui3'] .nav-item,
-:root[data-theme='winui3'] .collection-item,
-:root[data-theme='winui3'] .game-row,
-:root[data-theme='winui3'] .library-grid .game-card,
-:root[data-theme='winui3'] .ui-input {
-  border: 1px solid #ffffff17 !important;
-  border-radius: 8px !important;
+:root[data-theme='winui3'] .sidebar .nav-item:hover,
+:root[data-theme='winui3'] .sidebar .collection-item:hover,
+:root[data-theme='winui3'] .sidebar .game-row:hover {
+  background: rgba(255, 255, 255, 0.055) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
 }
 
-:root[data-theme='winui3'] .nav-item,
-:root[data-theme='winui3'] .collection-item,
-:root[data-theme='winui3'] .game-row {
-  background: #ffffff05 !important;
+:root[data-theme='winui3'] .sidebar .nav-item:active,
+:root[data-theme='winui3'] .sidebar .collection-item:active,
+:root[data-theme='winui3'] .sidebar .game-row:active {
+  background: rgba(255, 255, 255, 0.035) !important;
 }
 
-:root[data-theme='winui3'] .nav-item:hover,
-:root[data-theme='winui3'] .collection-item:hover,
-:root[data-theme='winui3'] .game-row:hover {
-  background: #ffffff10 !important;
-  border-color: #ffffff2e !important;
+/* The signature WinUI 3 Navigation Selection Indicator */
+:root[data-theme='winui3'] .sidebar .nav-item.is-active,
+:root[data-theme='winui3'] .sidebar .collection-item.is-active,
+:root[data-theme='winui3'] .sidebar .game-row.is-active {
+  background: rgba(255, 255, 255, 0.075) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
 }
 
-:root[data-theme='winui3'] .nav-item.is-active,
-:root[data-theme='winui3'] .collection-item.is-active,
-:root[data-theme='winui3'] .game-row.is-active {
-  background: #4cc2ff2f !important;
-  border-color: #4cc2ff91 !important;
-  color: #f3f3f3 !important;
+:root[data-theme='winui3'] .sidebar .nav-item.is-active::before,
+:root[data-theme='winui3'] .sidebar .collection-item.is-active::before,
+:root[data-theme='winui3'] .sidebar .game-row.is-active::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 16px;
+  background: #4cc2ff;
+  border-radius: 999px;
+  box-shadow: 0 0 8px rgba(76, 194, 255, 0.7);
+  animation: winuiPillPop 0.18s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+@keyframes winuiPillPop {
+  0% { transform: translateY(-50%) scaleY(0.4); opacity: 0; }
+  100% { transform: translateY(-50%) scaleY(1); opacity: 1; }
+}
+
+/* AutoSuggest Search box */
+:root[data-theme='winui3'] .sidebar .sidebar-search-box {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 6px !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15) !important;
+  transition: all 0.14s ease !important;
+}
+
+:root[data-theme='winui3'] .sidebar .sidebar-search-box:focus-within {
+  background: rgba(30, 32, 38, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 2px solid #4cc2ff !important;
+  box-shadow: 0 0 0 1px rgba(76, 194, 255, 0.25) !important;
+}
+
+:root[data-theme='winui3'] .sidebar input.sidebar-search-input {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0 !important;
+}
+
+:root[data-theme='winui3'] .sidebar input.sidebar-search-input:focus,
+:root[data-theme='winui3'] .sidebar input.sidebar-search-input:hover {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* ==========================================================================
+   Main View, Library & Cards
+   ========================================================================== */
+
+:root[data-theme='winui3'] .app-main,
+:root[data-theme='winui3'] .library-view {
+  background: transparent !important;
 }
 
 :root[data-theme='winui3'] .library-grid .game-card {
-  background: linear-gradient(180deg, #34373dca 0%, #2d3036ca 100%) !important;
-  box-shadow: 0 8px 24px #00000038;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
+  backdrop-filter: blur(16px);
+  transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1),
+              box-shadow 0.2s cubic-bezier(0.1, 0.9, 0.2, 1),
+              border-color 0.15s ease,
+              background 0.15s ease !important;
 }
 
 :root[data-theme='winui3'] .library-grid .game-card:hover {
-  border-color: #ffffff3a !important;
-  box-shadow: 0 12px 30px #00000048;
+  background: rgba(255, 255, 255, 0.065) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35), 0 0 16px rgba(76, 194, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  transform: translateY(-4px) !important;
 }
 
+/* Card action deck */
+:root[data-theme='winui3'] .game-card .cover-action-deck {
+  background: linear-gradient(to top, rgba(20, 21, 25, 0.95) 0%, rgba(20, 21, 25, 0.6) 70%, transparent 100%) !important;
+  backdrop-filter: blur(12px);
+}
+
+/* ==========================================================================
+   Buttons (WinUI 3 Button & AccentButton)
+   ========================================================================== */
+
 :root[data-theme='winui3'] .ui-btn,
-:root[data-theme='winui3'] button:not(.nav-item):not(.collection-item):not(.game-row) {
-  border-radius: 8px !important;
-  border: 1px solid #ffffff22 !important;
-  background: linear-gradient(180deg, #ffffff10 0%, #ffffff08 100%) !important;
+:root[data-theme='winui3'] button:not(.nav-item):not(.collection-item):not(.game-row):not(.titlebar-btn) {
+  border-radius: 6px !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
   color: #f3f3f3 !important;
-  box-shadow: inset 0 1px 0 #ffffff14;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.15) !important;
+  font-family: var(--font) !important;
+  font-weight: 500 !important;
+  transition: all 0.12s ease !important;
   filter: none !important;
   transform: none !important;
 }
 
 :root[data-theme='winui3'] .ui-btn:hover,
-:root[data-theme='winui3'] button:not(.nav-item):not(.collection-item):not(.game-row):hover {
-  background: linear-gradient(180deg, #ffffff18 0%, #ffffff0f 100%) !important;
-  border-color: #ffffff35 !important;
+:root[data-theme='winui3'] button:not(.nav-item):not(.collection-item):not(.game-row):not(.titlebar-btn):hover {
+  background: rgba(255, 255, 255, 0.09) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+  transform: none !important;
 }
 
 :root[data-theme='winui3'] .ui-btn:active,
-:root[data-theme='winui3'] button:not(.nav-item):not(.collection-item):not(.game-row):active {
-  background: linear-gradient(180deg, #ffffff09 0%, #ffffff16 100%) !important;
+:root[data-theme='winui3'] button:not(.nav-item):not(.collection-item):not(.game-row):not(.titlebar-btn):active {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.07) !important;
+  transform: scale(0.985) !important;
 }
 
+/* Fluent Accent Button (Play / Primary actions) */
 :root[data-theme='winui3'] .btn-accent,
-:root[data-theme='winui3'] .btn-green,
-:root[data-theme='winui3'] .btn-red {
-  border-color: #4cc2ff96 !important;
-  background: linear-gradient(180deg, #5fd0ff 0%, #2899f5 100%) !important;
-  color: #0d1f2f !important;
-  box-shadow: inset 0 1px 0 #bde8ff80;
-}
-
 :root[data-theme='winui3'] .btn-green {
-  border-color: #55d17ea3 !important;
-  background: linear-gradient(180deg, #6be094 0%, #38b964 100%) !important;
-  color: #0f2417 !important;
+  background: linear-gradient(180deg, #4cc2ff 0%, #0078d4 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 12px rgba(0, 120, 212, 0.35) !important;
+  color: #001728 !important;
+  font-weight: 600 !important;
 }
 
+:root[data-theme='winui3'] .btn-accent:hover,
+:root[data-theme='winui3'] .btn-green:hover {
+  filter: brightness(1.08) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 6px 18px rgba(0, 120, 212, 0.45) !important;
+  transform: none !important;
+}
+
+:root[data-theme='winui3'] .btn-accent:active,
+:root[data-theme='winui3'] .btn-green:active {
+  filter: brightness(0.94) !important;
+  transform: scale(0.985) !important;
+}
+
+/* Fluent Danger Button */
 :root[data-theme='winui3'] .btn-red {
-  border-color: #ff7b86a8 !important;
-  background: linear-gradient(180deg, #ff9fa8 0%, #e95a68 100%) !important;
-  color: #2b1014 !important;
+  background: rgba(232, 17, 35, 0.18) !important;
+  border: 1px solid rgba(232, 17, 35, 0.45) !important;
+  color: #ff99a4 !important;
+  box-shadow: none !important;
 }
 
-:root[data-theme='winui3'] .ui-input,
-:root[data-theme='winui3'] input,
+:root[data-theme='winui3'] .btn-red:hover {
+  background: rgba(232, 17, 35, 0.28) !important;
+  border-color: rgba(232, 17, 35, 0.6) !important;
+  transform: none !important;
+}
+
+:root[data-theme='winui3'] .btn-red:active {
+  background: rgba(232, 17, 35, 0.14) !important;
+  transform: scale(0.985) !important;
+}
+
+/* ==========================================================================
+   Inputs, Selects & Form Controls
+   ========================================================================== */
+
+:root[data-theme='winui3'] .ui-input:not(.sidebar-search-box),
+:root[data-theme='winui3'] input:not(.sidebar-search-input),
 :root[data-theme='winui3'] select,
 :root[data-theme='winui3'] textarea {
-  background: linear-gradient(180deg, #ffffff0f 0%, #ffffff08 100%) !important;
-  color: #f0f0f0 !important;
-  border: 1px solid #ffffff22 !important;
-  box-shadow: inset 0 1px 2px #00000026;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 6px !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15) !important;
+  transition: all 0.12s ease !important;
+  font-family: var(--font) !important;
 }
 
-:root[data-theme='winui3'] .ui-input:focus,
-:root[data-theme='winui3'] input:focus,
+:root[data-theme='winui3'] .ui-input:not(.sidebar-search-box):hover,
+:root[data-theme='winui3'] input:not(.sidebar-search-input):hover,
+:root[data-theme='winui3'] select:hover,
+:root[data-theme='winui3'] textarea:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.6) !important;
+}
+
+:root[data-theme='winui3'] .ui-input:not(.sidebar-search-box):focus,
+:root[data-theme='winui3'] .ui-input:not(.sidebar-search-box):focus-within,
+:root[data-theme='winui3'] input:not(.sidebar-search-input):focus,
 :root[data-theme='winui3'] select:focus,
 :root[data-theme='winui3'] textarea:focus {
-  border-color: #4cc2ffb0 !important;
-  box-shadow: inset 0 1px 2px #00000026, 0 0 0 2px #4cc2ff40 !important;
+  background: rgba(28, 29, 34, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 2px solid #4cc2ff !important;
+  box-shadow: 0 0 0 1px rgba(76, 194, 255, 0.25) !important;
 }
 
+/* ==========================================================================
+   Flyouts, Context Menus & Dialogs
+   ========================================================================== */
+
+:root[data-theme='winui3'] .context-menu {
+  background: rgba(36, 38, 44, 0.88) !important;
+  backdrop-filter: blur(36px) saturate(140%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.11) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  padding: 4px !important;
+}
+
+:root[data-theme='winui3'] .context-menu button {
+  border-radius: 4px !important;
+  padding: 6px 10px !important;
+  margin: 1px 0 !important;
+  transition: background 0.1s ease !important;
+}
+
+:root[data-theme='winui3'] .context-menu button:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Game Detail view frosted acrylic panels */
+:root[data-theme='winui3'] .gd-section {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 8px !important;
+  backdrop-filter: blur(20px) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
+}
+
+:root[data-theme='winui3'] .gd-hero-gradient {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.2) 0%,
+    rgba(20, 22, 26, 0.5) 45%,
+    rgba(20, 22, 26, 0.9) 100%
+  ) !important;
+}
+
+/* ==========================================================================
+   Windows 11 Slim Scrollbars
+   ========================================================================== */
+
 :root[data-theme='winui3'] ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
 }
 
 :root[data-theme='winui3'] ::-webkit-scrollbar-track {
-  background: #ffffff08;
+  background: transparent;
 }
 
 :root[data-theme='winui3'] ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #ffffff38 0%, #ffffff1c 100%);
+  background: rgba(255, 255, 255, 0.22);
   border-radius: 999px;
-  border: 1px solid #ffffff20;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.15s ease;
 }
 
 :root[data-theme='winui3'] ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #ffffff4d 0%, #ffffff2a 100%);
+  background: rgba(255, 255, 255, 0.4);
 }

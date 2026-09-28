@@ -301,13 +301,19 @@ function configureAutoStart() {
 }
 
 function createWindow() {
+  const userSettings = loadJSON(settingsFile, defaultSettings)
+  const isWin = process.platform === 'win32'
+  const isWinUi3 = userSettings?.theme === 'winui3'
+  const initialMaterial = isWin ? (isWinUi3 ? 'acrylic' : 'none') : undefined
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 960,
     minHeight: 600,
     frame: false,
-    backgroundColor: '#09090e',
+    backgroundColor: '#00000000',
+    backgroundMaterial: initialMaterial || 'acrylic',
     icon: resolveAppIcon(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -319,6 +325,14 @@ function createWindow() {
 
   if (isDev) mainWindow.loadURL('http://localhost:5173')
   else mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'))
+
+  mainWindow.on('maximize', () => {
+    sendToRenderer('win:maximize-change', true)
+  })
+
+  mainWindow.on('unmaximize', () => {
+    sendToRenderer('win:maximize-change', false)
+  })
 
   mainWindow.on('close', (event) => {
     if (!app.isQuitting) {
@@ -538,6 +552,21 @@ function checkForUpdates(autoDownload = true) {
 ipcMain.handle('win:minimize', () => mainWindow.minimize())
 ipcMain.handle('win:maximize', () => (mainWindow.isMaximized() ? mainWindow.restore() : mainWindow.maximize()))
 ipcMain.handle('win:close', () => mainWindow.hide())
+ipcMain.handle('win:isMaximized', () => (mainWindow ? mainWindow.isMaximized() : false))
+ipcMain.handle('win:setBackgroundMaterial', (_, material) => {
+  if (process.platform === 'win32' && mainWindow && typeof mainWindow.setBackgroundMaterial === 'function') {
+    try {
+      const valid = ['auto', 'none', 'mica', 'acrylic', 'tabbed']
+      const mat = valid.includes(material) ? material : 'acrylic'
+      mainWindow.setBackgroundMaterial(mat)
+      return { ok: true, material: mat }
+    } catch (err) {
+      console.error('[win:setBackgroundMaterial] Error:', err)
+      return { ok: false, error: err?.message }
+    }
+  }
+  return { ok: false, error: 'Not supported on this platform' }
+})
 ipcMain.handle('win:isGameRunning', () => ({
   running: gameSessionStart !== null,
   gameId: currentGameId,

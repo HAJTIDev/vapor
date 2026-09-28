@@ -69,18 +69,18 @@ export default function Sidebar({
           borderRadius:10,
           padding:'8px 10px',
           boxShadow:'0 8px 24px #00000025'
-        }} className="ui-input">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5">
+        }} className="sidebar-search-box ui-input">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" style={{ flexShrink: 0 }}>
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
           <input
             value={search}
             onChange={e => { setSearch(e.target.value); go('library') }}
             placeholder="Search..."
-            className="ui-input"
+            className="sidebar-search-input"
             style={{
               background:'none', border:'none', color:'var(--text)', fontSize:13,
-              width:'100%'
+              width:'100%', outline:'none', boxShadow:'none', padding:0
             }}
           />
           {!!search && (
@@ -92,6 +92,7 @@ export default function Sidebar({
                 fontSize:12,
                 lineHeight:1,
                 padding:'0 2px',
+                flexShrink:0
               }}
               title="Clear search"
             >

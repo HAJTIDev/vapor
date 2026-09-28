@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld('vapor', {
     minimize: () => ipcRenderer.invoke('win:minimize'),
     maximize: () => ipcRenderer.invoke('win:maximize'),
     close:    () => ipcRenderer.invoke('win:close'),
+    isMaximized: () => ipcRenderer.invoke('win:isMaximized'),
+    setBackgroundMaterial: (material) => ipcRenderer.invoke('win:setBackgroundMaterial', material),
     openExternal: (url) => ipcRenderer.invoke('win:openExternal', url),
   },
   dialog: {
