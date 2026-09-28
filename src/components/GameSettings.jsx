@@ -213,23 +213,58 @@ export default function GameSettings({
           )}
 
           <div>
-            <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6, textTransform:'uppercase', letterSpacing:'0.08em' }}>Launch Mode</div>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
-              <div style={{ fontSize:13, color:'var(--text)' }}>Run as administrator</div>
-              <button role="switch" aria-checked={!!game.runAsAdmin}
-                onClick={() => onUpdate(game.id, { runAsAdmin: !game.runAsAdmin })}
-                style={{
-                  width:44, height:24, borderRadius:12, padding:2, border:'none', cursor:'pointer',
-                  background: game.runAsAdmin ? 'var(--accent)' : 'var(--surface2)',
-                  transition:'background 0.2s ease', flexShrink:0,
-                }}>
-                <div style={{
-                  width:20, height:20, borderRadius:'50%', background:'#fff',
-                  transition:'transform 0.2s ease',
-                  transform: game.runAsAdmin ? 'translateX(20px)' : 'translateX(0)',
-                  boxShadow:'0 1px 3px rgba(0,0,0,0.3)',
-                }} />
-              </button>
+            <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6, textTransform:'uppercase', letterSpacing:'0.08em' }}>Launch Mode & Category</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
+                <div>
+                  <div style={{ fontSize:13, color:'var(--text)' }}>Virtual Reality (VR) Game</div>
+                  <div style={{ fontSize:11, color:'var(--text-muted)' }}>Displays game in the VR category and tags it with 🥽 VR</div>
+                </div>
+                <button role="switch" aria-checked={!!game.isVR}
+                  onClick={() => {
+                    const nextVR = !game.isVR
+                    let nextGenres = Array.isArray(game.genres) ? [...game.genres] : []
+                    if (nextVR && !nextGenres.some(g => String(g).toLowerCase() === 'vr')) {
+                      nextGenres.push('VR')
+                    } else if (!nextVR) {
+                      nextGenres = nextGenres.filter(g => String(g).toLowerCase() !== 'vr')
+                    }
+                    onUpdate(game.id, { isVR: nextVR, genres: nextGenres })
+                  }}
+                  style={{
+                    width:44, height:24, borderRadius:12, padding:2, border:'none', cursor:'pointer',
+                    background: game.isVR ? 'var(--accent)' : 'var(--surface2)',
+                    transition:'background 0.2s ease', flexShrink:0,
+                  }}>
+                  <div style={{
+                    width:20, height:20, borderRadius:'50%', background:'#fff',
+                    transition:'transform 0.2s ease',
+                    transform: game.isVR ? 'translateX(20px)' : 'translateX(0)',
+                    boxShadow:'0 1px 3px rgba(0,0,0,0.3)',
+                  }} />
+                </button>
+              </div>
+
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
+                <div>
+                  <div style={{ fontSize:13, color:'var(--text)' }}>Run as administrator</div>
+                  <div style={{ fontSize:11, color:'var(--text-muted)' }}>Request elevated privileges on launch</div>
+                </div>
+                <button role="switch" aria-checked={!!game.runAsAdmin}
+                  onClick={() => onUpdate(game.id, { runAsAdmin: !game.runAsAdmin })}
+                  style={{
+                    width:44, height:24, borderRadius:12, padding:2, border:'none', cursor:'pointer',
+                    background: game.runAsAdmin ? 'var(--accent)' : 'var(--surface2)',
+                    transition:'background 0.2s ease', flexShrink:0,
+                  }}>
+                  <div style={{
+                    width:20, height:20, borderRadius:'50%', background:'#fff',
+                    transition:'transform 0.2s ease',
+                    transform: game.runAsAdmin ? 'translateX(20px)' : 'translateX(0)',
+                    boxShadow:'0 1px 3px rgba(0,0,0,0.3)',
+                  }} />
+                </button>
+              </div>
             </div>
           </div>
 

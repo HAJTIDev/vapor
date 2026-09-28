@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import Titlebar from './components/Titlebar.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import Library from './components/Library.jsx'
@@ -7,6 +7,8 @@ import GameSettings from './components/GameSettings.jsx'
 import Settings from './components/Settings.jsx'
 import AddGames from './components/AddGames.jsx'
 import Downloader from './components/Downloader.jsx'
+import GamepadBar from './components/GamepadBar.jsx'
+import { useGamepad, vibrateGamepad } from './useGamepad.js'
 import vaporApi from './vaporApi.js'
 import { applyTheme, applyCustomThemeCss } from './themes.js'
 import titleLogo from './img/title.png'
@@ -67,6 +69,8 @@ const defaultSettings = {
     autoUpdate: true,
     autoStart: true,
     autoScanAllDrives: false,
+    gamepadVibration: true,
+    gamepadHud: true,
   },
 }
 
@@ -91,10 +95,32 @@ function normalizeSettings(input) {
   }
 }
 
-function normalizeGame(input) {
+export function isGameVR(game) {
+  if (!game) return false
+  if (game.isVR === true) return true
+  if (game.isVR === false) return false
+  if (Array.isArray(game.genres) && game.genres.some(g => String(g).trim().toLowerCase() === 'vr')) return true
+  const name = String(game.name || '').toLowerCase()
+  const exe = String(game.exeName || game.exe || '').toLowerCase()
+  const vrWordRegex = /(?:^|[_\s.\-/(])vr(?:[_\s.\-/)!]|$)/i
+  if (vrWordRegex.test(name) || vrWordRegex.test(exe)) return true
+  if (/virtual[\s_-]?reality/i.test(name) || /steamvr/i.test(name) || /openxr/i.test(name) || /beat[\s_-]?saber/i.test(name) || /half[\s_-]?life[:\s_-]*alyx/i.test(name) || /hlvr/i.test(exe) || /\balyx\b/i.test(name) || /boneworks/i.test(name) || /bonelab/i.test(name) || /blade.*sorcery/i.test(name) || /blade.*sorcery/i.test(exe) || /pavlov/i.test(name) || /into[\s_-]the[\s_-]radius/i.test(name)) return true
+  return false
+}
+
+export function normalizeGame(input) {
   const safe = input || {}
+  const isVR = safe.isVR !== undefined ? !!safe.isVR : isGameVR(safe)
+  let existingGenres = Array.isArray(safe.genres) ? [...safe.genres] : []
+  if (isVR && !existingGenres.some(g => String(g).toLowerCase() === 'vr')) {
+    existingGenres.push('VR')
+  } else if (!isVR) {
+    existingGenres = existingGenres.filter(g => String(g).toLowerCase() !== 'vr')
+  }
   return {
     ...safe,
+    isVR,
+    genres: existingGenres,
     favorite: !!safe.favorite,
     runAsAdmin: !!safe.runAsAdmin,
     fileSize: Number.isFinite(Number(safe.fileSize)) ? Math.max(0, Math.round(Number(safe.fileSize))) : 0,
@@ -238,7 +264,7 @@ export default function App() {
 
   useEffect(() => {
     const valid = new Set(settings.collections.map(c => c.id))
-    if (activeCollection !== 'all' && activeCollection !== 'favorites' && !valid.has(activeCollection)) {
+    if (activeCollection !== 'all' && activeCollection !== 'favorites' && activeCollection !== 'vr' && !valid.has(activeCollection)) {
       setActiveCollection('all')
       setSelected(null)
       setFilterGenre('all')
@@ -415,6 +441,7 @@ export default function App() {
   const matchesCollection = useCallback((game) => {
     if (activeCollection === 'all') return true
     if (activeCollection === 'favorites') return !!game.favorite
+    if (activeCollection === 'vr') return isGameVR(game)
     return (game.collections || []).includes(activeCollection)
   }, [activeCollection])
 
@@ -426,14 +453,66 @@ export default function App() {
   const collectionFilteredGames = searchFilteredGames.filter(matchesCollection)
   const visibleGames = sortGames(collectionFilteredGames, settings.ui.sidebarSort)
 
+  const libraryGames = useMemo(() => {
+    let list = collectionFilteredGames
+    if (filterGenre !== 'all') {
+      list = list.filter(g => (g.genres || []).includes(filterGenre))
+    }
+    if (librarySort === 'name') {
+      return [...list].sort((a, b) => a.name.localeCompare(b.name))
+    }
+    if (librarySort === 'playtime') {
+      return [...list].sort((a, b) => (b.playtime || 0) - (a.playtime || 0))
+    }
+    if (librarySort === 'added') {
+      return [...list].sort((a, b) => (+b.id || 0) - (+a.id || 0))
+    }
+    return [...list].sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0))
+  }, [collectionFilteredGames, filterGenre, librarySort])
+
+  const vrGamesCount = useMemo(() => games.filter(isGameVR).length, [games])
+
   const collectionItems = [
-    { id: 'all', name: 'All Games', count: games.length },
-    { id: 'favorites', name: 'Favorites', count: games.filter(g => g.favorite).length },
+    { id: 'all', name: 'All Games', count: games.length, icon: '🎮' },
+    { id: 'favorites', name: 'Favorites', count: games.filter(g => g.favorite).length, icon: '★' },
+    { id: 'vr', name: 'VR Games', count: vrGamesCount, icon: '🥽' },
     ...settings.collections.map(c => ({
       ...c,
       count: games.filter(g => (g.collections || []).includes(c.id)).length,
     })),
   ]
+
+  const triggerHaptic = useCallback((type) => {
+    vibrateGamepad(type, settings.ui?.gamepadVibration ?? true)
+  }, [settings.ui?.gamepadVibration])
+
+  const cycleCollection = useCallback((direction = 'next') => {
+    if (!collectionItems.length) return
+    const curIdx = collectionItems.findIndex(c => c.id === activeCollection)
+    let nextIdx
+    if (direction === 'next') {
+      nextIdx = curIdx >= 0 ? (curIdx + 1) % collectionItems.length : 0
+    } else {
+      nextIdx = curIdx > 0 ? curIdx - 1 : collectionItems.length - 1
+    }
+    const target = collectionItems[nextIdx]
+    if (target) {
+      setActiveCollection(target.id)
+      setSelected(null)
+      setFilterGenre('all')
+      setGamepadGameIndex(0)
+      triggerHaptic('click')
+    }
+  }, [collectionItems, activeCollection, triggerHaptic])
+
+  const toggleVrCollection = useCallback(() => {
+    const nextId = activeCollection === 'vr' ? 'all' : 'vr'
+    setActiveCollection(nextId)
+    setSelected(null)
+    setFilterGenre('all')
+    setGamepadGameIndex(0)
+    triggerHaptic('click')
+  }, [activeCollection, triggerHaptic])
 
   const selectedGame = selected ? games.find(g => g.id === selected.id) || selected : null
   const menuGame = contextMenu.open ? games.find(g => g.id === contextMenu.gameId) : null
@@ -441,11 +520,254 @@ export default function App() {
   const menuX = Math.max(8, Math.min(contextMenu.x, window.innerWidth - menuWidth - 8))
   const menuY = Math.max(8, Math.min(contextMenu.y, window.innerHeight - 440))
 
+  // Gamepad navigation state
+  const [gamepadGameIndex, setGamepadGameIndex] = useState(0)
+  const [gamepadDetailActionIndex, setGamepadDetailActionIndex] = useState(0)
+
+  useEffect(() => {
+    if (libraryGames.length > 0 && gamepadGameIndex >= libraryGames.length) {
+      setGamepadGameIndex(Math.max(0, libraryGames.length - 1))
+    }
+  }, [libraryGames.length, gamepadGameIndex])
+
+  const handleGamepadNavigate = useCallback((direction) => {
+    if (view === 'library') {
+      if (!selected) {
+        setGamepadGameIndex(prev => {
+          const total = libraryGames.length
+          if (total === 0) return 0
+
+          // Calculate EXACT number of columns from layout engine
+          let cols = 1
+          const grid = document.querySelector('.library-grid')
+          if (grid) {
+            try {
+              const computed = window.getComputedStyle(grid).gridTemplateColumns
+              if (computed && computed !== 'none') {
+                const count = computed.trim().split(/\s+/).filter(Boolean).length
+                if (count > 0) cols = count
+              }
+            } catch {
+              // fallback below
+            }
+
+            if (cols <= 1) {
+              const cards = grid.querySelectorAll('.game-card')
+              if (cards.length > 1) {
+                const firstTop = cards[0].offsetTop
+                let count = 0
+                for (let i = 0; i < cards.length; i++) {
+                  if (Math.abs(cards[i].offsetTop - firstTop) < 60) {
+                    count++
+                  } else {
+                    break
+                  }
+                }
+                if (count > 0) cols = count
+              }
+            }
+          }
+
+          if (direction === 'right') {
+            return Math.min(total - 1, prev + 1)
+          }
+
+          if (direction === 'left') {
+            return Math.max(0, prev - 1)
+          }
+
+          if (direction === 'down') {
+            const target = prev + cols
+            if (target < total) {
+              return target
+            }
+            const currentRow = Math.floor(prev / cols)
+            const lastRow = Math.floor((total - 1) / cols)
+            if (currentRow < lastRow) {
+              return total - 1
+            }
+            return prev
+          }
+
+          if (direction === 'up') {
+            const target = prev - cols
+            if (target >= 0) {
+              return target
+            }
+            return prev
+          }
+
+          return prev
+        })
+      } else {
+        setGamepadDetailActionIndex(prev => {
+          if (direction === 'down' || direction === 'right') return Math.min(5, prev + 1)
+          if (direction === 'up' || direction === 'left') return Math.max(0, prev - 1)
+          return prev
+        })
+      }
+    }
+  }, [view, selected, libraryGames.length])
+
+  const handleGamepadButtonPress = useCallback((button) => {
+    const viewsList = ['library', 'add', 'downloads', 'settings']
+    const curIdx = viewsList.indexOf(view)
+
+    if (button === 'RT') {
+      if (view !== 'library') setView('library')
+      cycleCollection('next')
+      return
+    }
+
+    if (button === 'LT') {
+      if (view !== 'library') setView('library')
+      cycleCollection('prev')
+      return
+    }
+
+    if (button === 'RB') {
+      const next = viewsList[(curIdx + 1) % viewsList.length]
+      setView(next)
+      setSelected(null)
+      triggerHaptic('click')
+      return
+    }
+
+    if (button === 'LB') {
+      const prev = viewsList[(curIdx - 1 + viewsList.length) % viewsList.length]
+      setView(prev)
+      setSelected(null)
+      triggerHaptic('click')
+      return
+    }
+
+    if (button === 'Start') {
+      if (selected) {
+        setSettingsPopup({ open: true, game: selected })
+      } else {
+        setView(v => v === 'settings' ? 'library' : 'settings')
+      }
+      triggerHaptic('click')
+      return
+    }
+
+    if (button === 'B') {
+      if (contextMenu.open) {
+        closeGameContextMenu()
+        triggerHaptic('click')
+        return
+      }
+      if (settingsPopup.open) {
+        setSettingsPopup({ open: false, game: null })
+        triggerHaptic('click')
+        return
+      }
+      if (selected) {
+        setSelected(null)
+        triggerHaptic('click')
+        return
+      }
+      if (view !== 'library') {
+        setView('library')
+        triggerHaptic('click')
+        return
+      }
+    }
+
+    if (view === 'library') {
+      if (!selected) {
+        if (button === 'Select') {
+          toggleVrCollection()
+          return
+        }
+
+        const game = libraryGames[gamepadGameIndex]
+        if (!game) return
+
+        if (button === 'A') {
+          setSelected(game)
+          triggerHaptic('click')
+        } else if (button === 'Y') {
+          launchGame(game)
+          triggerHaptic('launch')
+        } else if (button === 'X') {
+          toggleFavorite(game.id)
+          triggerHaptic('favorite')
+        } else if (button === 'R3') {
+          const nextVR = !isGameVR(game)
+          let nextGenres = Array.isArray(game.genres) ? [...game.genres] : []
+          if (nextVR && !nextGenres.some(g => String(g).toLowerCase() === 'vr')) {
+            nextGenres.push('VR')
+          } else if (!nextVR) {
+            nextGenres = nextGenres.filter(g => String(g).toLowerCase() !== 'vr')
+          }
+          updateGame(game.id, { isVR: nextVR, genres: nextGenres })
+          triggerHaptic('favorite')
+        }
+      } else {
+        // GameDetail view
+        if (button === 'Select' || button === 'R3') {
+          const nextVR = !isGameVR(selected)
+          let nextGenres = Array.isArray(selected.genres) ? [...selected.genres] : []
+          if (nextVR && !nextGenres.some(g => String(g).toLowerCase() === 'vr')) {
+            nextGenres.push('VR')
+          } else if (!nextVR) {
+            nextGenres = nextGenres.filter(g => String(g).toLowerCase() !== 'vr')
+          }
+          updateGame(selected.id, { isVR: nextVR, genres: nextGenres })
+          triggerHaptic('favorite')
+          return
+        }
+
+        if (button === 'Y') {
+          launchGame(selected)
+          triggerHaptic('launch')
+        } else if (button === 'X') {
+          toggleFavorite(selected.id)
+          triggerHaptic('favorite')
+        } else if (button === 'A') {
+          if (gamepadDetailActionIndex === 0) {
+            launchGame(selected)
+            triggerHaptic('launch')
+          } else if (gamepadDetailActionIndex === 1) {
+            setSettingsPopup({ open: true, game: selected })
+            triggerHaptic('click')
+          } else if (gamepadDetailActionIndex === 2) {
+            // Fetch art
+            triggerHaptic('click')
+          } else if (gamepadDetailActionIndex === 3) {
+            toggleFavorite(selected.id)
+            triggerHaptic('favorite')
+          } else if (gamepadDetailActionIndex === 4) {
+            const nextVR = !isGameVR(selected)
+            let nextGenres = Array.isArray(selected.genres) ? [...selected.genres] : []
+            if (nextVR && !nextGenres.some(g => String(g).toLowerCase() === 'vr')) {
+              nextGenres.push('VR')
+            } else if (!nextVR) {
+              nextGenres = nextGenres.filter(g => String(g).toLowerCase() !== 'vr')
+            }
+            updateGame(selected.id, { isVR: nextVR, genres: nextGenres })
+            triggerHaptic('click')
+          } else if (gamepadDetailActionIndex === 5) {
+            removeGame(selected.id)
+            triggerHaptic('click')
+          }
+        }
+      }
+    }
+  }, [view, selected, libraryGames, gamepadGameIndex, gamepadDetailActionIndex, contextMenu.open, settingsPopup.open, closeGameContextMenu, launchGame, toggleFavorite, removeGame, triggerHaptic, cycleCollection, toggleVrCollection, updateGame])
+
+  const { isGamepadActive, gamepadInfo } = useGamepad({
+    onNavigate: handleGamepadNavigate,
+    onButtonPress: handleGamepadButtonPress,
+    vibrationEnabled: settings.ui?.gamepadVibration ?? true,
+  })
+
   return (
     <>
       {showBoot && <BootAnimation onComplete={() => setShowBoot(false)} />}
       <div className="app-shell" style={{ display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden' }}>
-      <Titlebar />
+      <Titlebar gamepadName={gamepadInfo?.id || null} />
       <div className="app-body" style={{ display:'flex', flex:1, overflow:'hidden' }}>
         <Sidebar
           view={view} setView={setView}
@@ -472,7 +794,8 @@ export default function App() {
         <main className="app-main" style={{ flex:1, overflow:'hidden', position:'relative' }}>
           {view === 'library' && !selectedGame && (
             <Library
-              games={visibleGames}
+              games={libraryGames}
+              allCollectionGames={collectionFilteredGames}
               totalGameCount={games.length}
               running={running}
               search={search}
@@ -492,6 +815,7 @@ export default function App() {
               onGameContextMenu={openGameContextMenu}
               onToggleFavorite={toggleFavorite}
               onAddClick={() => setView('add')}
+              gamepadFocusedIndex={isGamepadActive ? gamepadGameIndex : null}
             />
           )}
           {view === 'library' && selectedGame && (
@@ -506,6 +830,7 @@ export default function App() {
               onToggleFavorite={toggleFavorite}
               onToggleCollection={toggleCollection}
               onOpenSettings={(game) => setSettingsPopup({ open: true, game })}
+              gamepadActionIndex={isGamepadActive ? gamepadDetailActionIndex : null}
             />
           )}
           {view === 'settings' && (
@@ -613,6 +938,22 @@ export default function App() {
               closeGameContextMenu()
             }}
             label={menuGame.favorite ? 'Remove From Favorites' : 'Add To Favorites'}
+          />
+
+          <MenuButton
+            onClick={() => {
+              const currentIsVr = isGameVR(menuGame)
+              const nextIsVr = !currentIsVr
+              let nextGenres = Array.isArray(menuGame.genres) ? [...menuGame.genres] : []
+              if (nextIsVr && !nextGenres.some(g => String(g).toLowerCase() === 'vr')) {
+                nextGenres.push('VR')
+              } else if (!nextIsVr) {
+                nextGenres = nextGenres.filter(g => String(g).toLowerCase() !== 'vr')
+              }
+              updateGame(menuGame.id, { isVR: nextIsVr, genres: nextGenres })
+              closeGameContextMenu()
+            }}
+            label={isGameVR(menuGame) ? '🥽 Remove From VR Games' : '🥽 Mark As VR Game'}
           />
 
           {settings.collections.length > 0 && (
@@ -782,6 +1123,14 @@ export default function App() {
           </div>
         </div>
       )}
+
+      <GamepadBar
+        isVisible={isGamepadActive && (settings.ui?.gamepadHud ?? true)}
+        view={view}
+        selectedGame={selectedGame}
+        activeCollection={activeCollection}
+        gamepadName={gamepadInfo?.id || null}
+      />
     </div>
     </>
   )

@@ -121,6 +121,7 @@ export default function Sidebar({
             active={activeCollection === c.id}
             label={c.name}
             count={c.count}
+            icon={c.icon}
             onClick={() => onCollectionSelect(c.id)}
           />
         ))}
@@ -175,7 +176,7 @@ function SectionLabel({ children }) {
   )
 }
 
-function CollectionItem({ active, label, count, onClick }) {
+function CollectionItem({ active, label, count, icon, onClick }) {
   const [hov, setHov] = React.useState(false)
   return (
     <button
@@ -193,6 +194,7 @@ function CollectionItem({ active, label, count, onClick }) {
         transition:'all 0.12s',
       }}
     >
+      {icon && <span style={{ fontSize: 13, lineHeight: 1, filter: active ? 'none' : 'grayscale(0.2)' }}>{icon}</span>}
       <span style={{ flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{label}</span>
       <span style={{
         fontSize:10, fontFamily:'var(--mono)', color: active ? '#fff' : 'var(--text-muted)',
@@ -247,9 +249,11 @@ function GameRow({ game, active, running, showPlaytime, compact, onClick, onLaun
         <div style={{
           fontSize:14,
           color: active ? 'var(--text)' : 'var(--text-dim)',
-          whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'
+          whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+          display:'flex', alignItems:'center', gap:4,
         }}>
-          {game.name}
+          <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{game.name}</span>
+          {game.isVR && <span title="VR Game" style={{ fontSize:10, flexShrink:0, opacity:0.85 }}>🥽</span>}
         </div>
       </div>
 

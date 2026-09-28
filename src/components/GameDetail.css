@@ -1,5 +1,5 @@
 .gd-btn {
-  transition: all 0.15s ease;
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
 }
 .gd-btn:hover {
   transform: translateY(-1px);
@@ -8,20 +8,24 @@
 .gd-btn:active {
   transform: translateY(0);
 }
+
 .gd-section {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 16px;
+  background: var(--card-bg, var(--surface2));
+  border: 1px solid var(--card-border, var(--border));
+  border-radius: 14px;
+  padding: 22px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
+
 .gd-tag {
   transition: all 0.12s ease;
 }
 .gd-tag:hover {
-  filter: brightness(1.3);
+  filter: brightness(1.2);
   transform: scale(1.02);
 }
+
 .gd-input {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -30,12 +34,77 @@
   color: var(--text);
   font-size: 13px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
   flex: 1;
 }
 .gd-input:focus {
-  border-color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 75%, #ffffff 25%);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 .gd-input::placeholder {
   color: var(--text-muted);
+}
+
+/* Cinematic Hero styles */
+.gd-hero-container {
+  height: 320px;
+  position: relative;
+  overflow: hidden;
+  background: var(--surface2);
+}
+
+.gd-hero-backdrop {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.55;
+  filter: brightness(0.85) contrast(1.05);
+  transform: scale(1.02);
+  transition: transform 0.5s ease;
+}
+
+.gd-hero-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.25) 0%,
+    rgba(10, 12, 18, 0.45) 45%,
+    var(--bg) 98%
+  );
+  pointer-events: none;
+}
+
+/* HLTB 3-Pillar Cards */
+.hltb-pillar-card {
+  position: relative;
+  border-radius: 10px;
+  padding: 14px 18px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.hltb-pillar-card:hover {
+  transform: translateY(-2px);
+}
+
+.hltb-pillar-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.hltb-pillar-main::before {
+  background: linear-gradient(90deg, #06b6d4, #38bdf8);
+}
+
+.hltb-pillar-extra::before {
+  background: linear-gradient(90deg, var(--accent), var(--accent2, #a855f7));
+}
+
+.hltb-pillar-comp::before {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
 }

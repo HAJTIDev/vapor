@@ -38,6 +38,7 @@ const browserFallback = {
     minimize: async () => {},
     maximize: async () => {},
     close: async () => {},
+    openExternal: async (url) => { if (typeof window !== 'undefined' && url) window.open(url, '_blank') },
   },
   dialog: {
     folder: async () => null,
@@ -75,6 +76,9 @@ const browserFallback = {
   },
   art: {
     fetch: async () => null,
+  },
+  hltb: {
+    search: async () => ({ ok: false, error: 'HLTB requires Electron runtime.', results: [] }),
   },
   game: {
     launch: async () => ({ ok: false, error: 'Game launching requires Electron runtime.' }),

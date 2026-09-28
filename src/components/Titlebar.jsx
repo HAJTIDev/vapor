@@ -2,7 +2,11 @@ import React from 'react'
 import vaporApi from '../vaporApi.js'
 import logo from '../img/image.png'
 
-export default function Titlebar() {
+export default function Titlebar({ gamepadName }) {
+  const shortPadName = gamepadName
+    ? gamepadName.replace(/\(.*?\)/g, '').replace(/STANDARD GAMEPAD/i, '').trim() || 'Gamepad'
+    : null
+
   return (
     <div className="titlebar" style={{
       height: 38, display:'flex', alignItems:'center', justifyContent:'space-between',
@@ -10,7 +14,7 @@ export default function Titlebar() {
       WebkitAppRegion:'drag', flexShrink:0, paddingLeft:16, paddingRight:0,
       position:'relative', zIndex:100
     }}>
-      <div className="titlebar-brand" style={{ display:'flex', alignItems:'center', gap:8 }}>
+      <div className="titlebar-brand" style={{ display:'flex', alignItems:'center', gap:10 }}>
         <img
           src={logo}
           alt="Vapor"
@@ -19,6 +23,35 @@ export default function Titlebar() {
         <span style={{ fontWeight:600, fontSize:13, letterSpacing:'0.12em', color:'var(--text)', fontFamily:'var(--mono)' }}>
           VAPOR
         </span>
+
+        {shortPadName && (
+          <div
+            title={`Connected: ${gamepadName}`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '3px 10px',
+              borderRadius: '999px',
+              background: 'color-mix(in srgb, var(--accent) 15%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--accent) 35%, transparent)',
+              fontSize: '11px',
+              fontWeight: 500,
+              color: 'var(--text)',
+              marginLeft: '8px',
+            }}
+          >
+            <span style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              background: '#22c55e',
+              boxShadow: '0 0 8px #22c55e',
+              animation: 'livePulse 1.8s infinite',
+            }} />
+            <span>🎮 {shortPadName}</span>
+          </div>
+        )}
       </div>
       <div className="titlebar-controls" style={{ display:'flex', WebkitAppRegion:'no-drag' }}>
         {[

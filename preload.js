@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('vapor', {
     minimize: () => ipcRenderer.invoke('win:minimize'),
     maximize: () => ipcRenderer.invoke('win:maximize'),
     close:    () => ipcRenderer.invoke('win:close'),
+    openExternal: (url) => ipcRenderer.invoke('win:openExternal', url),
   },
   dialog: {
     folder: () => ipcRenderer.invoke('dialog:folder'),
@@ -32,6 +33,9 @@ contextBridge.exposeInMainWorld('vapor', {
   },
   art: {
     fetch: (name) => ipcRenderer.invoke('art:fetch', name),
+  },
+  hltb: {
+    search: (name) => ipcRenderer.invoke('hltb:search', name),
   },
   game: {
     launch: (game) => ipcRenderer.invoke('game:launch', game),

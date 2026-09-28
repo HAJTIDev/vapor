@@ -568,6 +568,18 @@ export default function Settings({ settings, onSave, games, onWipeGames, onRefre
           checked={!!settings.ui?.discordRpc}
           onChange={(checked) => updateUi({ discordRpc: checked })}
         />
+        <ToggleRow
+          label="Gamepad Vibration (Haptics)"
+          desc="Enable controller rumble on selection, launch, and favorite actions."
+          checked={settings.ui?.gamepadVibration ?? true}
+          onChange={(checked) => updateUi({ gamepadVibration: checked })}
+        />
+        <ToggleRow
+          label="Gamepad HUD Bar"
+          desc="Display console-style button hints at the bottom of the screen when using a controller."
+          checked={settings.ui?.gamepadHud ?? true}
+          onChange={(checked) => updateUi({ gamepadHud: checked })}
+        />
 
         <div style={{ marginTop:14 }}>
           <div style={{ fontSize:12, color:'var(--text-dim)', marginBottom:6 }}>Download Speed Limit</div>

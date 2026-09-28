@@ -10,6 +10,7 @@ const { loadJSON, saveJSON } = require('./main/storage')
 const { scanDir, scanAutoGameFolders, calculateFolderSize } = require('./main/scanner')
 const { createSgdbService } = require('./main/sgdb')
 const { createDownloader } = require('./main/downloader')
+const { searchHltb } = require('./main/hltb')
 
 function parseEnvContent(content) {
   const env = {}
@@ -654,6 +655,23 @@ ipcMain.handle('art:fetch', async (_, name) => {
     console.error('[art:fetch] Error:', err)
     return { error: err.message }
   }
+})
+
+ipcMain.handle('hltb:search', async (_, name) => {
+  try {
+    return await searchHltb(name)
+  } catch (err) {
+    console.error('[hltb:search] Error:', err)
+    return { ok: false, error: err.message, results: [] }
+  }
+})
+
+ipcMain.handle('win:openExternal', async (_, url) => {
+  if (url && (url.startsWith('https://') || url.startsWith('http://'))) {
+    shell.openExternal(url)
+    return true
+  }
+  return false
 })
 
 function escapePowerShellSingleQuoted(value) {

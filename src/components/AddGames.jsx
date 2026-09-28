@@ -87,7 +87,14 @@ export default function AddGames({ settings, existingGames, onAdd, onDone }) {
     for (let i = 0; i < chosen.length; i++) {
       const g = chosen[i]
       const art = await vaporApi.art.fetch(g.name)
-      withArt.push({ ...g, art: art || null, genres: art?.genres || [] })
+      const fetchedGenres = art?.genres || []
+      const mergedGenres = Array.from(new Set([...(g.genres || []), ...fetchedGenres]))
+      withArt.push({
+        ...g,
+        art: art || null,
+        isVR: g.isVR || mergedGenres.some(x => String(x).toLowerCase() === 'vr'),
+        genres: mergedGenres,
+      })
       setArtProgress({ done: i+1, total: chosen.length })
     }
     setFetchingArt(false)
@@ -181,7 +188,22 @@ export default function AddGames({ settings, existingGames, onAdd, onDone }) {
                   {selected.has(r.exe) && <span style={{ color:'#fff', fontSize:10 }}>✓</span>}
                 </div>
                 <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, fontWeight:500 }}>{r.name}</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{ fontSize:13, fontWeight:500 }}>{r.name}</span>
+                    {r.isVR && (
+                      <span style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        background: 'rgba(99, 102, 241, 0.22)',
+                        color: 'var(--accent)',
+                        border: '1px solid rgba(99, 102, 241, 0.4)',
+                        padding: '1px 5px',
+                        borderRadius: 4,
+                      }}>
+                        🥽 VR
+                      </span>
+                    )}
+                  </div>
                   <div style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'var(--mono)', marginTop:1 }}>{r.exeName}</div>
                 </div>
               </div>

@@ -259,6 +259,67 @@ function scanAutoGameFolders() {
   }
 }
 
+const VR_PATTERNS = [
+  /(?:^|[_\s.\-/(])vr(?:[_\s.\-/)!]|$)/i,
+  /virtual[\s_-]?reality/i,
+  /steamvr/i,
+  /openxr/i,
+  /openvr/i,
+  /oculus/i,
+  /beat[\s_-]?saber/i,
+  /half[\s_-]?life[:\s_-]*alyx/i,
+  /hlvr/i,
+  /\balyx\b/i,
+  /boneworks/i,
+  /bonelab/i,
+  /blade.*sorcery/i,
+  /pavlov/i,
+  /superhot[\s_-]?vr/i,
+  /into[\s_-]the[\s_-]radius/i,
+]
+
+const VR_FILE_NAMES = new Set([
+  'openvr_api.dll',
+  'openxr_loader.dll',
+  'ovrplugin.dll',
+  'oculusxrplugin.dll',
+  'openvrloader.dll',
+  'app.vrmanifest',
+])
+
+function detectVrGame(gameFolder, gameName = '', exeName = '') {
+  if (VR_PATTERNS.some((p) => p.test(gameName) || p.test(exeName))) {
+    return true
+  }
+
+  if (!gameFolder) return false
+
+  try {
+    const queue = [gameFolder]
+    let depth = 0
+    while (queue.length > 0 && depth < 3) {
+      const current = queue.shift()
+      depth++
+      const entries = fs.readdirSync(current, { withFileTypes: true })
+      for (const e of entries) {
+        if (e.isFile()) {
+          const lower = e.name.toLowerCase()
+          if (VR_FILE_NAMES.has(lower) || lower.startsWith('libovrrt') || lower.endsWith('_vr.exe')) {
+            return true
+          }
+        } else if (e.isDirectory() && depth < 3) {
+          const lower = e.name.toLowerCase()
+          if (lower.includes('vr') || lower.includes('plugin') || lower.includes('bin') || lower.includes('managed')) {
+            queue.push(path.join(current, e.name))
+          }
+        }
+      }
+    }
+  } catch {}
+
+  return false
+}
+
 function scanDir(dir) {
   const games = []
   try {
@@ -270,12 +331,15 @@ function scanDir(dir) {
       const exes = collectExes(gameFolder)
       const best = pickBestExe(exes, gameName, gameFolder)
       if (best) {
+        const isVR = detectVrGame(gameFolder, gameName, best.exeName)
         games.push({
           name: gameName,
           exe: best.exe,
           folder: gameFolder,
           exeName: best.exeName,
           fileSize: calculateFolderSize(gameFolder),
+          isVR,
+          genres: isVR ? ['VR'] : [],
         })
       }
     }
@@ -287,4 +351,5 @@ module.exports = {
   scanDir,
   scanAutoGameFolders,
   calculateFolderSize,
+  detectVrGame,
 }

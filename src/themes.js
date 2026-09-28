@@ -15,6 +15,7 @@ export const themes = {
   nord: { name: 'Nord' },
   solarized: { name: 'Solarized Dark' },
   amoled: { name: 'AMOLED (Max Dark)' },
+  winui3: { name: 'WinUI 3' },
 }
 
 const CUSTOM_THEME_PREFIX = 'custom:'
