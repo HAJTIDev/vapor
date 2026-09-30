@@ -82,6 +82,9 @@ const browserFallback = {
   hltb: {
     search: async () => ({ ok: false, error: 'HLTB requires Electron runtime.', results: [] }),
   },
+  pcgw: {
+    search: async () => ({ ok: false, error: 'PCGamingWiki requires Electron runtime.', found: false }),
+  },
   game: {
     launch: async () => ({ ok: false, error: 'Game launching requires Electron runtime.' }),
     openFolder: async () => ({ ok: false, error: 'Opening folders requires Electron runtime.' }),

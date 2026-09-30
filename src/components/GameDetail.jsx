@@ -2,6 +2,10 @@ import React, { useEffect, useState } from 'react'
 import vaporApi from '../vaporApi.js'
 import { formatFileSize, sanitizeSteamAppId } from '../utils.js'
 import { Button, Text, Badge, Flex, Stat, Divider, spacing, radius, shadows, typography } from './UIKit.jsx'
+import BacklogBadge from './BacklogBadge.jsx'
+import PlaytimeHeatmap from './PlaytimeHeatmap.jsx'
+import SessionLog from './SessionLog.jsx'
+import { BACKLOG_STATUSES, getStatusConfig } from '../statusWorkflow.js'
 import './GameDetail.css'
 
 function fmtTime(mins) {
@@ -41,6 +45,35 @@ export default function GameDetail({
   const [exeVal, setExeVal] = useState(game.exe || '')
   const [editingSteam, setEditingSteam] = useState(false)
   const [steamVal, setSteamVal] = useState(game.steamAppId || '')
+
+  const handleAddSession = (newSession) => {
+    const currentSessions = Array.isArray(game.sessions) ? [...game.sessions] : []
+    currentSessions.unshift(newSession)
+    const addedMins = Number(newSession.durationMinutes) || 0
+    const nextPlaytime = (game.playtime || 0) + addedMins
+    const nextLastPlayed = Math.max(game.lastPlayed || 0, newSession.start || 0)
+    const nextStatus = (!game.status || game.status === 'Backlog' || game.status === 'On Hold')
+      ? 'Currently Playing'
+      : game.status
+    onUpdate(game.id, {
+      sessions: currentSessions,
+      playtime: nextPlaytime,
+      lastPlayed: nextLastPlayed,
+      status: nextStatus,
+    })
+  }
+
+  const handleDeleteSession = (sessionId) => {
+    const currentSessions = Array.isArray(game.sessions) ? [...game.sessions] : []
+    const target = currentSessions.find(s => (s.id || s) === sessionId)
+    const filtered = currentSessions.filter(s => (s.id || s) !== sessionId)
+    const removedMins = target ? (Number(target.durationMinutes) || 0) : 0
+    const nextPlaytime = Math.max(0, (game.playtime || 0) - removedMins)
+    onUpdate(game.id, {
+      sessions: filtered,
+      playtime: nextPlaytime,
+    })
+  }
 
   // HowLongToBeat state
   const [fetchingHltb, setFetchingHltb] = useState(false)
@@ -92,6 +125,51 @@ export default function GameDetail({
   const selectHltbMatch = (match) => {
     onUpdate(game.id, { hltb: match })
     setShowHltbPicker(false)
+  }
+
+  // PCGamingWiki state
+  const [fetchingPcgw, setFetchingPcgw] = useState(false)
+  const [pcgwError, setPcgwError] = useState('')
+  const [showPcgwPicker, setShowPcgwPicker] = useState(false)
+  const [pcgwMatches, setPcgwMatches] = useState([])
+  const [customPcgwQuery, setCustomPcgwQuery] = useState('')
+
+  // Auto-fetch PCGW if not yet present
+  useEffect(() => {
+    if (!game.pcgw && game.name && !fetchingPcgw) {
+      fetchPcgw(game.name, true)
+    }
+  }, [game.id])
+
+  const fetchPcgw = async (searchTitle = game.name, isAuto = false) => {
+    setFetchingPcgw(true)
+    setPcgwError('')
+    try {
+      const res = await vaporApi.pcgw.search({ name: searchTitle })
+      if (res?.ok && res.found) {
+        setPcgwMatches(res.matches || [])
+        onUpdate(game.id, { pcgw: res })
+      } else {
+        if (!isAuto) setPcgwError(res?.error || 'No matching page found on PCGamingWiki.')
+      }
+    } catch (err) {
+      if (!isAuto) setPcgwError(err.message || 'Failed to fetch PCGamingWiki')
+    }
+    setFetchingPcgw(false)
+  }
+
+  const selectPcgwMatch = async (match) => {
+    setFetchingPcgw(true)
+    setShowPcgwPicker(false)
+    try {
+      const res = await vaporApi.pcgw.search({ name: match.title })
+      if (res?.ok && res.found) {
+        onUpdate(game.id, { pcgw: res })
+      }
+    } catch (err) {
+      setPcgwError(err.message || 'Failed to update PCGamingWiki match')
+    }
+    setFetchingPcgw(false)
   }
 
   const fetchArt = async (retry = false) => {
@@ -310,6 +388,28 @@ export default function GameDetail({
               {running ? '● Running' : '▶ Play Now'}
             </Button>
 
+            {/* Completion Status Selector Card */}
+            <div style={{
+              background: 'var(--surface2)',
+              border: '1px solid var(--border)',
+              borderRadius: radius.md,
+              padding: '12px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+            }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
+                Completion Status
+              </div>
+              <BacklogBadge
+                status={game.status}
+                editable={true}
+                size="md"
+                onChange={(newStatus) => onUpdate(game.id, { status: newStatus })}
+                style={{ width: '100%', justifyContent: 'space-between' }}
+              />
+            </div>
+
             <Button
               variant="secondary"
               size="md"
@@ -399,6 +499,22 @@ export default function GameDetail({
                 )}
               </div>
             </div>
+
+            {/* Playtime Analytics & Heatmap */}
+            <PlaytimeHeatmap
+              sessions={game.sessions || []}
+              totalPlaytime={game.playtime}
+              gameTitle={game.name}
+              weeksCount={18}
+            />
+
+            {/* Historical Session Log */}
+            <SessionLog
+              sessions={game.sessions || []}
+              gameTitle={game.name}
+              onAddSession={handleAddSession}
+              onDeleteSession={handleDeleteSession}
+            />
 
             {/* HowLongToBeat */}
             <div
@@ -638,6 +754,299 @@ export default function GameDetail({
               </div>
             )}
 
+            {/* PCGamingWiki Card */}
+            <div
+              style={{
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                borderRadius: radius.lg,
+                padding: spacing.lg,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: spacing.md,
+                position: 'relative',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: spacing.sm }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+                  <WrenchIcon />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '12px', letterSpacing: '0.06em', color: 'var(--text)', textTransform: 'uppercase' }}>
+                      PCGamingWiki • Fixes & Tweaks
+                    </div>
+                    {game.pcgw?.title ? (
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Matched: <span style={{ color: 'var(--text)', fontWeight: 500 }}>{game.pcgw.title}</span>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Widescreen, FOV fixes, crash solutions, and save locations
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                  {game.pcgw?.url && (
+                    <button
+                      onClick={() => vaporApi.win.openExternal(game.pcgw.url)}
+                      className="ui-btn"
+                      style={{
+                        fontSize: '11px',
+                        color: '#38bdf8',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: 'color-mix(in srgb, #0284c7 15%, transparent)',
+                        padding: '5px 10px',
+                        borderRadius: radius.sm,
+                        border: '1px solid color-mix(in srgb, #0284c7 30%, transparent)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Open Wiki ↗
+                    </button>
+                  )}
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => {
+                      setCustomPcgwQuery(game.name)
+                      setShowPcgwPicker(true)
+                      fetchPcgw(game.name)
+                    }}
+                    disabled={fetchingPcgw}
+                  >
+                    {fetchingPcgw ? 'Searching...' : '🔍 Find / Match'}
+                  </Button>
+                </div>
+              </div>
+
+              {pcgwError && (
+                <div style={{ fontSize: '11px', color: 'var(--red)', background: 'color-mix(in srgb, var(--red) 10%, transparent)', padding: '6px 10px', borderRadius: radius.md, border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)' }}>
+                  {pcgwError}
+                </div>
+              )}
+
+              {game.pcgw?.found ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+                  {game.pcgw.sections?.length > 0 ? (
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Direct Jump to Fixes & Patches:
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {game.pcgw.sections.map((sec, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => vaporApi.win.openExternal(sec.url)}
+                            style={{
+                              fontSize: '11px',
+                              padding: '5px 10px',
+                              borderRadius: radius.sm,
+                              background: 'var(--surface)',
+                              border: '1px solid var(--border)',
+                              color: 'var(--text-dim)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              transition: 'all 0.15s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = 'var(--accent)'
+                              e.currentTarget.style.color = 'var(--text)'
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = 'var(--border)'
+                              e.currentTarget.style.color = 'var(--text-dim)'
+                            }}
+                          >
+                            <span>{sec.line.toLowerCase().includes('fov') || sec.line.toLowerCase().includes('field of view') ? '🖥️' : sec.line.toLowerCase().includes('save') ? '💾' : sec.line.toLowerCase().includes('issue') ? '🐛' : sec.line.toLowerCase().includes('launch') ? '⚙️' : '🔧'}</span>
+                            <span>{sec.line} ↗</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Found PCGamingWiki article for this game. Click Open Wiki to view all compatibility fixes and tweaks.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: `${spacing.md} 0`, color: 'var(--text-muted)', fontSize: '12px' }}>
+                  {fetchingPcgw ? 'Searching PCGamingWiki database...' : 'No PCGamingWiki article matched yet. Click Find / Match to search.'}
+                </div>
+              )}
+            </div>
+
+            {/* Modal for Picking PCGW match */}
+            {showPcgwPicker && (
+              <div
+                style={{
+                  position: 'fixed',
+                  inset: 0,
+                  background: 'rgba(0, 0, 0, 0.75)',
+                  backdropFilter: 'blur(6px)',
+                  zIndex: 9999,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: spacing.xl,
+                }}
+                onClick={() => setShowPcgwPicker(false)}
+              >
+                <div
+                  style={{
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border2)',
+                    borderRadius: radius.xl,
+                    width: '100%',
+                    maxWidth: '540px',
+                    maxHeight: '85vh',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    boxShadow: shadows.xl,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div style={{ padding: spacing.xl, borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+                      <WrenchIcon />
+                      <Text.H3>Select PCGamingWiki Article</Text.H3>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => setShowPcgwPicker(false)}>✕</Button>
+                  </div>
+
+                  <div style={{ padding: spacing.lg, borderBottom: '1px solid var(--border)', display: 'flex', gap: spacing.md }}>
+                    <input
+                      value={customPcgwQuery}
+                      onChange={(e) => setCustomPcgwQuery(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') fetchPcgw(customPcgwQuery) }}
+                      placeholder="Search title on PCGamingWiki..."
+                      className="ui-input"
+                      style={{ flex: 1, padding: `${spacing.sm} ${spacing.md}`, fontSize: '13px' }}
+                    />
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => fetchPcgw(customPcgwQuery)}
+                      disabled={fetchingPcgw}
+                    >
+                      {fetchingPcgw ? 'Searching...' : 'Search'}
+                    </Button>
+                  </div>
+
+                  <div style={{ flex: 1, overflow: 'auto', padding: spacing.lg, display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+                    {pcgwMatches.length === 0 && !fetchingPcgw && (
+                      <div style={{ textAlign: 'center', padding: spacing.xl, color: 'var(--text-muted)' }}>
+                        No matches found. Try modifying your search query above.
+                      </div>
+                    )}
+                    {pcgwMatches.map((m, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => selectPcgwMatch(m)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: spacing.lg,
+                          padding: spacing.md,
+                          background: 'var(--surface2)',
+                          border: '1px solid var(--border)',
+                          borderRadius: radius.lg,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent)'}
+                        onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text)' }}>
+                            {m.title}
+                          </div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', wordBreak: 'break-all' }}>
+                            {m.url}
+                          </div>
+                        </div>
+                        <Button variant="secondary" size="xs">Select</Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Power-User Launch Configuration Summary */}
+            {(game.launchArgs || game.workingDir || (game.envVars && game.envVars.length > 0) || game.preLaunchScript || game.postExitScript) && (
+              <div
+                style={{
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  borderRadius: radius.lg,
+                  padding: spacing.lg,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: spacing.sm,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text.Caption style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+                    ⚡ Power-User Launch Profile
+                  </Text.Caption>
+                  <Button variant="ghost" size="xs" onClick={() => onOpenSettings && onOpenSettings(game)}>
+                    Configure ⚙
+                  </Button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs, fontSize: '12px' }}>
+                  {game.launchArgs && (
+                    <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'baseline' }}>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '11px', width: '85px', flexShrink: 0 }}>Arguments:</span>
+                      <span style={{ fontFamily: 'var(--mono)', color: 'var(--accent)', background: 'var(--surface)', padding: '2px 6px', borderRadius: radius.xs, fontSize: '11px' }}>
+                        {game.launchArgs}
+                      </span>
+                    </div>
+                  )}
+                  {game.workingDir && (
+                    <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'baseline' }}>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '11px', width: '85px', flexShrink: 0 }}>Working Dir:</span>
+                      <span style={{ fontFamily: 'var(--mono)', color: 'var(--text-dim)', fontSize: '11px', wordBreak: 'break-all' }}>
+                        {game.workingDir}
+                      </span>
+                    </div>
+                  )}
+                  {game.envVars?.length > 0 && (
+                    <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'baseline' }}>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '11px', width: '85px', flexShrink: 0 }}>Environment:</span>
+                      <span style={{ color: 'var(--text-dim)', fontSize: '11px' }}>
+                        {game.envVars.map(v => `${v.key}=${v.value}`).join(', ')}
+                      </span>
+                    </div>
+                  )}
+                  {game.preLaunchScript && (
+                    <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'baseline' }}>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '11px', width: '85px', flexShrink: 0 }}>Pre-Hook:</span>
+                      <span style={{ fontFamily: 'var(--mono)', color: 'var(--text-dim)', fontSize: '11px', wordBreak: 'break-all' }}>
+                        {game.preLaunchScript} {game.preLaunchWait !== false ? '(wait)' : '(async)'}
+                      </span>
+                    </div>
+                  )}
+                  {game.postExitScript && (
+                    <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'baseline' }}>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '11px', width: '85px', flexShrink: 0 }}>Post-Hook:</span>
+                      <span style={{ fontFamily: 'var(--mono)', color: 'var(--text-dim)', fontSize: '11px', wordBreak: 'break-all' }}>
+                        {game.postExitScript}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Genres */}
             {game.genres?.length > 0 && (
               <div
@@ -809,6 +1218,14 @@ function HourglassIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" />
+    </svg>
+  )
+}
+
+function WrenchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
     </svg>
   )
 }

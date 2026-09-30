@@ -39,6 +39,9 @@ contextBridge.exposeInMainWorld('vapor', {
   hltb: {
     search: (name) => ipcRenderer.invoke('hltb:search', name),
   },
+  pcgw: {
+    search: (params) => ipcRenderer.invoke('pcgw:search', params),
+  },
   game: {
     launch: (game) => ipcRenderer.invoke('game:launch', game),
     openFolder: (game) => ipcRenderer.invoke('game:open-folder', game),

@@ -11,6 +11,7 @@ const { scanDir, scanAutoGameFolders, calculateFolderSize } = require('./main/sc
 const { createSgdbService } = require('./main/sgdb')
 const { createDownloader } = require('./main/downloader')
 const { searchHltb } = require('./main/hltb')
+const { searchPcgw } = require('./main/pcgamingwiki')
 
 function parseEnvContent(content) {
   const env = {}
@@ -117,6 +118,8 @@ let gameSessionStart = null
 let currentGameId = null
 let currentGameName = null
 let currentGameArt = null
+let currentGamePostScript = null
+let currentGameWorkingDir = null
 let discordRpcClient = null
 let discordRpcReady = false
 let discordRpcConnecting = false
@@ -716,11 +719,150 @@ function isElevationLaunchError(err) {
   return msg.includes('requires elevation')
 }
 
+function parseLaunchArgs(argsStr) {
+  if (!argsStr || typeof argsStr !== 'string') return []
+  const regex = /[^\s"']+|"([^"]*)"|'([^']*)'/g
+  const args = []
+  let match
+  while ((match = regex.exec(argsStr)) !== null) {
+    if (match[1] !== undefined) {
+      args.push(match[1])
+    } else if (match[2] !== undefined) {
+      args.push(match[2])
+    } else {
+      args.push(match[0])
+    }
+  }
+  return args
+}
+
+function parseEnvVars(envInput) {
+  const result = {}
+  if (!envInput) return result
+  if (Array.isArray(envInput)) {
+    for (const item of envInput) {
+      if (item && item.key && String(item.key).trim()) {
+        result[String(item.key).trim()] = String(item.value ?? '')
+      }
+    }
+    return result
+  }
+  if (typeof envInput === 'object') {
+    for (const [k, v] of Object.entries(envInput)) {
+      if (k && k.trim()) result[k.trim()] = String(v ?? '')
+    }
+    return result
+  }
+  if (typeof envInput === 'string') {
+    envInput.split(/\r?\n/).forEach(line => {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('#')) return
+      const eqIdx = trimmed.indexOf('=')
+      if (eqIdx > 0) {
+        result[trimmed.slice(0, eqIdx).trim()] = trimmed.slice(eqIdx + 1).trim()
+      }
+    })
+  }
+  return result
+}
+
+function resolveGameWorkingDir(game) {
+  const customWd = String(game?.workingDir || '').trim()
+  if (customWd && fs.existsSync(customWd)) return customWd
+  const folder = String(game?.folder || '').trim()
+  if (folder && fs.existsSync(folder)) return folder
+  const exe = String(game?.exe || '').trim()
+  if (exe) return path.dirname(exe)
+  return process.cwd()
+}
+
+function runGameScript(scriptPathOrCmd, workingDir, options = { wait: true }) {
+  return new Promise((resolve) => {
+    if (!scriptPathOrCmd || typeof scriptPathOrCmd !== 'string') {
+      return resolve({ ok: true, skipped: true })
+    }
+    const trimmed = scriptPathOrCmd.trim()
+    if (!trimmed) return resolve({ ok: true, skipped: true })
+
+    const cwd = workingDir && fs.existsSync(workingDir) ? workingDir : process.cwd()
+    console.log(`[script] Running script: "${trimmed}" in "${cwd}" (wait: ${options.wait})`)
+
+    let child
+    try {
+      if (process.platform === 'win32') {
+        if (trimmed.toLowerCase().endsWith('.ps1')) {
+          child = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', trimmed], {
+            cwd,
+            windowsHide: true,
+            stdio: 'ignore',
+          })
+        } else {
+          child = spawn('cmd.exe', ['/c', trimmed], {
+            cwd,
+            windowsHide: true,
+            stdio: 'ignore',
+          })
+        }
+      } else {
+        child = spawn('/bin/sh', ['-c', trimmed], {
+          cwd,
+          stdio: 'ignore',
+        })
+      }
+    } catch (spawnErr) {
+      console.error('[script] Spawn error:', spawnErr)
+      return resolve({ ok: false, error: spawnErr.message })
+    }
+
+    if (!options.wait) {
+      if (child && child.unref) child.unref()
+      return resolve({ ok: true, detached: true })
+    }
+
+    let finished = false
+    const done = (code, error) => {
+      if (finished) return
+      finished = true
+      if (error) {
+        console.error('[script] Execution error:', error)
+        resolve({ ok: false, error: error.message })
+      } else {
+        console.log(`[script] Finished with code ${code}`)
+        resolve({ ok: code === 0, code })
+      }
+    }
+
+    child.once('error', (err) => done(null, err))
+    child.once('close', (code) => done(code, null))
+
+    setTimeout(() => {
+      if (!finished) {
+        console.warn('[script] Script execution timed out after 15s, continuing...')
+        done(-1, new Error('Script timed out'))
+      }
+    }, 15000)
+  })
+}
+
 function launchAsAdminWindows(game) {
   return new Promise((resolve, reject) => {
     const filePath = escapePowerShellSingleQuoted(game.exe)
-    const workingDir = escapePowerShellSingleQuoted(game.folder || path.dirname(game.exe || ''))
-    const command = `Start-Process -FilePath '${filePath}' -WorkingDirectory '${workingDir}' -Verb RunAs`
+    const workingDir = escapePowerShellSingleQuoted(resolveGameWorkingDir(game))
+    const parsedArgs = parseLaunchArgs(game.launchArgs)
+    const customEnv = parseEnvVars(game.envVars)
+
+    let envSetup = ''
+    for (const [k, v] of Object.entries(customEnv)) {
+      envSetup += `$env:${k}='${escapePowerShellSingleQuoted(v)}'; `
+    }
+
+    let argParam = ''
+    if (parsedArgs.length > 0) {
+      const escapedArgs = parsedArgs.map((a) => `'${escapePowerShellSingleQuoted(a)}'`).join(',')
+      argParam = ` -ArgumentList @(${escapedArgs})`
+    }
+
+    const command = `${envSetup}Start-Process -FilePath '${filePath}' -WorkingDirectory '${workingDir}'${argParam} -Verb RunAs`
     const helper = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command], {
       windowsHide: true,
       stdio: 'ignore',
@@ -736,8 +878,22 @@ function launchAsAdminWindows(game) {
 function launchRunAsInvokerWindows(game) {
   return new Promise((resolve, reject) => {
     const filePath = escapePowerShellSingleQuoted(game.exe)
-    const workingDir = escapePowerShellSingleQuoted(game.folder || path.dirname(game.exe || ''))
-    const command = `$env:__COMPAT_LAYER='RunAsInvoker'; Start-Process -FilePath '${filePath}' -WorkingDirectory '${workingDir}'`
+    const workingDir = escapePowerShellSingleQuoted(resolveGameWorkingDir(game))
+    const parsedArgs = parseLaunchArgs(game.launchArgs)
+    const customEnv = parseEnvVars(game.envVars)
+
+    let envSetup = "$env:__COMPAT_LAYER='RunAsInvoker'; "
+    for (const [k, v] of Object.entries(customEnv)) {
+      envSetup += `$env:${k}='${escapePowerShellSingleQuoted(v)}'; `
+    }
+
+    let argParam = ''
+    if (parsedArgs.length > 0) {
+      const escapedArgs = parsedArgs.map((a) => `'${escapePowerShellSingleQuoted(a)}'`).join(',')
+      argParam = ` -ArgumentList @(${escapedArgs})`
+    }
+
+    const command = `${envSetup}Start-Process -FilePath '${filePath}' -WorkingDirectory '${workingDir}'${argParam}`
     const helper = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command], {
       windowsHide: true,
       stdio: 'ignore',
@@ -846,6 +1002,8 @@ async function startTrackedSession(game) {
   currentGameId = gameId
   currentGameName = gameName || null
   currentGameArt = gameArt?.grid || gameArt?.hero || gameArt?.logo || null
+  currentGamePostScript = typeof game === 'object' && game?.postExitScript ? game.postExitScript : null
+  currentGameWorkingDir = typeof game === 'object' ? resolveGameWorkingDir(game) : null
 
   if (DISCORD_CLIENT_ID && !currentGameArt) {
     try {
@@ -876,10 +1034,30 @@ function endTrackedSession(gameId, options = {}) {
   const startedAt = currentGameId === gameId && typeof gameSessionStart === 'number'
     ? gameSessionStart
     : null
-  const minutes = startedAt ? Math.max(0, Math.round((Date.now() - startedAt) / 60000)) : 0
+  const endedAt = Date.now()
+  const durationMs = startedAt ? Math.max(0, endedAt - startedAt) : 0
+  const minutes = startedAt ? Math.max(0, Math.round(durationMs / 60000)) : 0
 
-  if (countPlaytime && minutes > 0) {
-    saveGamePlaytime(gameId, minutes)
+  const session = (startedAt && durationMs >= 15000) ? {
+    id: String(Date.now()),
+    start: startedAt,
+    end: endedAt,
+    durationMinutes: Math.max(1, minutes),
+  } : null
+
+  const effectiveMinutes = session ? session.durationMinutes : minutes
+
+  if (countPlaytime && effectiveMinutes > 0) {
+    saveGamePlaytime(gameId, effectiveMinutes, session)
+  }
+  if (currentGamePostScript) {
+    const postScriptToRun = currentGamePostScript
+    const postScriptDir = currentGameWorkingDir || process.cwd()
+    currentGamePostScript = null
+    currentGameWorkingDir = null
+    runGameScript(postScriptToRun, postScriptDir, { wait: false }).catch((err) => {
+      console.error('[script] Post-exit script error:', err)
+    })
   }
   if (currentGameId === gameId) {
     gameSessionStart = null
@@ -891,9 +1069,9 @@ function endTrackedSession(gameId, options = {}) {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.show()
     mainWindow.focus()
-    sendToRenderer('game:session-end', { id: gameId, minutes })
+    sendToRenderer('game:session-end', { id: gameId, minutes: effectiveMinutes, session })
   }
-  return minutes
+  return effectiveMinutes
 }
 
 function isProcessRunningByNameWindows(processName) {
@@ -1033,9 +1211,29 @@ async function isSteamRunningWindows() {
   })
 }
 
+ipcMain.handle('pcgw:search', async (_, { name }) => {
+  try {
+    return await searchPcgw(name)
+  } catch (err) {
+    console.error('[pcgw:search] Error:', err)
+    return { ok: false, error: err?.message, found: false }
+  }
+})
+
 ipcMain.handle('game:launch', async (_, game) => {
+  if (game?.preLaunchScript) {
+    const workingDir = resolveGameWorkingDir(game)
+    const wait = game.preLaunchWait !== false
+    try {
+      await runGameScript(game.preLaunchScript, workingDir, { wait })
+    } catch (scriptErr) {
+      console.warn('[script] Pre-launch script error, continuing launch:', scriptErr)
+    }
+  }
+
   if (game.steamAppId) {
-    const steamUrl = `steam://run/${game.steamAppId}`
+    const argsSuffix = game.launchArgs ? `//${encodeURIComponent(game.launchArgs)}/` : ''
+    const steamUrl = `steam://run/${game.steamAppId}${argsSuffix}`
 
     if (process.platform === 'win32') {
       const steamRunning = await isSteamRunningWindows()
@@ -1077,11 +1275,15 @@ ipcMain.handle('game:launch', async (_, game) => {
     }
 
     try {
-      const proc = spawn(game.exe, [], {
-        cwd: game.folder,
+      const workingDir = resolveGameWorkingDir(game)
+      const parsedArgs = parseLaunchArgs(game.launchArgs)
+      const customEnv = parseEnvVars(game.envVars)
+
+      const proc = spawn(game.exe, parsedArgs, {
+        cwd: workingDir,
         detached: false,
         stdio: 'ignore',
-        env: { ...process.env, __COMPAT_LAYER: 'RunAsInvoker' },
+        env: { ...process.env, ...customEnv, __COMPAT_LAYER: 'RunAsInvoker' },
       })
       startTrackedSession(game)
       minimizeMainWindowForLaunch()
@@ -1165,15 +1367,20 @@ ipcMain.handle('game:show-executable', (_, game) => {
   }
 })
 
-function saveGamePlaytime(gameId, minutes) {
+function saveGamePlaytime(gameId, minutes, session = null) {
   try {
     const games = loadJSON(gamesFile, [])
     const updated = games.map((g) => {
       if (g.id === gameId) {
+        const nextSessions = Array.isArray(g.sessions) ? [...g.sessions] : []
+        if (session) {
+          nextSessions.unshift(session)
+        }
         return {
           ...g,
           playtime: (g.playtime || 0) + minutes,
           lastPlayed: Date.now(),
+          sessions: nextSessions,
         }
       }
       return g

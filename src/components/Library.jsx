@@ -11,6 +11,8 @@ import {
   typography,
 } from './UIKit'
 import kot from '../img/kot.jpg'
+import { BACKLOG_STATUSES } from '../statusWorkflow.js'
+import BacklogBadge from './BacklogBadge.jsx'
 
 const KOT_CHANCE = 0.00002
 
@@ -33,6 +35,9 @@ export default function Library({
   activeCollection,
   filterGenre,
   setFilterGenre,
+  filterStatus = 'all',
+  setFilterStatus,
+  onUpdateGameStatus,
   onBrowseAllGames,
   onSelect,
   onLaunch,
@@ -41,6 +46,17 @@ export default function Library({
   onAddClick,
   gamepadFocusedIndex = null,
 }) {
+  const statusCounts = useMemo(() => {
+    const counts = {}
+    BACKLOG_STATUSES.forEach(s => { counts[s.id] = 0 })
+    const pool = (allCollectionGames && allCollectionGames.length > 0) ? allCollectionGames : games
+    pool.forEach(g => {
+      if (g.status && counts[g.status] !== undefined) {
+        counts[g.status] += 1
+      }
+    })
+    return counts
+  }, [allCollectionGames, games])
   const genres = useMemo(() => {
     const s = new Set()
     const pool = (allCollectionGames && allCollectionGames.length > 0) ? allCollectionGames : games
@@ -152,6 +168,72 @@ export default function Library({
         </div>
       </div>
 
+      {/* Backlog Status Filter Chips */}
+      <div style={{
+        display: 'flex',
+        gap: '6px',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        marginBottom: genres.length > 1 ? '10px' : '20px',
+      }}>
+        <button
+          onClick={() => setFilterStatus?.('all')}
+          className="ui-btn"
+          style={{
+            padding: '4px 12px',
+            borderRadius: '999px',
+            fontSize: '11px',
+            fontWeight: filterStatus === 'all' ? 700 : 500,
+            background: filterStatus === 'all' ? 'var(--accent-gradient)' : 'var(--surface2)',
+            color: filterStatus === 'all' ? '#ffffff' : 'var(--text-dim)',
+            border: `1px solid ${filterStatus === 'all' ? 'transparent' : 'var(--border)'}`,
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          All Statuses ({totalGameCount})
+        </button>
+        {BACKLOG_STATUSES.map(st => {
+          const isCurrent = filterStatus === st.id
+          const count = statusCounts[st.id] || 0
+          return (
+            <button
+              key={st.id}
+              onClick={() => setFilterStatus?.(isCurrent ? 'all' : st.id)}
+              className="ui-btn"
+              style={{
+                padding: '4px 10px',
+                borderRadius: '999px',
+                fontSize: '11px',
+                fontWeight: isCurrent ? 700 : 500,
+                background: isCurrent ? st.bg : 'var(--surface2)',
+                color: isCurrent ? st.color : 'var(--text-dim)',
+                border: `1px solid ${isCurrent ? st.border : 'var(--border)'}`,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                transition: 'all 0.15s ease',
+                boxShadow: isCurrent ? `0 0 10px ${st.glow}` : 'none',
+              }}
+            >
+              <span>{st.icon}</span>
+              <span>{st.label}</span>
+              <span style={{
+                fontSize: '10px',
+                fontFamily: 'var(--mono)',
+                opacity: 0.8,
+                background: isCurrent ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.2)',
+                padding: '1px 5px',
+                borderRadius: 8,
+              }}>
+                {count}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
       {/* Genre Filter Chips */}
       {genres.length > 1 && (
         <div style={{
@@ -199,6 +281,7 @@ export default function Library({
             onLaunch={onLaunch}
             onContextMenu={onGameContextMenu}
             onToggleFavorite={onToggleFavorite}
+            onUpdateGameStatus={onUpdateGameStatus}
             isGamepadFocused={gamepadFocusedIndex === idx}
           />
         ))}
@@ -267,7 +350,7 @@ export default function Library({
   )
 }
 
-function GameCard({ game, running, onSelect, onLaunch, onContextMenu, onToggleFavorite, isGamepadFocused }) {
+function GameCard({ game, running, onSelect, onLaunch, onContextMenu, onToggleFavorite, onUpdateGameStatus, isGamepadFocused }) {
   const cardRef = useRef(null)
   const [hov, setHov] = useState(false)
   const showKot = useMemo(() => Math.random() < KOT_CHANCE, [])
@@ -289,7 +372,7 @@ function GameCard({ game, running, onSelect, onLaunch, onContextMenu, onToggleFa
     >
       {/* Cover art container */}
       <div className="cover-art-wrapper">
-        {/* Floating Badges (HLTB & VR) */}
+        {/* Floating Badges (Status, HLTB, VR) */}
         <div style={{
           position: 'absolute',
           top: 10,
@@ -298,8 +381,18 @@ function GameCard({ game, running, onSelect, onLaunch, onContextMenu, onToggleFa
           alignItems: 'center',
           gap: '6px',
           zIndex: 4,
-          pointerEvents: 'none',
         }}>
+          <BacklogBadge
+            status={game.status}
+            editable={true}
+            size="xs"
+            onChange={(newStatus) => onUpdateGameStatus?.(game.id, newStatus)}
+            style={{
+              opacity: game.status || hov || isGamepadFocused ? 1 : 0,
+              transition: 'opacity 0.18s ease',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+            }}
+          />
           {game.hltb?.main && (
             <div
               title={`HowLongToBeat: Main Story ${game.hltb.main}`}

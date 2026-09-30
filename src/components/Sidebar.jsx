@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useState, useMemo } from 'react'
+import { BACKLOG_STATUSES, getStatusConfig } from '../statusWorkflow.js'
 
 function fmtTime(mins) {
   if (!mins) return '0h'
@@ -17,6 +18,8 @@ export default function Sidebar({
   collections,
   activeCollection,
   onCollectionSelect,
+  filterStatus = 'all',
+  onSelectStatusFilter,
   games,
   selectedGameId,
   onSelectGame,
@@ -26,8 +29,20 @@ export default function Sidebar({
   showSidebarPlaytime,
   compactSidebar,
 }) {
+  const [showStatusSection, setShowStatusSection] = useState(true)
   const go = (v) => { setView(v); onDeselect() }
   const activeCollectionLabel = collections.find(c => c.id === activeCollection)?.name || 'Games'
+
+  const statusCounts = useMemo(() => {
+    const counts = {}
+    BACKLOG_STATUSES.forEach(s => { counts[s.id] = 0 })
+    ;(games || []).forEach(g => {
+      if (g.status && counts[g.status] !== undefined) {
+        counts[g.status] += 1
+      }
+    })
+    return counts
+  }, [games])
 
   return (
     <aside className="sidebar" style={{
@@ -103,11 +118,71 @@ export default function Sidebar({
       </div>
 
       <nav className="sidebar-nav" style={{ padding:'4px 8px 8px', display:'flex', flexDirection:'column', gap:4 }}>
-        <NavItem active={view==='library'} onClick={() => go('library')} icon={<GridIcon />} label="Library" badge={gameCount} />
+        <NavItem active={view==='library' && filterStatus==='all'} onClick={() => { onSelectStatusFilter?.('all'); go('library') }} icon={<GridIcon />} label="Library" badge={gameCount} />
+        <NavItem active={view==='analytics'} onClick={() => go('analytics')} icon={<AnalyticsIcon />} label="Analytics" />
         <NavItem active={view==='add'}     onClick={() => go('add')}     icon={<PlusIcon />} label="Add Games" />
         <NavItem active={view==='downloads'} onClick={() => go('downloads')} icon={<DownloadIcon />} label="Downloads" />
         <NavItem active={view==='settings'} onClick={() => go('settings')} icon={<GearIcon />} label="Settings" />
       </nav>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: '12px' }}>
+        <SectionLabel>Backlog Status</SectionLabel>
+        <button
+          type="button"
+          onClick={() => setShowStatusSection(prev => !prev)}
+          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '10px', cursor: 'pointer', padding: '2px 4px' }}
+        >
+          {showStatusSection ? '−' : '+'}
+        </button>
+      </div>
+      {showStatusSection && (
+        <div className="sidebar-backlog-status" style={{
+          padding:'0 8px 8px',
+          display:'flex',
+          flexDirection:'column',
+          gap:3,
+        }}>
+          {BACKLOG_STATUSES.map(st => {
+            const count = statusCounts[st.id] || 0
+            const isFilterActive = view === 'library' && filterStatus === st.id
+            return (
+              <button
+                key={st.id}
+                onClick={() => {
+                  onSelectStatusFilter?.(isFilterActive ? 'all' : st.id)
+                  setView('library')
+                  onDeselect()
+                }}
+                className={`collection-item ${isFilterActive ? 'is-active' : ''}`}
+                style={{
+                  display:'flex', alignItems:'center', gap:8,
+                  width:'100%', textAlign:'left', padding:'6px 10px', borderRadius:8,
+                  background: isFilterActive ? st.bg : 'transparent',
+                  color: isFilterActive ? st.color : 'var(--text-dim)',
+                  fontSize:12,
+                  border: isFilterActive ? `1px solid ${st.border}` : '1px solid transparent',
+                  transition:'all 0.12s',
+                  cursor:'pointer',
+                }}
+              >
+                <span style={{ fontSize: 13, lineHeight: 1 }}>{st.icon}</span>
+                <span style={{ flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', fontWeight: isFilterActive ? 600 : 400 }}>
+                  {st.label}
+                </span>
+                <span style={{
+                  fontSize:10, fontFamily:'var(--mono)',
+                  color: isFilterActive ? st.color : 'var(--text-muted)',
+                  background: isFilterActive ? 'rgba(255,255,255,0.1)' : 'var(--surface2)',
+                  padding:'1px 6px', borderRadius:10,
+                  border:'1px solid ' + (isFilterActive ? st.border : 'var(--border)')
+                }}>
+                  {count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       <SectionLabel>Collections</SectionLabel>
       <div className="sidebar-collections" style={{
@@ -254,6 +329,11 @@ function GameRow({ game, active, running, showPlaytime, compact, onClick, onLaun
           display:'flex', alignItems:'center', gap:4,
         }}>
           <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{game.name}</span>
+          {game.status && (
+            <span title={`Status: ${game.status}`} style={{ fontSize:10, flexShrink:0 }}>
+              {getStatusConfig(game.status)?.icon}
+            </span>
+          )}
           {game.isVR && <span title="VR Game" style={{ fontSize:10, flexShrink:0, opacity:0.85 }}>🥽</span>}
         </div>
       </div>
@@ -358,5 +438,12 @@ const DownloadIcon = () => (
     <path d="M12 3v11"/>
     <path d="m7 10 5 5 5-5"/>
     <path d="M4 20h16"/>
+  </svg>
+)
+
+const AnalyticsIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 3v18h18" />
+    <path d="m19 9-5 5-4-4-3 3" />
   </svg>
 )

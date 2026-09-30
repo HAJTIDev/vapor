@@ -7,10 +7,12 @@ import GameSettings from './components/GameSettings.jsx'
 import Settings from './components/Settings.jsx'
 import AddGames from './components/AddGames.jsx'
 import Downloader from './components/Downloader.jsx'
+import Analytics from './components/Analytics.jsx'
 import GamepadBar from './components/GamepadBar.jsx'
 import { useGamepad, vibrateGamepad } from './useGamepad.js'
 import vaporApi from './vaporApi.js'
 import { applyTheme, applyCustomThemeCss } from './themes.js'
+import { BACKLOG_STATUSES } from './statusWorkflow.js'
 import titleLogo from './img/title.png'
 
 function BootAnimation({ onComplete }) {
@@ -78,8 +80,8 @@ function normalizeSettings(input) {
   const safe = input || {}
   const collections = Array.isArray(safe.collections)
     ? safe.collections
-        .filter(c => c && c.id && c.name)
-        .map(c => ({ id: String(c.id), name: String(c.name) }))
+      .filter(c => c && c.id && c.name)
+      .map(c => ({ id: String(c.id), name: String(c.name) }))
     : []
   return {
     theme: safe.theme || defaultSettings.theme,
@@ -125,6 +127,26 @@ export function normalizeGame(input) {
     runAsAdmin: !!safe.runAsAdmin,
     fileSize: Number.isFinite(Number(safe.fileSize)) ? Math.max(0, Math.round(Number(safe.fileSize))) : 0,
     collections: Array.isArray(safe.collections) ? safe.collections.map(String) : [],
+    launchArgs: String(safe.launchArgs || '').trim(),
+    workingDir: String(safe.workingDir || '').trim(),
+    envVars: Array.isArray(safe.envVars)
+      ? safe.envVars.filter(v => v && typeof v === 'object' && v.key).map(v => ({ key: String(v.key).trim(), value: String(v.value ?? '') }))
+      : typeof safe.envVars === 'object' && safe.envVars
+        ? Object.entries(safe.envVars).map(([key, value]) => ({ key: String(key).trim(), value: String(value ?? '') }))
+        : [],
+    preLaunchScript: String(safe.preLaunchScript || '').trim(),
+    preLaunchWait: safe.preLaunchWait !== undefined ? !!safe.preLaunchWait : true,
+    postExitScript: String(safe.postExitScript || '').trim(),
+    pcgw: safe.pcgw && typeof safe.pcgw === 'object' ? safe.pcgw : null,
+    status: safe.status && BACKLOG_STATUSES.some(s => s.id === safe.status) ? safe.status : null,
+    sessions: Array.isArray(safe.sessions) ? safe.sessions.map(s => ({
+      id: s.id || String(Date.now() + Math.random()),
+      start: typeof s.start === 'number' ? s.start : (s.date ? new Date(s.date).getTime() : Date.now()),
+      durationMinutes: Math.max(1, Math.round(Number(s.durationMinutes || s.duration || s.minutes || 0))),
+      end: typeof s.end === 'number' ? s.end : null,
+      notes: typeof s.notes === 'string' ? s.notes : '',
+      manual: !!s.manual,
+    })) : [],
   }
 }
 
@@ -146,19 +168,20 @@ function resolveCustomThemeCss(themeId, themeList) {
 }
 
 export default function App() {
-  const [games, setGames]           = useState([])
-  const [settings, setSettings]     = useState(defaultSettings)
+  const [games, setGames] = useState([])
+  const [settings, setSettings] = useState(defaultSettings)
   const [customThemes, setCustomThemes] = useState([])
-  const [view, setView]             = useState('library') // 'library' | 'settings' | 'add' | 'downloads'
-  const [selected, setSelected]     = useState(null)
-  const [running, setRunning]       = useState({}) // id -> true
-  const [search, setSearch]         = useState('')
+  const [view, setView] = useState('library') // 'library' | 'settings' | 'add' | 'downloads'
+  const [selected, setSelected] = useState(null)
+  const [running, setRunning] = useState({}) // id -> true
+  const [search, setSearch] = useState('')
   const [librarySort, setLibrarySort] = useState('recent')
   const [filterGenre, setFilterGenre] = useState('all')
+  const [filterStatus, setFilterStatus] = useState('all')
   const [activeCollection, setActiveCollection] = useState('all')
   const [contextMenu, setContextMenu] = useState({ open: false, x: 0, y: 0, gameId: null })
   const [settingsPopup, setSettingsPopup] = useState({ open: false, game: null })
-  const [showBoot, setShowBoot]     = useState(true)
+  const [showBoot, setShowBoot] = useState(true)
   const [updateToast, setUpdateToast] = useState(null)
 
   const refreshCustomThemes = useCallback(async (themeIdToApply = settings.theme) => {
@@ -211,12 +234,33 @@ export default function App() {
 
   // Listen for session end
   useEffect(() => {
-    const handler = ({ id, minutes }) => {
-      setRunning(r => { const n={...r}; delete n[id]; return n })
+    const handler = ({ id, minutes, session }) => {
+      setRunning(r => { const n = { ...r }; delete n[id]; return n })
       setGames(g => {
-        const updated = g.map(game => game.id === id
-          ? { ...game, playtime: (game.playtime || 0) + minutes, lastPlayed: Date.now() }
-          : game)
+        const updated = g.map(game => {
+          if (game.id !== id) return game
+          const nextSessions = Array.isArray(game.sessions) ? [...game.sessions] : []
+          if (session) {
+            nextSessions.unshift(session)
+          } else if (minutes > 0) {
+            nextSessions.unshift({
+              id: String(Date.now()),
+              start: Date.now() - (minutes * 60000),
+              end: Date.now(),
+              durationMinutes: minutes,
+            })
+          }
+          const nextStatus = (!game.status || game.status === 'Backlog' || game.status === 'On Hold')
+            ? 'Currently Playing'
+            : game.status
+          return {
+            ...game,
+            playtime: (game.playtime || 0) + (minutes || 0),
+            lastPlayed: Date.now(),
+            sessions: nextSessions,
+            status: nextStatus,
+          }
+        })
         vaporApi.games.save(updated)
         return updated
       })
@@ -327,7 +371,7 @@ export default function App() {
     setRunning(r => ({ ...r, [game.id]: true }))
     const result = await vaporApi.game.launch(game)
     if (!result.ok || result?.tracking === false) {
-      setRunning(r => { const n={...r}; delete n[game.id]; return n })
+      setRunning(r => { const n = { ...r }; delete n[game.id]; return n })
     }
     if (!result.ok) {
       window.alert(result?.error || 'Failed to launch game.')
@@ -354,6 +398,12 @@ export default function App() {
       if (selected?.id === id) setSelected(updated.find(g => g.id === id))
       return updated
     })
+    setSettingsPopup(prev => {
+      if (prev.open && prev.game?.id === id) {
+        return { ...prev, game: { ...prev.game, ...patch } }
+      }
+      return prev
+    })
   }, [selected])
 
   const refreshAllArt = useCallback(async (gameId, art) => {
@@ -367,7 +417,8 @@ export default function App() {
       const yes = window.confirm('Remove this game from your library?')
       if (!yes) return
     }
-    setSelected(null)
+    setSelected(prev => (prev?.id === id ? null : prev))
+    setSettingsPopup(prev => (prev.game?.id === id ? { open: false, game: null } : prev))
     setGames(prev => {
       const updated = prev.filter(g => g.id !== id)
       vaporApi.games.save(updated)
@@ -380,6 +431,7 @@ export default function App() {
     if (!yes) return
 
     setSelected(null)
+    setSettingsPopup({ open: false, game: null })
     setGames([])
     vaporApi.games.save([])
   }, [])
@@ -390,6 +442,12 @@ export default function App() {
       vaporApi.games.save(updated)
       if (selected?.id === id) setSelected(updated.find(g => g.id === id))
       return updated
+    })
+    setSettingsPopup(prev => {
+      if (prev.open && prev.game?.id === id) {
+        return { ...prev, game: { ...prev.game, favorite: !prev.game.favorite } }
+      }
+      return prev
     })
   }, [selected])
 
@@ -406,6 +464,16 @@ export default function App() {
       vaporApi.games.save(updated)
       if (selected?.id === id) setSelected(updated.find(g => g.id === id))
       return updated
+    })
+    setSettingsPopup(prev => {
+      if (prev.open && prev.game?.id === id) {
+        const has = (prev.game.collections || []).includes(collectionId)
+        const collections = has
+          ? (prev.game.collections || []).filter(c => c !== collectionId)
+          : [...(prev.game.collections || []), collectionId]
+        return { ...prev, game: { ...prev.game, collections } }
+      }
+      return prev
     })
   }, [selected])
 
@@ -455,6 +523,9 @@ export default function App() {
 
   const libraryGames = useMemo(() => {
     let list = collectionFilteredGames
+    if (filterStatus !== 'all') {
+      list = list.filter(g => g.status === filterStatus)
+    }
     if (filterGenre !== 'all') {
       list = list.filter(g => (g.genres || []).includes(filterGenre))
     }
@@ -515,6 +586,9 @@ export default function App() {
   }, [activeCollection, triggerHaptic])
 
   const selectedGame = selected ? games.find(g => g.id === selected.id) || selected : null
+  const activeSettingsGame = settingsPopup.open && settingsPopup.game
+    ? games.find(g => g.id === settingsPopup.game.id) || settingsPopup.game
+    : null
   const menuGame = contextMenu.open ? games.find(g => g.id === contextMenu.gameId) : null
   const menuWidth = 280
   const menuX = Math.max(8, Math.min(contextMenu.x, window.innerWidth - menuWidth - 8))
@@ -766,372 +840,433 @@ export default function App() {
   return (
     <>
       {showBoot && <BootAnimation onComplete={() => setShowBoot(false)} />}
-      <div className="app-shell" style={{ display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden' }}>
-      <Titlebar gamepadName={gamepadInfo?.id || null} />
-      <div className="app-body" style={{ display:'flex', flex:1, overflow:'hidden' }}>
-        <Sidebar
-          view={view} setView={setView}
-          gameCount={games.length}
-          search={search} setSearch={setSearch}
-          games={visibleGames}
-          selectedGameId={selectedGame?.id || null}
-          onSelectGame={setSelected}
-          onLaunch={launchGame}
-          onGameContextMenu={openGameContextMenu}
-          running={running}
-          collections={collectionItems}
-          activeCollection={activeCollection}
-          onCollectionSelect={(id) => {
-            setActiveCollection(id)
-            setView('library')
-            setSelected(null)
-            setFilterGenre('all')
-          }}
-          showSidebarPlaytime={settings.ui.showPlaytimeInSidebar}
-          compactSidebar={settings.ui.compactSidebar}
-          onDeselect={() => setSelected(null)}
-        />
-        <main className="app-main" style={{ flex:1, overflow:'hidden', position:'relative' }}>
-          {view === 'library' && !selectedGame && (
-            <Library
-              games={libraryGames}
-              allCollectionGames={collectionFilteredGames}
-              totalGameCount={games.length}
-              running={running}
-              search={search}
-              setSearch={setSearch}
-              sortBy={librarySort}
-              setSortBy={setLibrarySort}
-              activeCollection={activeCollection}
-              filterGenre={filterGenre}
-              setFilterGenre={setFilterGenre}
-              onBrowseAllGames={() => {
-                setActiveCollection('all')
-                setFilterGenre('all')
-                setSelected(null)
-              }}
-              onSelect={setSelected}
-              onLaunch={launchGame}
-              onGameContextMenu={openGameContextMenu}
-              onToggleFavorite={toggleFavorite}
-              onAddClick={() => setView('add')}
-              gamepadFocusedIndex={isGamepadActive ? gamepadGameIndex : null}
-            />
-          )}
-          {view === 'library' && selectedGame && (
-            <GameDetail
-              game={selectedGame}
-              running={!!running[selectedGame.id]}
-              collections={settings.collections}
-              onBack={() => setSelected(null)}
-              onLaunch={launchGame}
-              onUpdate={updateGame}
-              onRemove={removeGame}
-              onToggleFavorite={toggleFavorite}
-              onToggleCollection={toggleCollection}
-              onOpenSettings={(game) => setSettingsPopup({ open: true, game })}
-              gamepadActionIndex={isGamepadActive ? gamepadDetailActionIndex : null}
-            />
-          )}
-          {view === 'settings' && (
-            <Settings
-              settings={settings}
-              onSave={saveSettings}
-              games={games}
-              onWipeGames={wipeGames}
-              onRefreshAllArt={refreshAllArt}
-              customThemes={customThemes}
-              onRefreshCustomThemes={refreshCustomThemes}
-              onOpenCustomThemesFolder={() => vaporApi.themes.openCustomFolder()}
-            />
-          )}
-          {view === 'add' && (
-            <AddGames
-              settings={settings}
-              existingGames={games}
-              onAdd={addGames}
-              onDone={() => setView('library')}
-            />
-          )}
-          {view === 'downloads' && <Downloader settings={settings} />}
-        </main>
-      </div>
-
-      {menuGame && contextMenu.open && (
-        <div
-          className="context-menu"
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            position:'fixed',
-            top: menuY,
-            left: menuX,
-            width: menuWidth,
-            background:'var(--surface)',
-            border:'1px solid var(--border2)',
-            borderRadius:8,
-            boxShadow:'0 16px 40px #00000080',
-            zIndex:1001,
-            overflow:'hidden',
-          }}
-        >
-          <div style={{
-            padding:'10px 12px',
-            fontSize:12,
-            color:'var(--text)',
-            borderBottom:'1px solid var(--border)',
-            background:'var(--surface2)',
-            whiteSpace:'nowrap',
-            overflow:'hidden',
-            textOverflow:'ellipsis',
-          }}>
-            {menuGame.name}
-          </div>
-
-          <MenuButton
-            onClick={() => {
-              launchGame(menuGame)
-              closeGameContextMenu()
-            }}
-            label="Play"
-          />
-
-          <MenuButton
-            onClick={() => {
+      <div className="app-shell" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+        <Titlebar gamepadName={gamepadInfo?.id || null} />
+        <div className="app-body" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          <Sidebar
+            view={view} setView={setView}
+            gameCount={games.length}
+            search={search} setSearch={setSearch}
+            games={visibleGames}
+            selectedGameId={selectedGame?.id || null}
+            onSelectGame={setSelected}
+            onLaunch={launchGame}
+            onGameContextMenu={openGameContextMenu}
+            running={running}
+            collections={collectionItems}
+            activeCollection={activeCollection}
+            filterStatus={filterStatus}
+            onSelectStatusFilter={(st) => {
+              setFilterStatus(st)
               setView('library')
-              setSelected(menuGame)
-              closeGameContextMenu()
+              setSelected(null)
             }}
-            label="View Details"
-          />
-
-          <MenuButton
-            onClick={() => {
-              setSettingsPopup({ open: true, game: menuGame })
-              closeGameContextMenu()
+            onCollectionSelect={(id) => {
+              setActiveCollection(id)
+              setView('library')
+              setSelected(null)
+              setFilterGenre('all')
             }}
-            label="Settings"
+            showSidebarPlaytime={settings.ui.showPlaytimeInSidebar}
+            compactSidebar={settings.ui.compactSidebar}
+            onDeselect={() => setSelected(null)}
           />
-
-          <MenuDivider />
-
-          <MenuButton
-            onClick={() => {
-              openGameFolder(menuGame)
-              closeGameContextMenu()
-            }}
-            label="Open Game Folder"
-          />
-
-          <MenuButton
-            onClick={() => {
-              showExecutable(menuGame)
-              closeGameContextMenu()
-            }}
-            label="Show Executable In Folder"
-          />
-
-          <MenuDivider />
-
-          <MenuButton
-            onClick={() => {
-              toggleFavorite(menuGame.id)
-              closeGameContextMenu()
-            }}
-            label={menuGame.favorite ? 'Remove From Favorites' : 'Add To Favorites'}
-          />
-
-          <MenuButton
-            onClick={() => {
-              const currentIsVr = isGameVR(menuGame)
-              const nextIsVr = !currentIsVr
-              let nextGenres = Array.isArray(menuGame.genres) ? [...menuGame.genres] : []
-              if (nextIsVr && !nextGenres.some(g => String(g).toLowerCase() === 'vr')) {
-                nextGenres.push('VR')
-              } else if (!nextIsVr) {
-                nextGenres = nextGenres.filter(g => String(g).toLowerCase() !== 'vr')
-              }
-              updateGame(menuGame.id, { isVR: nextIsVr, genres: nextGenres })
-              closeGameContextMenu()
-            }}
-            label={isGameVR(menuGame) ? '🥽 Remove From VR Games' : '🥽 Mark As VR Game'}
-          />
-
-          {settings.collections.length > 0 && (
-            <>
-              <div style={{
-                padding:'8px 12px 6px',
-                fontSize:10,
-                letterSpacing:'0.08em',
-                textTransform:'uppercase',
-                color:'var(--text-muted)',
-              }}>
-                Collections
-              </div>
-              <div style={{ maxHeight:180, overflow:'auto', paddingBottom:6 }}>
-                {settings.collections.map(collection => {
-                  const isIn = (menuGame.collections || []).includes(collection.id)
-                  return (
-                    <MenuButton
-                      key={collection.id}
-                      onClick={() => {
-                        toggleCollection(menuGame.id, collection.id)
-                        closeGameContextMenu()
-                      }}
-                      label={`${isIn ? '✓ ' : ''}${collection.name}`}
-                    />
-                  )
-                })}
-              </div>
-            </>
-          )}
-
-          <MenuDivider />
-
-          <MenuButton
-            onClick={() => {
-              removeGame(menuGame.id)
-              closeGameContextMenu()
-            }}
-            label="Remove From Library"
-            tone="danger"
-          />
+          <main className="app-main" style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+            {view === 'library' && !selectedGame && (
+              <Library
+                games={libraryGames}
+                allCollectionGames={collectionFilteredGames}
+                totalGameCount={games.length}
+                running={running}
+                search={search}
+                setSearch={setSearch}
+                sortBy={librarySort}
+                setSortBy={setLibrarySort}
+                activeCollection={activeCollection}
+                filterGenre={filterGenre}
+                setFilterGenre={setFilterGenre}
+                filterStatus={filterStatus}
+                setFilterStatus={setFilterStatus}
+                onUpdateGameStatus={(id, status) => updateGame(id, { status })}
+                onBrowseAllGames={() => {
+                  setActiveCollection('all')
+                  setFilterGenre('all')
+                  setFilterStatus('all')
+                  setSelected(null)
+                }}
+                onSelect={setSelected}
+                onLaunch={launchGame}
+                onGameContextMenu={openGameContextMenu}
+                onToggleFavorite={toggleFavorite}
+                onAddClick={() => setView('add')}
+                gamepadFocusedIndex={isGamepadActive ? gamepadGameIndex : null}
+              />
+            )}
+            {view === 'library' && selectedGame && (
+              <GameDetail
+                game={selectedGame}
+                running={!!running[selectedGame.id]}
+                collections={settings.collections}
+                onBack={() => setSelected(null)}
+                onLaunch={launchGame}
+                onUpdate={updateGame}
+                onRemove={removeGame}
+                onToggleFavorite={toggleFavorite}
+                onToggleCollection={toggleCollection}
+                onOpenSettings={(game) => setSettingsPopup({ open: true, game })}
+                gamepadActionIndex={isGamepadActive ? gamepadDetailActionIndex : null}
+              />
+            )}
+            {view === 'settings' && (
+              <Settings
+                settings={settings}
+                onSave={saveSettings}
+                games={games}
+                onWipeGames={wipeGames}
+                onRefreshAllArt={refreshAllArt}
+                customThemes={customThemes}
+                onRefreshCustomThemes={refreshCustomThemes}
+                onOpenCustomThemesFolder={() => vaporApi.themes.openCustomFolder()}
+              />
+            )}
+            {view === 'add' && (
+              <AddGames
+                settings={settings}
+                existingGames={games}
+                onAdd={addGames}
+                onDone={() => setView('library')}
+              />
+            )}
+            {view === 'downloads' && <Downloader settings={settings} />}
+            {view === 'analytics' && (
+              <Analytics
+                games={games}
+                onSelectGame={(g) => {
+                  setSelected(g)
+                  setView('library')
+                }}
+                onFilterByStatus={(status) => {
+                  setFilterStatus(status)
+                  setView('library')
+                  setSelected(null)
+                }}
+                onLaunchGame={launchGame}
+              />
+            )}
+          </main>
         </div>
-      )}
 
-      {settingsPopup.open && settingsPopup.game && (
-        <div
-          onClick={() => setSettingsPopup({ open: false, game: null })}
-          style={{
-            position:'fixed',
-            inset:0,
-            background:'#00000080',
-            backdropFilter:'blur(4px)',
-            zIndex:2000,
-            display:'flex',
-            alignItems:'center',
-            justifyContent:'center',
-            padding:20,
-          }}
-        >
+        {menuGame && contextMenu.open && (
           <div
+            className="context-menu"
             onClick={(e) => e.stopPropagation()}
             style={{
-              width:'100%',
-              maxWidth:600,
-              maxHeight:'90vh',
-              background:'var(--surface)',
-              border:'1px solid var(--border2)',
-              borderRadius:12,
-              overflow:'hidden',
-              boxShadow:'0 24px 60px #00000090',
+              position: 'fixed',
+              top: menuY,
+              left: menuX,
+              width: menuWidth,
+              background: 'var(--surface)',
+              border: '1px solid var(--border2)',
+              borderRadius: 8,
+              boxShadow: '0 16px 40px #00000080',
+              zIndex: 1001,
+              overflow: 'hidden',
             }}
           >
-            <GameSettings
-              game={settingsPopup.game}
-              collections={settings.collections}
-              onBack={() => setSettingsPopup({ open: false, game: null })}
-              onUpdate={updateGame}
-              onRemove={(id) => {
-                removeGame(id)
-                setSettingsPopup({ open: false, game: null })
+            <div style={{
+              padding: '10px 12px',
+              fontSize: 12,
+              color: 'var(--text)',
+              borderBottom: '1px solid var(--border)',
+              background: 'var(--surface2)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}>
+              {menuGame.name}
+            </div>
+
+            <MenuButton
+              onClick={() => {
+                launchGame(menuGame)
+                closeGameContextMenu()
               }}
-              onToggleFavorite={toggleFavorite}
-              onToggleCollection={toggleCollection}
+              label="Play"
+            />
+
+            <MenuButton
+              onClick={() => {
+                setView('library')
+                setSelected(menuGame)
+                closeGameContextMenu()
+              }}
+              label="View Details"
+            />
+
+            <MenuButton
+              onClick={() => {
+                setSettingsPopup({ open: true, game: menuGame })
+                closeGameContextMenu()
+              }}
+              label="Settings"
+            />
+
+            <MenuDivider />
+
+            <MenuButton
+              onClick={() => {
+                openGameFolder(menuGame)
+                closeGameContextMenu()
+              }}
+              label="Open Game Folder"
+            />
+
+            <MenuButton
+              onClick={() => {
+                showExecutable(menuGame)
+                closeGameContextMenu()
+              }}
+              label="Show Executable In Folder"
+            />
+
+            <MenuDivider />
+
+            <MenuButton
+              onClick={() => {
+                toggleFavorite(menuGame.id)
+                closeGameContextMenu()
+              }}
+              label={menuGame.favorite ? 'Remove From Favorites' : 'Add To Favorites'}
+            />
+
+            <MenuButton
+              onClick={() => {
+                const currentIsVr = isGameVR(menuGame)
+                const nextIsVr = !currentIsVr
+                let nextGenres = Array.isArray(menuGame.genres) ? [...menuGame.genres] : []
+                if (nextIsVr && !nextGenres.some(g => String(g).toLowerCase() === 'vr')) {
+                  nextGenres.push('VR')
+                } else if (!nextIsVr) {
+                  nextGenres = nextGenres.filter(g => String(g).toLowerCase() !== 'vr')
+                }
+                updateGame(menuGame.id, { isVR: nextIsVr, genres: nextGenres })
+                closeGameContextMenu()
+              }}
+              label={isGameVR(menuGame) ? '🥽 Remove From VR Games' : '🥽 Mark As VR Game'}
+            />
+
+            <MenuDivider />
+
+            <div style={{
+              padding: '8px 12px 6px',
+              fontSize: 10,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'var(--text-muted)',
+            }}>
+              Completion Status
+            </div>
+            <div style={{ maxHeight: 180, overflow: 'auto', paddingBottom: 4 }}>
+              {BACKLOG_STATUSES.map(st => {
+                const isSelected = menuGame.status === st.id
+                return (
+                  <MenuButton
+                    key={st.id}
+                    onClick={() => {
+                      updateGame(menuGame.id, { status: isSelected ? null : st.id })
+                      closeGameContextMenu()
+                    }}
+                    label={`${isSelected ? '✓ ' : ''}${st.icon} ${st.label}`}
+                  />
+                )
+              })}
+              {menuGame.status && (
+                <MenuButton
+                  onClick={() => {
+                    updateGame(menuGame.id, { status: null })
+                    closeGameContextMenu()
+                  }}
+                  label="✕ Clear Status"
+                />
+              )}
+            </div>
+
+            {settings.collections.length > 0 && (
+              <>
+                <div style={{
+                  padding: '8px 12px 6px',
+                  fontSize: 10,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: 'var(--text-muted)',
+                }}>
+                  Collections
+                </div>
+                <div style={{ maxHeight: 180, overflow: 'auto', paddingBottom: 6 }}>
+                  {settings.collections.map(collection => {
+                    const isIn = (menuGame.collections || []).includes(collection.id)
+                    return (
+                      <MenuButton
+                        key={collection.id}
+                        onClick={() => {
+                          toggleCollection(menuGame.id, collection.id)
+                          closeGameContextMenu()
+                        }}
+                        label={`${isIn ? '✓ ' : ''}${collection.name}`}
+                      />
+                    )
+                  })}
+                </div>
+              </>
+            )}
+
+            <MenuDivider />
+
+            <MenuButton
+              onClick={() => {
+                removeGame(menuGame.id)
+                closeGameContextMenu()
+              }}
+              label="Remove From Library"
+              tone="danger"
             />
           </div>
-        </div>
-      )}
+        )}
 
-      {updateToast && (
-        <div style={{
-          position: 'fixed',
-          top: 56,
-          right: 16,
-          width: 340,
-          maxWidth: 'calc(100vw - 24px)',
-          background: 'color-mix(in srgb, var(--surface) 92%, black 8%)',
-          border: '1px solid var(--border2)',
-          borderLeft: '3px solid var(--accent)',
-          borderRadius: 10,
-          boxShadow: '0 16px 36px #00000066',
-          zIndex: 2100,
-          padding: 12,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Update available</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                {updateToast.version ? `Version ${updateToast.version} is ready to download.` : 'A new version is ready to download.'}
-              </div>
+        {settingsPopup.open && activeSettingsGame && (
+          <div
+            onClick={() => setSettingsPopup({ open: false, game: null })}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: '#00000080',
+              backdropFilter: 'blur(4px)',
+              zIndex: 2000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 20,
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: '100%',
+                maxWidth: 600,
+                maxHeight: '90vh',
+                background: 'var(--surface)',
+                border: '1px solid var(--border2)',
+                borderRadius: 12,
+                overflow: 'hidden',
+                boxShadow: '0 24px 60px #00000090',
+              }}
+            >
+              <GameSettings
+                game={activeSettingsGame}
+                collections={settings.collections}
+                onBack={() => setSettingsPopup({ open: false, game: null })}
+                onUpdate={updateGame}
+                onRemove={(id) => {
+                  removeGame(id)
+                  setSettingsPopup({ open: false, game: null })
+                }}
+                onToggleFavorite={toggleFavorite}
+                onToggleCollection={toggleCollection}
+              />
             </div>
-            <button
-              onClick={() => setUpdateToast(null)}
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: 6,
-                border: '1px solid var(--border)',
-                background: 'var(--surface2)',
-                color: 'var(--text-muted)',
-                fontSize: 12,
-                lineHeight: '20px',
-                textAlign: 'center',
-                flexShrink: 0,
-              }}
-              title="Dismiss"
-            >
-              x
-            </button>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={() => {
-                vaporApi.update.download()
-                setUpdateToast(null)
-              }}
-              style={{
-                padding: '7px 12px',
-                borderRadius: 7,
-                fontSize: 12,
-                background: 'var(--accent)',
-                color: '#fff',
-                border: 'none',
-              }}
-            >
-              Download
-            </button>
-            <button
-              onClick={() => {
-                setView('settings')
-                setSelected(null)
-                setUpdateToast(null)
-              }}
-              style={{
-                padding: '7px 12px',
-                borderRadius: 7,
-                fontSize: 12,
-                background: 'var(--surface2)',
-                color: 'var(--text)',
-                border: '1px solid var(--border)',
-              }}
-            >
-              Open Updates
-            </button>
-          </div>
-        </div>
-      )}
+        )}
 
-      <GamepadBar
-        isVisible={isGamepadActive && (settings.ui?.gamepadHud ?? true)}
-        view={view}
-        selectedGame={selectedGame}
-        activeCollection={activeCollection}
-        gamepadName={gamepadInfo?.id || null}
-      />
-    </div>
+        {updateToast && (
+          <div style={{
+            position: 'fixed',
+            top: 56,
+            right: 16,
+            width: 340,
+            maxWidth: 'calc(100vw - 24px)',
+            background: 'color-mix(in srgb, var(--surface) 92%, black 8%)',
+            border: '1px solid var(--border2)',
+            borderLeft: '3px solid var(--accent)',
+            borderRadius: 10,
+            boxShadow: '0 16px 36px #00000066',
+            zIndex: 2100,
+            padding: 12,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Update available</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                  {updateToast.version ? `Version ${updateToast.version} is ready to download.` : 'A new version is ready to download.'}
+                </div>
+              </div>
+              <button
+                onClick={() => setUpdateToast(null)}
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 6,
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface2)',
+                  color: 'var(--text-muted)',
+                  fontSize: 12,
+                  lineHeight: '20px',
+                  textAlign: 'center',
+                  flexShrink: 0,
+                }}
+                title="Dismiss"
+              >
+                x
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => {
+                  vaporApi.update.download()
+                  setUpdateToast(null)
+                }}
+                style={{
+                  padding: '7px 12px',
+                  borderRadius: 7,
+                  fontSize: 12,
+                  background: 'var(--accent)',
+                  color: '#fff',
+                  border: 'none',
+                }}
+              >
+                Download
+              </button>
+              <button
+                onClick={() => {
+                  setView('settings')
+                  setSelected(null)
+                  setUpdateToast(null)
+                }}
+                style={{
+                  padding: '7px 12px',
+                  borderRadius: 7,
+                  fontSize: 12,
+                  background: 'var(--surface2)',
+                  color: 'var(--text)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                Open Updates
+              </button>
+            </div>
+          </div>
+        )}
+
+        <GamepadBar
+          isVisible={isGamepadActive && (settings.ui?.gamepadHud ?? true)}
+          view={view}
+          selectedGame={selectedGame}
+          activeCollection={activeCollection}
+          gamepadName={gamepadInfo?.id || null}
+        />
+      </div>
     </>
   )
 }
@@ -1145,10 +1280,10 @@ function MenuButton({ label, onClick, tone = 'default' }) {
     <button
       onClick={onClick}
       style={{
-        width:'100%',
-        textAlign:'left',
-        padding:'8px 12px',
-        fontSize:12,
+        width: '100%',
+        textAlign: 'left',
+        padding: '8px 12px',
+        fontSize: 12,
         color: baseColor,
       }}
       onMouseEnter={(e) => {
@@ -1166,5 +1301,5 @@ function MenuButton({ label, onClick, tone = 'default' }) {
 }
 
 function MenuDivider() {
-  return <div style={{ height:1, background:'var(--border)', margin:'4px 0' }} />
+  return <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
 }
