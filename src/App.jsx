@@ -250,6 +250,9 @@ export default function App() {
               durationMinutes: minutes,
             })
           }
+          if (nextSessions.length > 1000) {
+            nextSessions.length = 1000
+          }
           const nextStatus = (!game.status || game.status === 'Backlog' || game.status === 'On Hold')
             ? 'Currently Playing'
             : game.status

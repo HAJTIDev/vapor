@@ -77,6 +77,7 @@ describe('Backlog Status Workflow & Helper Calculations', () => {
     expect(data.weeks.length).toBe(12)
     expect(data.totalActiveDays).toBeGreaterThanOrEqual(1)
     expect(data.totalMinutes).toBe(165)
+    expect(data.currentStreak).toBeGreaterThanOrEqual(1)
   })
 
   it('generates single month heatmap data for current month with intensity based on games played', () => {
@@ -105,14 +106,15 @@ describe('Backlog Status Workflow & Helper Calculations', () => {
   })
 
   it('generates month-by-month history from first month played to current month', () => {
-    const now = new Date(2026, 8, 30).getTime() // Sep 30, 2026
-    const past = new Date(2026, 5, 10).getTime() // Jun 10, 2026
+    const today = new Date()
+    const now = today.getTime()
+    const past = new Date(today.getFullYear(), today.getMonth() - 3, 10).getTime()
     const sampleSessions = [
       { start: past, durationMinutes: 100 },
       { start: now, durationMinutes: 50 },
     ]
     const history = generateAllMonthsHistory(sampleSessions)
-    expect(history.totalMonthsCount).toBeGreaterThanOrEqual(4) // Jun, Jul, Aug, Sep
+    expect(history.totalMonthsCount).toBeGreaterThanOrEqual(4)
     expect(history.startMonthName).toBeDefined()
     expect(history.months[0].monthTotalMinutes).toBeGreaterThanOrEqual(50)
   })

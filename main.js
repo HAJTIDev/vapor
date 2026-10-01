@@ -1211,8 +1211,9 @@ async function isSteamRunningWindows() {
   })
 }
 
-ipcMain.handle('pcgw:search', async (_, { name }) => {
+ipcMain.handle('pcgw:search', async (_, params) => {
   try {
+    const name = typeof params === 'string' ? params : params?.name
     return await searchPcgw(name)
   } catch (err) {
     console.error('[pcgw:search] Error:', err)
@@ -1367,6 +1368,8 @@ ipcMain.handle('game:show-executable', (_, game) => {
   }
 })
 
+const MAX_STORED_SESSIONS_PER_GAME = 1000
+
 function saveGamePlaytime(gameId, minutes, session = null) {
   try {
     const games = loadJSON(gamesFile, [])
@@ -1375,6 +1378,9 @@ function saveGamePlaytime(gameId, minutes, session = null) {
         const nextSessions = Array.isArray(g.sessions) ? [...g.sessions] : []
         if (session) {
           nextSessions.unshift(session)
+        }
+        if (nextSessions.length > MAX_STORED_SESSIONS_PER_GAME) {
+          nextSessions.length = MAX_STORED_SESSIONS_PER_GAME
         }
         return {
           ...g,
