@@ -238,7 +238,7 @@ export default function App() {
       setRunning(r => { const n = { ...r }; delete n[id]; return n })
       setGames(g => {
         const updated = g.map(game => {
-          if (game.id !== id) return game
+          if (String(game.id) !== String(id)) return game
           const nextSessions = Array.isArray(game.sessions) ? [...game.sessions] : []
           if (session) {
             nextSessions.unshift(session)
@@ -286,9 +286,31 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    // Initial check for currently running games when app mounts
+    if (vaporApi.game && typeof vaporApi.game.getRunning === 'function') {
+      vaporApi.game.getRunning().then((runningMap) => {
+        if (runningMap && typeof runningMap === 'object') {
+          setRunning(prev => ({ ...prev, ...runningMap }))
+        }
+      }).catch(() => {})
+    }
+
     const handleRunningStarted = ({ id }) => {
       if (!id) return
       setRunning(r => ({ ...r, [id]: true }))
+      setGames(prev => {
+        let changed = false
+        const updated = prev.map(g => {
+          if (String(g.id) !== String(id)) return g
+          if (!g.status || g.status === 'Backlog' || g.status === 'On Hold') {
+            changed = true
+            return { ...g, status: 'Currently Playing' }
+          }
+          return g
+        })
+        if (changed) vaporApi.games.save(updated)
+        return changed ? updated : prev
+      })
     }
 
     const handleRunningStopped = ({ id }) => {

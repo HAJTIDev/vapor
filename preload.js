@@ -47,6 +47,7 @@ contextBridge.exposeInMainWorld('vapor', {
     openFolder: (game) => ipcRenderer.invoke('game:open-folder', game),
     showExecutable: (game) => ipcRenderer.invoke('game:show-executable', game),
     isRunning: () => ipcRenderer.invoke('win:isGameRunning'),
+    getRunning: () => ipcRenderer.invoke('game:get-running'),
   },
   update: {
     check: ()    => ipcRenderer.invoke('update:check'),
