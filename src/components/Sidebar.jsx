@@ -29,7 +29,7 @@ export default function Sidebar({
   showSidebarPlaytime,
   compactSidebar,
 }) {
-  const [showStatusSection, setShowStatusSection] = useState(true)
+  const [showStatusSection, setShowStatusSection] = useState(false)
   const go = (v) => { setView(v); onDeselect() }
   const activeCollectionLabel = collections.find(c => c.id === activeCollection)?.name || 'Games'
 
@@ -125,11 +125,26 @@ export default function Sidebar({
         <NavItem active={view==='settings'} onClick={() => go('settings')} icon={<GearIcon />} label="Settings" />
       </nav>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: '12px' }}>
+      <div
+        onClick={() => setShowStatusSection(prev => !prev)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingRight: '12px',
+          cursor: 'pointer',
+          userSelect: 'none',
+        }}
+        title={showStatusSection ? 'Collapse Backlog Status' : 'Expand Backlog Status'}
+      >
         <SectionLabel>Backlog Status</SectionLabel>
         <button
           type="button"
-          onClick={() => setShowStatusSection(prev => !prev)}
+          onClick={(e) => {
+            e.stopPropagation()
+            setShowStatusSection(prev => !prev)
+          }}
+          aria-label={showStatusSection ? 'Collapse Backlog Status' : 'Expand Backlog Status'}
           style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '10px', cursor: 'pointer', padding: '2px 4px' }}
         >
           {showStatusSection ? '−' : '+'}

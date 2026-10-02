@@ -18,6 +18,7 @@ import BacklogBadge from '../src/components/BacklogBadge.jsx'
 import PlaytimeHeatmap from '../src/components/PlaytimeHeatmap.jsx'
 import SessionLog from '../src/components/SessionLog.jsx'
 import Analytics from '../src/components/Analytics.jsx'
+import Sidebar from '../src/components/Sidebar.jsx'
 
 describe('Backlog Status Workflow & Helper Calculations', () => {
   it('defines all required completion statuses', () => {
@@ -196,5 +197,31 @@ describe('Backlog and Playtime UI Component Rendering (SSR)', () => {
     expect(html).toContain('The Witcher 3')
     expect(html).toContain('Completed')
     expect(html).toContain('Currently Playing')
+  })
+
+  it('hides backlog status section on the sidebar by default', () => {
+    const html = renderToString(
+      <Sidebar
+        view="library"
+        setView={() => {}}
+        gameCount={5}
+        search=""
+        setSearch={() => {}}
+        onDeselect={() => {}}
+        collections={[{ id: 'all', name: 'All Games', count: 5, icon: '🎮' }]}
+        activeCollection="all"
+        onCollectionSelect={() => {}}
+        games={[]}
+        selectedGameId={null}
+        onSelectGame={() => {}}
+        onLaunch={() => {}}
+        onGameContextMenu={() => {}}
+        running={{}}
+      />
+    )
+    expect(html).toContain('Backlog Status')
+    // Section should be hidden on default, so inner backlog status container is not rendered
+    expect(html).not.toContain('sidebar-backlog-status')
+    expect(html).toContain('+')
   })
 })
