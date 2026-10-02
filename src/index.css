@@ -290,6 +290,22 @@ button:focus-visible {
   filter: brightness(1.04);
 }
 
+.game-card .game-poster-fallback {
+  width: 100%;
+  height: 100%;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), filter 0.3s ease;
+}
+
+.game-card:hover .game-poster-fallback {
+  transform: scale(1.03);
+  filter: brightness(1.08);
+}
+
+.game-card:hover .game-poster-crest {
+  transform: scale(1.06) translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
 .game-card .cover-overlay-gradient {
   position: absolute;
   inset: 0;

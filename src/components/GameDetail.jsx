@@ -6,6 +6,7 @@ import BacklogBadge from './BacklogBadge.jsx'
 import PlaytimeHeatmap from './PlaytimeHeatmap.jsx'
 import SessionLog from './SessionLog.jsx'
 import { BACKLOG_STATUSES, getStatusConfig } from '../statusWorkflow.js'
+import GameCoverArt from './GameCoverArt.jsx'
 import './GameDetail.css'
 
 function fmtTime(mins) {
@@ -251,14 +252,14 @@ export default function GameDetail({
   return (
     <div style={{ height:'100%', overflow:'auto', position:'relative' }}>
       {/* Hero section with gradient overlay */}
-      <div className="gd-hero-container" style={{
-        background: game.art?.hero 
-          ? 'transparent'
-          : 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 25%, var(--surface)) 0%, var(--surface2) 100%)',
-      }}>
-        {game.art?.hero && (
-          <img src={game.art.hero} alt="" className="gd-hero-backdrop" />
-        )}
+      <div className="gd-hero-container">
+        <GameCoverArt
+          game={game}
+          src={game.art?.hero}
+          alt=""
+          variant="hero"
+          className="gd-hero-backdrop"
+        />
         <div className="gd-hero-gradient" />
 
         {/* Back button */}
@@ -300,17 +301,23 @@ export default function GameDetail({
           gap: spacing.xl,
           zIndex: 5,
         }}>
-          {game.art?.grid && (
-            <img src={game.art.grid} alt="" style={{
-              width: 120,
-              height: 180,
-              objectFit: 'cover',
-              borderRadius: '12px',
-              boxShadow: '0 16px 36px rgba(0,0,0,0.6), 0 0 24px var(--accent-glow)',
-              flexShrink: 0,
-              border: `2px solid var(--border2)`,
-            }} />
-          )}
+          <div style={{
+            width: 120,
+            height: 180,
+            borderRadius: '12px',
+            overflow: 'hidden',
+            boxShadow: '0 16px 36px rgba(0,0,0,0.6), 0 0 24px var(--accent-glow)',
+            flexShrink: 0,
+            border: `2px solid var(--border2)`,
+          }}>
+            <GameCoverArt
+              game={game}
+              src={game.art?.grid}
+              alt={game.name}
+              variant="detail-cover"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             {game.isVR && (
               <div style={{

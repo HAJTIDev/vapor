@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { BACKLOG_STATUSES, getStatusConfig } from '../statusWorkflow.js'
+import GameCoverArt from './GameCoverArt.jsx'
 
 function fmtTime(mins) {
   if (!mins) return '0h'
@@ -309,16 +310,13 @@ function GameRow({ game, active, running, showPlaytime, compact, onClick, onLaun
         flexShrink:0,
         border:'1px solid var(--border)',
       }}>
-        {game.art?.grid ? (
-          <img src={game.art.grid} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-        ) : (
-          <div style={{
-            width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center',
-            color:'var(--text-muted)', fontSize:11, fontWeight:700
-          }}>
-            {game.name?.[0]?.toUpperCase() || '?'}
-          </div>
-        )}
+        <GameCoverArt
+          game={game}
+          src={game.art?.grid}
+          alt=""
+          variant="thumb"
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
       </div>
 
       <div style={{ flex:1, minWidth:0 }}>

@@ -13,6 +13,7 @@ import {
 import kot from '../img/kot.jpg'
 import { BACKLOG_STATUSES } from '../statusWorkflow.js'
 import BacklogBadge from './BacklogBadge.jsx'
+import GameCoverArt from './GameCoverArt.jsx'
 
 const KOT_CHANCE = 0.00002
 
@@ -514,60 +515,14 @@ function GameCard({ game, running, onSelect, onLaunch, onContextMenu, onToggleFa
           </button>
         )}
 
-        {/* Cover Art Image or Premium Abstract Fallback */}
-        {game.art?.grid ? (
-          <img
-            src={showKot ? kot : game.art.grid}
-            alt={game.name}
-            className="cover-art-img"
-          />
-        ) : (
-          <div style={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 26%, #141522) 0%, color-mix(in srgb, var(--accent2, var(--accent)) 16%, #0b0c14) 100%)',
-            position: 'relative',
-            padding: '16px',
-            textAlign: 'center',
-          }}>
-            <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" style={{ position: 'absolute', opacity: 0.12, color: 'var(--text)' }}>
-              <rect x="2" y="6" width="20" height="12" rx="4" />
-              <path d="M6 12h4m-2-2v4m7-2h.01m3-2h.01m-3 4h.01m3 0h.01" />
-            </svg>
-            <div style={{
-              fontSize: '34px',
-              fontWeight: 800,
-              fontFamily: 'var(--font)',
-              letterSpacing: '-1px',
-              background: 'var(--accent-gradient)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              filter: 'drop-shadow(0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent))',
-              zIndex: 1,
-            }}>
-              {game.name ? game.name.split(' ').map(w => w[0]).filter(Boolean).slice(0, 3).join('').toUpperCase() || game.name[0]?.toUpperCase() : '?'}
-            </div>
-            <div style={{
-              marginTop: '8px',
-              fontSize: '10px',
-              fontWeight: 600,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: 'var(--text-muted)',
-              background: 'rgba(0,0,0,0.3)',
-              padding: '2px 8px',
-              borderRadius: '10px',
-              border: '1px solid var(--border)',
-              zIndex: 1,
-            }}>
-              No Artwork
-            </div>
-          </div>
-        )}
+        {/* Cover Art Image or Procedural Fallback Poster */}
+        <GameCoverArt
+          game={game}
+          src={showKot ? kot : game.art?.grid}
+          alt={game.name}
+          variant="card"
+          className="cover-art-img"
+        />
 
         <div className="cover-overlay-gradient" />
 
