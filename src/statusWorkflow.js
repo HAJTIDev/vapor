@@ -227,10 +227,14 @@ export function generateActivityHeatmapData(sessions = [], totalWeeks = 18) {
     pointer.setDate(pointer.getDate() + 1)
   }
 
-  // Calculate streak
+  // Calculate streak with defensive safety cap (up to 10 years / 3650 days)
   let currentStreak = 0
   let checkDate = new Date(today)
-  while (true) {
+  let checkCount = 0
+  const MAX_STREAK_DAYS = 3650
+
+  while (checkCount < MAX_STREAK_DAYS) {
+    checkCount += 1
     const key = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`
     if (dayMap[key] && dayMap[key].minutes > 0) {
       currentStreak += 1
@@ -468,10 +472,11 @@ export function generateMonthHeatmapData(sessions = [], targetYear = null, targe
  * Generate month-by-month history starting from the first month played up to the current month.
  * @param {Array} sessions - Array of session objects
  * @param {Array} games - Optional list of games for top-game attribution
+ * @param {Date|number} [referenceDate] - Optional reference date (defaults to new Date())
  */
-export function generateAllMonthsHistory(sessions = [], games = []) {
+export function generateAllMonthsHistory(sessions = [], games = [], referenceDate = new Date()) {
   const safeSessions = Array.isArray(sessions) ? sessions : []
-  const today = new Date()
+  const today = referenceDate instanceof Date ? referenceDate : new Date(referenceDate || Date.now())
   const currentYear = today.getFullYear()
   const currentMonth = today.getMonth()
 

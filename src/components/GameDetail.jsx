@@ -47,22 +47,6 @@ export default function GameDetail({
   const [editingSteam, setEditingSteam] = useState(false)
   const [steamVal, setSteamVal] = useState(game.steamAppId || '')
 
-  const handleAddSession = (newSession) => {
-    const currentSessions = Array.isArray(game.sessions) ? [...game.sessions] : []
-    currentSessions.unshift(newSession)
-    const addedMins = Number(newSession.durationMinutes) || 0
-    const nextPlaytime = (game.playtime || 0) + addedMins
-    const nextLastPlayed = Math.max(game.lastPlayed || 0, newSession.start || 0)
-    const nextStatus = (!game.status || game.status === 'Backlog' || game.status === 'On Hold')
-      ? 'Currently Playing'
-      : game.status
-    onUpdate(game.id, {
-      sessions: currentSessions,
-      playtime: nextPlaytime,
-      lastPlayed: nextLastPlayed,
-      status: nextStatus,
-    })
-  }
 
   const handleDeleteSession = (sessionId) => {
     const currentSessions = Array.isArray(game.sessions) ? [...game.sessions] : []
@@ -519,7 +503,6 @@ export default function GameDetail({
             <SessionLog
               sessions={game.sessions || []}
               gameTitle={game.name}
-              onAddSession={handleAddSession}
               onDeleteSession={handleDeleteSession}
             />
 

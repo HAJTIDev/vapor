@@ -1,6 +1,6 @@
 {
   "name": "vapor",
-  "version": "1.6.2",
+  "version": "1.6.4",
   "description": "A minimal DRM-free game launcher",
   "main": "main.js",
   "scripts": {
@@ -8,6 +8,8 @@
     "build": "node scripts/encrypt-key.js && vite build && electron-builder --publish never",
     "build:key": "node scripts/encrypt-key.js",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "publish": "node scripts/publish.mjs",
     "publish:linux": "node scripts/publish.mjs --linux --no-bump",
     "push": "git add . && git commit -m meow && git push"

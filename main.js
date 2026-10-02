@@ -8,6 +8,7 @@ const DiscordRPC = require('discord-rpc')
 
 const { loadJSON, saveJSON } = require('./main/storage')
 const { scanDir, scanAutoGameFolders, calculateFolderSize } = require('./main/scanner')
+const { createProcessMonitor } = require('./main/processMonitor')
 const { createSgdbService } = require('./main/sgdb')
 const { createDownloader } = require('./main/downloader')
 const { searchHltb } = require('./main/hltb')
@@ -123,9 +124,8 @@ let currentGameWorkingDir = null
 let discordRpcClient = null
 let discordRpcReady = false
 let discordRpcConnecting = false
-let runningGamesMonitorTimer = null
-let runningGamesMonitorBusy = false
-let lastDetectedRunningGameIds = new Set()
+const activeSessions = new Map()
+let processMonitor = null
 
 const DISCORD_CLIENT_ID = String(process.env.DISCORD_CLIENT_ID || '1485273656555864236').trim()
 const DISCORD_ACTIVITY_STATE = 'Launched from Vapor'
@@ -280,6 +280,9 @@ if (!gotTheLock && !isDev) {
   app.on('before-quit', () => {
     app.isQuitting = true
     stopRunningGamesMonitor()
+    for (const [id] of activeSessions) {
+      endTrackedSession(id, { countPlaytime: true })
+    }
     clearDiscordActivity()
     destroyDiscordRpc()
     downloader.cleanup()
@@ -406,100 +409,34 @@ function normalizeExePath(exePath) {
   return path.normalize(String(exePath)).toLowerCase()
 }
 
-function loadTrackedGamesWithExecutables() {
-  try {
-    const games = loadJSON(gamesFile, [])
-    if (!Array.isArray(games)) return []
-    return games
-      .filter((game) => game && game.id != null && game.exe)
-      .map((game) => ({ id: String(game.id), exe: normalizeExePath(game.exe) }))
-      .filter((game) => !!game.exe)
-  } catch {
-    return []
-  }
-}
-
-function listRunningExecutablePathsWindows() {
-  return new Promise((resolve) => {
-    const command = "$ErrorActionPreference='SilentlyContinue'; Get-Process | ForEach-Object { $_.Path } | Where-Object { $_ }"
-    const checker = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command], {
-      windowsHide: true,
-      stdio: ['ignore', 'pipe', 'ignore'],
-    })
-
-    let output = ''
-    checker.stdout.on('data', (chunk) => {
-      output += String(chunk || '')
-    })
-
-    checker.once('error', () => resolve(new Set()))
-    checker.once('close', () => {
-      const lines = String(output || '')
-        .split(/\r?\n/)
-        .map((line) => normalizeExePath(line.trim()))
-        .filter(Boolean)
-
-      resolve(new Set(lines))
-    })
+function initProcessMonitor() {
+  if (processMonitor) return
+  processMonitor = createProcessMonitor({
+    gamesFile,
+    loadJSON,
+    pollIntervalMs: 2500,
+    onGameStarted: (game) => {
+      console.log(`[processMonitor] Game started: "${game.name}" (${game.id})`)
+      startTrackedSession(game, { external: true })
+    },
+    onGameStopped: (gameId) => {
+      console.log(`[processMonitor] Game stopped: (${gameId})`)
+      endTrackedSession(gameId)
+    },
   })
 }
 
-async function detectRunningGameIds() {
-  const trackedGames = loadTrackedGamesWithExecutables()
-  if (!trackedGames.length) return new Set()
-  if (process.platform !== 'win32') return new Set()
-
-  const runningExePaths = await listRunningExecutablePathsWindows()
-  const runningIds = new Set()
-
-  for (const game of trackedGames) {
-    if (runningExePaths.has(game.exe)) {
-      runningIds.add(game.id)
-    }
-  }
-
-  return runningIds
-}
-
-async function syncRunningGamesToRenderer() {
-  if (runningGamesMonitorBusy) return
-  runningGamesMonitorBusy = true
-
-  try {
-    const detectedRunning = await detectRunningGameIds()
-
-    for (const id of detectedRunning) {
-      if (!lastDetectedRunningGameIds.has(id)) {
-        sendToRenderer('game:running-started', { id })
-      }
-    }
-
-    for (const id of lastDetectedRunningGameIds) {
-      if (!detectedRunning.has(id)) {
-        sendToRenderer('game:running-stopped', { id })
-      }
-    }
-
-    lastDetectedRunningGameIds = detectedRunning
-  } catch {
-    // Keep monitor best-effort to avoid interrupting the app on process query failures.
-  } finally {
-    runningGamesMonitorBusy = false
-  }
-}
-
 function startRunningGamesMonitor() {
-  if (runningGamesMonitorTimer) return
-  syncRunningGamesToRenderer()
-  runningGamesMonitorTimer = setInterval(syncRunningGamesToRenderer, 5000)
+  initProcessMonitor()
+  if (processMonitor) {
+    processMonitor.start()
+  }
 }
 
 function stopRunningGamesMonitor() {
-  if (!runningGamesMonitorTimer) return
-  clearInterval(runningGamesMonitorTimer)
-  runningGamesMonitorTimer = null
-  runningGamesMonitorBusy = false
-  lastDetectedRunningGameIds = new Set()
+  if (processMonitor) {
+    processMonitor.stop()
+  }
 }
 
 function setupAutoUpdater() {
@@ -571,10 +508,24 @@ ipcMain.handle('win:setBackgroundMaterial', (_, material) => {
   return { ok: false, error: 'Not supported on this platform' }
 })
 ipcMain.handle('win:isGameRunning', () => ({
-  running: gameSessionStart !== null,
+  running: activeSessions.size > 0 || gameSessionStart !== null,
   gameId: currentGameId,
   startTime: gameSessionStart,
+  runningIds: Array.from(activeSessions.keys()),
 }))
+
+ipcMain.handle('game:get-running', () => {
+  const runningMap = {}
+  for (const id of activeSessions.keys()) {
+    runningMap[id] = true
+  }
+  if (processMonitor) {
+    for (const id of processMonitor.getRunningGameIds()) {
+      runningMap[id] = true
+    }
+  }
+  return runningMap
+})
 
 ipcMain.handle('dialog:folder', async () => {
   const r = await dialog.showOpenDialog(mainWindow, { properties: ['openDirectory'] })
@@ -610,6 +561,9 @@ ipcMain.handle('games:save', (_, games) => {
       return false
     }
     saveJSON(gamesFile, games)
+    if (processMonitor) {
+      processMonitor.refreshTrackedGames()
+    }
     return true
   } catch (err) {
     console.error('[games:save] Error:', err)
@@ -994,29 +948,49 @@ function clearDiscordActivity() {
   discordRpcClient.clearActivity().catch(() => {})
 }
 
-async function startTrackedSession(game) {
-  const gameId = typeof game === 'object' && game ? game.id : game
+async function startTrackedSession(game, options = {}) {
+  const gameId = typeof game === 'object' && game ? String(game.id) : String(game)
   const gameName = typeof game === 'object' && game ? game.name : null
   const gameArt = typeof game === 'object' && game ? game.art : null
-  gameSessionStart = Date.now()
+  const external = options.external === true
+  const startTime = options.startTime || Date.now()
+
+  if (activeSessions.has(gameId)) {
+    return activeSessions.get(gameId)
+  }
+
+  let sessionArt = gameArt?.grid || gameArt?.hero || gameArt?.logo || null
+  const sessionData = {
+    gameId,
+    gameName: gameName || 'Game',
+    gameArt: sessionArt,
+    startTime,
+    external,
+    postScript: typeof game === 'object' && game?.postExitScript ? game.postExitScript : null,
+    workingDir: typeof game === 'object' ? resolveGameWorkingDir(game) : null,
+  }
+  activeSessions.set(gameId, sessionData)
+
+  gameSessionStart = startTime
   currentGameId = gameId
   currentGameName = gameName || null
-  currentGameArt = gameArt?.grid || gameArt?.hero || gameArt?.logo || null
-  currentGamePostScript = typeof game === 'object' && game?.postExitScript ? game.postExitScript : null
-  currentGameWorkingDir = typeof game === 'object' ? resolveGameWorkingDir(game) : null
+  currentGameArt = sessionArt
+  currentGamePostScript = sessionData.postScript
+  currentGameWorkingDir = sessionData.workingDir
 
-  if (DISCORD_CLIENT_ID && !currentGameArt) {
+  if (DISCORD_CLIENT_ID && !sessionArt && gameName) {
     try {
       const key = sgdb.loadSgdbKey()
       if (key) {
         const sgdbGame = await sgdb.sgdbSearch(gameName)
         if (sgdbGame?.id) {
           const art = await sgdb.sgdbArt(sgdbGame.id)
-          currentGameArt = art.grid || art.hero || art.logo || null
+          sessionArt = art.grid || art.hero || art.logo || null
+          sessionData.gameArt = sessionArt
           if (currentGameId === gameId) {
+            currentGameArt = sessionArt
             updateDiscordActivity(currentGameName)
           }
-          return
         }
       }
     } catch (err) {
@@ -1027,13 +1001,21 @@ async function startTrackedSession(game) {
   if (currentGameId === gameId) {
     updateDiscordActivity(currentGameName)
   }
+
+  sendToRenderer('game:running-started', { id: gameId, name: gameName, external })
+  return sessionData
 }
 
 function endTrackedSession(gameId, options = {}) {
+  const idStr = String(gameId)
+  const sessionData = activeSessions.get(idStr)
+  if (!sessionData && currentGameId !== idStr) {
+    sendToRenderer('game:running-stopped', { id: idStr })
+    return 0
+  }
+
   const countPlaytime = options.countPlaytime !== false
-  const startedAt = currentGameId === gameId && typeof gameSessionStart === 'number'
-    ? gameSessionStart
-    : null
+  const startedAt = sessionData?.startTime || (currentGameId === idStr && typeof gameSessionStart === 'number' ? gameSessionStart : null)
   const endedAt = Date.now()
   const durationMs = startedAt ? Math.max(0, endedAt - startedAt) : 0
   const minutes = startedAt ? Math.max(0, Math.round(durationMs / 60000)) : 0
@@ -1048,29 +1030,51 @@ function endTrackedSession(gameId, options = {}) {
   const effectiveMinutes = session ? session.durationMinutes : minutes
 
   if (countPlaytime && effectiveMinutes > 0) {
-    saveGamePlaytime(gameId, effectiveMinutes, session)
+    saveGamePlaytime(idStr, effectiveMinutes, session)
   }
-  if (currentGamePostScript) {
-    const postScriptToRun = currentGamePostScript
-    const postScriptDir = currentGameWorkingDir || process.cwd()
-    currentGamePostScript = null
-    currentGameWorkingDir = null
+
+  const postScriptToRun = sessionData?.postScript || currentGamePostScript
+  const postScriptDir = sessionData?.workingDir || currentGameWorkingDir || process.cwd()
+  if (postScriptToRun) {
     runGameScript(postScriptToRun, postScriptDir, { wait: false }).catch((err) => {
       console.error('[script] Post-exit script error:', err)
     })
   }
-  if (currentGameId === gameId) {
-    gameSessionStart = null
-    currentGameId = null
-    currentGameName = null
-    currentGameArt = null
-    clearDiscordActivity()
+
+  const wasExternal = !!sessionData?.external
+  activeSessions.delete(idStr)
+
+  if (currentGameId === idStr) {
+    if (activeSessions.size > 0) {
+      const [nextId, nextSession] = activeSessions.entries().next().value
+      currentGameId = nextId
+      currentGameName = nextSession.gameName
+      currentGameArt = nextSession.gameArt
+      gameSessionStart = nextSession.startTime
+      currentGamePostScript = nextSession.postScript
+      currentGameWorkingDir = nextSession.workingDir
+      updateDiscordActivity(currentGameName)
+    } else {
+      gameSessionStart = null
+      currentGameId = null
+      currentGameName = null
+      currentGameArt = null
+      currentGamePostScript = null
+      currentGameWorkingDir = null
+      clearDiscordActivity()
+    }
   }
-  if (mainWindow && !mainWindow.isDestroyed()) {
+
+  if (!wasExternal && mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.show()
     mainWindow.focus()
-    sendToRenderer('game:session-end', { id: gameId, minutes: effectiveMinutes, session })
   }
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    sendToRenderer('game:session-end', { id: idStr, minutes: effectiveMinutes, session })
+    sendToRenderer('game:running-stopped', { id: idStr })
+  }
+
   return effectiveMinutes
 }
 
@@ -1211,8 +1215,9 @@ async function isSteamRunningWindows() {
   })
 }
 
-ipcMain.handle('pcgw:search', async (_, { name }) => {
+ipcMain.handle('pcgw:search', async (_, params) => {
   try {
+    const name = typeof params === 'string' ? params : params?.name
     return await searchPcgw(name)
   } catch (err) {
     console.error('[pcgw:search] Error:', err)
@@ -1289,7 +1294,13 @@ ipcMain.handle('game:launch', async (_, game) => {
       minimizeMainWindowForLaunch()
 
       proc.once('close', () => {
-        endTrackedSession(game.id)
+        setTimeout(() => {
+          if (processMonitor && processMonitor.isGameRunning(game.id)) {
+            console.log(`[game:launch] Launcher process closed but game process is still active for ${game.name}. Keeping session alive.`)
+            return
+          }
+          endTrackedSession(game.id)
+        }, 1500)
       })
 
       proc.once('error', (err) => {
@@ -1367,6 +1378,8 @@ ipcMain.handle('game:show-executable', (_, game) => {
   }
 })
 
+const MAX_STORED_SESSIONS_PER_GAME = 1000
+
 function saveGamePlaytime(gameId, minutes, session = null) {
   try {
     const games = loadJSON(gamesFile, [])
@@ -1375,6 +1388,9 @@ function saveGamePlaytime(gameId, minutes, session = null) {
         const nextSessions = Array.isArray(g.sessions) ? [...g.sessions] : []
         if (session) {
           nextSessions.unshift(session)
+        }
+        if (nextSessions.length > MAX_STORED_SESSIONS_PER_GAME) {
+          nextSessions.length = MAX_STORED_SESSIONS_PER_GAME
         }
         return {
           ...g,
